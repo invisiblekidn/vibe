@@ -1,0 +1,21 @@
+{
+  "name": "vibe-restaurant",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "db:migrate:local": "wrangler d1 migrations apply vibe-db --local",
+    "db:seed:local": "wrangler d1 execute vibe-db --local --file=seed/seed.sql",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.6.20"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261110.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.159.0"
+  }
+}
