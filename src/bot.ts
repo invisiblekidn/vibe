@@ -121,11 +121,24 @@ export async function notifyOrderEvent(env: TgEnv, orderId: number, event: strin
 
 // ---------- События от Telegram ----------
 
+/** Запомнить участников группы сотрудников (id, @имя), чтобы добавить их в TG_STAFF. */
+async function rememberPeople(env: TgEnv, users: any[]) {
+  const now = new Date().toISOString();
+  for (const u of users) {
+    if (!u?.id || u.is_bot) continue;
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    await env.DB.prepare(
+      'INSERT INTO tg_people (user_id, username, name, seen_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET username = excluded.username, name = excluded.name, seen_at = excluded.seen_at',
+    ).bind(u.id, u.username ?? null, name, now).run().catch(() => null);
+  }
+}
+
 export async function handleUpdate(env: TgEnv, u: any, baseUrl: string): Promise<void> {
   if (u.callback_query) return onCallback(env, u.callback_query, baseUrl);
   const m = u.message;
   if (!m || !m.chat) return;
   if (m.chat.type === 'private') return onPrivate(env, m, baseUrl);
+  if (m.chat.id === staffChat(env)) await rememberPeople(env, [m.from, ...(m.new_chat_members || [])]);
   if (typeof m.text === 'string' && /^\/id(@\w+)?$/.test(m.text)) {
     // Помогает настроить группу сотрудников: бот сообщает id группы и id написавшего (для списка TG_STAFF).
     const who = m.from ? `\nваш id: ${m.from.id} (${[m.from.first_name, m.from.username && '@' + m.from.username].filter(Boolean).join(', ')})` : '';
