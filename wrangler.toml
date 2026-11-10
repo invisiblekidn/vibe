@@ -1,0 +1,19 @@
+name = "vibe-restaurant"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vibe-db"
+# Тестовая база: локально работает без аккаунта Cloudflare.
+# Перед публикацией сюда впишем id настоящей базы (согласуется отдельно).
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+LOCATION_ID = "nt1"
