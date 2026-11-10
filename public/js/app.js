@@ -15,6 +15,7 @@ const ERRORS = {
   NOT_ACCEPTING: 'Сейчас ресторан не принимает предзаказы. Позвоните нам.',
   TYPE_NOT_AVAILABLE: 'Этот способ получения сейчас недоступен.',
   BAD_INPUT: 'Проверьте имя и телефон.',
+  TG_AUTH: 'Telegram не подтвердил вход. Закройте меню и откройте его заново кнопкой в боте.',
   NETWORK: 'Нет связи. Проверьте интернет и нажмите ещё раз: заказ не задвоится.',
 };
 
@@ -57,6 +58,9 @@ function saveCart() {
 // ---------- Меню ----------
 
 async function init() {
+  await tgReady();
+  const tgUser = TGW && TGW.initDataUnsafe && TGW.initDataUnsafe.user;
+  if (tgUser && !state.guest.name) state.guest.name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
   try {
     state.menu = await api('/api/menu');
   } catch {
@@ -349,6 +353,7 @@ async function submit() {
         guest: { name, phone },
         comment: state.comment,
         lang: LANG,
+        tgInitData: TGW ? TGW.initData : undefined,
       },
     });
     state.cart = [];
@@ -356,7 +361,7 @@ async function submit() {
     sessionStorage.removeItem('vibe_idem');
     const mine = load('vibe_orders', []);
     if (!mine.includes(r.token)) save('vibe_orders', [r.token, ...mine].slice(0, 10));
-    location.href = '/order?t=' + encodeURIComponent(r.token);
+    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '');
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');

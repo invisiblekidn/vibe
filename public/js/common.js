@@ -50,3 +50,27 @@ function slotLabel(slot, today) {
   const l = dayLabel(day, today);
   return `${l.top === 'Сегодня' || l.top === 'Завтра' ? l.top.toLowerCase() + ', ' + long : long} в ${time}`;
 }
+
+// Telegram Mini App: сайт открыт кнопкой из бота (?tg=1). Скрипт Telegram грузим только тогда.
+const IN_TG = /[?&]tg=1\b/.test(location.search) || location.hash.includes('tgWebAppData');
+let TGW = null;
+function tgReady() {
+  return new Promise((resolve) => {
+    if (!IN_TG) return resolve(null);
+    const s = document.createElement('script');
+    s.src = 'https://telegram.org/js/telegram-web-app.js';
+    s.onload = () => {
+      const w = window.Telegram && window.Telegram.WebApp;
+      try {
+        w.ready();
+        w.expand();
+        w.setHeaderColor('#f7ecda');
+        w.setBackgroundColor('#f7ecda');
+      } catch { /* старая версия Telegram */ }
+      TGW = w && w.initData ? w : null;
+      resolve(TGW);
+    };
+    s.onerror = () => resolve(null);
+    document.head.appendChild(s);
+  });
+}

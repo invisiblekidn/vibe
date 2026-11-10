@@ -3,10 +3,13 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { getLocation, indexMenu, loadMenu, soldOutOn, takenSlots } from './db';
 import { OrderError, priceCart, type CartItemInput } from './lib/pricing';
 import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from './lib/time';
-import { applyAction, guestStatus, type Action, type OrderState } from './lib/status';
+import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
+import { verifyInitData } from './lib/telegram';
+import { handleUpdate, notifyOrderEvent, type TgEnv } from './bot';
+import { transition } from './orders';
 
-export interface Env {
+export interface Env extends TgEnv {
   DB: D1Database;
   ASSETS: Fetcher;
   LOCATION_ID: string;
@@ -21,6 +24,17 @@ const LANGS = ['ru', 'vi', 'en'];
 const langOf = (v: unknown) => (typeof v === 'string' && LANGS.includes(v) ? v : 'ru');
 const nowMs = () => Date.now();
 const iso = () => new Date().toISOString();
+const baseUrl = (c: { env: Env; req: { url: string } }) => (c.env.PUBLIC_URL || new URL(c.req.url).origin).replace(/\/$/, '');
+
+/** Уведомления в Telegram отправляются после ответа гостю и не задерживают его. */
+function notifyLater(c: any, orderId: number, event: string, actor: string) {
+  const p = notifyOrderEvent(c.env, orderId, event, actor, baseUrl(c)).catch((e) => console.warn('notify failed', e));
+  try {
+    c.executionCtx.waitUntil(p);
+  } catch {
+    /* вне Workers (тесты) — просто не ждём */
+  }
+}
 
 // Этап 1: самовывоз и «к визиту». Доставка и стол подключаются на этапах 3 и 4.
 const ENABLED_TYPES: OrderType[] = ['pickup', 'visit'];
@@ -84,6 +98,8 @@ interface CreateOrderBody {
   guest: { name: string; phone: string };
   comment?: string;
   lang?: string;
+  /** initData из Telegram Mini App: заказ привязывается к гостю в Telegram. */
+  tgInitData?: string;
 }
 
 const cleanText = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -109,6 +125,13 @@ app.post('/api/orders', async (c) => {
   if (!name) return c.json({ error: 'BAD_INPUT', field: 'name' }, 400);
   if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return c.json({ error: 'BAD_INPUT', field: 'phone' }, 400);
 
+  let tgUserId: number | null = null;
+  if (body.tgInitData) {
+    const user = await verifyInitData(String(body.tgInitData), c.env.TG_BOT_TOKEN ?? '', nowMs());
+    if (!user) return c.json({ error: 'TG_AUTH' }, 401);
+    tgUserId = user.id;
+  }
+
   const slotErr = checkSlot(String(body.slot), nowMs(), loc, body.type);
   if (slotErr) throw new OrderError(slotErr);
 
@@ -126,11 +149,11 @@ app.post('/api/orders', async (c) => {
   const insertOrder = db
     .prepare(
       `INSERT INTO orders (public_token, idempotency_key, location_id, channel, type, slot, status, payment_method, payment_status,
-         subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at)
-       SELECT ?, ?, ?, 'site', ?, ?, 'new', 'qr', 'unpaid', ?, 0, ?, ?, ?, ?, ?, ?, ?
+         subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, tg_user_id)
+       SELECT ?, ?, ?, ?, ?, ?, 'new', 'qr', 'unpaid', ?, 0, ?, ?, ?, ?, ?, ?, ?, ?
        WHERE (SELECT COUNT(*) FROM orders WHERE location_id = ? AND slot = ? AND status != 'cancelled') < ?`,
     )
-    .bind(token, key, loc.id, body.type, body.slot, subtotal, total, name, phone, cleanText(body.comment, 300) || null, lang, now, now, loc.id, body.slot, loc.slot_capacity);
+    .bind(token, key, loc.id, tgUserId ? 'telegram' : 'site', body.type, body.slot, subtotal, total, name, phone, cleanText(body.comment, 300) || null, lang, now, now, tgUserId, loc.id, body.slot, loc.slot_capacity);
   const insertItems = lines.map((l) =>
     db
       .prepare(
@@ -156,6 +179,7 @@ app.post('/api/orders', async (c) => {
   if (inserted === 0) throw new OrderError('SLOT_FULL', { slot: body.slot });
 
   const row = await db.prepare('SELECT id FROM orders WHERE idempotency_key = ?').bind(key).first<{ id: number }>();
+  notifyLater(c, row!.id, 'created', 'guest');
   return c.json({ number: row!.id, token, total }, 201);
 });
 
@@ -165,8 +189,11 @@ async function orderByToken(db: D1Database, token: string) {
   return db.prepare('SELECT * FROM orders WHERE public_token = ?').bind(token).first<any>();
 }
 
-function publicOrder(o: any, items: any[], qrUrl: string | null) {
+function publicOrder(o: any, items: any[], qrUrl: string | null, botUsername?: string) {
   return {
+    // Ссылка «Следить в Telegram» для заказа с сайта: бот привяжет заказ и будет присылать статусы.
+    tgLink: botUsername && !o.tg_user_id ? `https://t.me/${botUsername}?start=o_${o.public_token}` : null,
+    inTelegram: !!o.tg_user_id,
     number: o.id,
     type: o.type,
     slot: o.slot,
@@ -190,7 +217,7 @@ app.get('/api/orders/:token', async (c) => {
   if (!o) return c.json({ error: 'NOT_FOUND' }, 404);
   const items = await c.env.DB.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY id').bind(o.id).all<any>();
   const loc = await getLocation(c.env.DB, o.location_id);
-  return c.json(publicOrder(o, items.results, loc?.payment_qr_url ?? null));
+  return c.json(publicOrder(o, items.results, loc?.payment_qr_url ?? null, c.env.TG_BOT_USERNAME));
 });
 
 app.post('/api/orders/:token/report-payment', async (c) => {
@@ -200,26 +227,10 @@ app.post('/api/orders/:token/report-payment', async (c) => {
 });
 
 async function runAction(db: D1Database, o: any, action: Action, actor: string, c: any) {
-  const t = applyAction(o as OrderState, action);
-  if (!t.ok) return c.json({ error: t.reason }, 409);
-  if (t.event !== 'noop') {
-    const now = iso();
-    // Обновляем, только если статусы не изменились с момента чтения (защита от двух одновременных нажатий).
-    const res = await db.batch([
-      db
-        .prepare(
-          `UPDATE orders SET status = ?, payment_status = ?, updated_at = ?,
-             payment_reported_at = CASE WHEN ? = 'payment_reported' THEN ? ELSE payment_reported_at END
-           WHERE id = ? AND status = ? AND payment_status = ?`,
-        )
-        .bind(t.next.status, t.next.payment_status, now, t.event, now, o.id, o.status, o.payment_status),
-      db
-        .prepare(`INSERT INTO order_events (order_id, at, actor, kind) SELECT ?, ?, ?, ? WHERE changes() = 1`)
-        .bind(o.id, now, actor, t.event),
-    ]);
-    if ((res[0].meta.changes ?? 0) === 0) return c.json({ error: 'CHANGED_MEANWHILE' }, 409);
-  }
-  const fresh = await db.prepare('SELECT * FROM orders WHERE id = ?').bind(o.id).first<any>();
+  const r = await transition(db, o, action, actor);
+  if (!r.ok) return c.json({ error: r.error }, 409);
+  if (r.changed) notifyLater(c, o.id, r.event, actor);
+  const fresh = r.order;
   return c.json({ ok: true, status: guestStatus(fresh), paymentStatus: fresh.payment_status, kitchenStatus: fresh.status });
 }
 
@@ -312,5 +323,30 @@ app.get('/api/staff/orders/:id/events', async (c) => {
 });
 
 app.all('/api/*', (c) => c.json({ error: 'NOT_FOUND' }, 404));
+
+// ---------- Telegram ----------
+
+app.post('/tg/webhook', async (c) => {
+  // Telegram присылает секрет, заданный при setWebhook: чужие запросы отклоняем.
+  const secret = c.req.header('x-telegram-bot-api-secret-token') ?? '';
+  if (!c.env.TG_BOT_TOKEN || !c.env.TG_WEBHOOK_SECRET || !pinMatches(c.env.TG_WEBHOOK_SECRET, secret)) return c.text('forbidden', 403);
+  const u = (await c.req.json().catch(() => null)) as { update_id?: number } | null;
+  if (!u || !Number.isSafeInteger(u.update_id)) return c.text('ok');
+  const db = c.env.DB;
+  // Одно событие — одна обработка: повторная доставка того же update_id ничего не делает.
+  const ins = await db.prepare('INSERT OR IGNORE INTO tg_updates (update_id, received_at) VALUES (?, ?)').bind(u.update_id, iso()).run();
+  if ((ins.meta.changes ?? 0) === 0) return c.text('ok');
+  try {
+    await handleUpdate(c.env, u, baseUrl(c));
+  } catch (e) {
+    console.error('telegram update failed', e);
+    // Снимаем отметку, чтобы Telegram прислал событие ещё раз.
+    await db.prepare('DELETE FROM tg_updates WHERE update_id = ?').bind(u.update_id).run();
+    return c.text('retry', 500);
+  }
+  return c.text('ok');
+});
+
+app.all('/tg/*', (c) => c.text('not found', 404));
 
 export default app;

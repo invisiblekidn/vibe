@@ -81,7 +81,7 @@ function render(flash = '') {
       const waited = o.paymentStatus === 'reported' ? minutesSince(o.paymentReportedAt) : 0;
       return `<article class="card ord${o.paymentStatus === 'reported' ? ' attn' : ''}">
         <div class="top"><span class="no">№ ${o.id}</span><span>${TYPE_LABEL[o.type]} · <b>${esc(slotLabel(o.slot, today))}</b></span></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill mute">${KITCHEN[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : esc(o.channel)}</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill mute">${KITCHEN[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : esc(o.channel)}</span></div>
         ${o.paymentStatus === 'reported' ? `<p class="hint" style="margin:0">Гость нажал «Я оплатил» ${waited} мин назад. Подтверждайте, только когда увидите <b>${fmt(o.total)}</b> в банке (в комментарии должен быть № ${o.id}).${waited >= 30 ? ' <b>Прошло 30 минут: свяжитесь с гостем.</b>' : ''}</p>` : ''}
         <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
         <div class="line tot" style="margin:0"><span>Сумма</span><span>${fmt(o.total)}</span></div>

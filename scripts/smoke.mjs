@@ -18,13 +18,19 @@ async function call(path, { method = 'GET', body, cookie } = {}) {
 }
 
 const menu = (await call('/api/menu')).data;
-const slots = (await call('/api/slots?type=pickup')).data;
-const day = slots.days[2]; // через два дня: время точно свободно и не «слишком рано»
+// Ищем день, где есть два полностью свободных интервала (скрипт можно запускать повторно на той же базе).
+const days = (await call('/api/slots?type=pickup')).data.days;
+let day, emptyA, emptyB;
+for (const d of days.slice(1)) {
+  const free = (await call(`/api/slots?type=pickup&day=${d}`)).data.slots.filter((s) => s.state === 'free' && s.left === 5);
+  if (free.length >= 2) { day = d; emptyA = free[0].time; emptyB = free[1].time; break; }
+}
+if (!day) { console.error('Нет свободных дней: пересоздайте локальную базу'); process.exit(1); }
 const guest = { name: 'Тест', phone: '+84 900 000 000' };
 const sy = menu.dishes.find((d) => d.id === 'syrniki');
 const sauce = sy.groups[0].options[0].id;
 const order = (over = {}) => ({
-  idempotencyKey: rnd(), type: 'pickup', slot: `${day} 12:00`, guest, lang: 'ru',
+  idempotencyKey: rnd(), type: 'pickup', slot: `${day} ${emptyA}`, guest, lang: 'ru',
   items: [{ dishId: 'cappuccino', qty: 1 }], ...over,
 });
 const base = order({ items: [{ dishId: 'syrniki', qty: 2, optionIds: [sauce], price: 1 }] });
@@ -46,13 +52,13 @@ ok((await call('/api/orders', { method: 'POST', body: order({ slot: `${day} 12:1
 ok((await call('/api/orders', { method: 'POST', body: order({ type: 'delivery' }) })).data.error === 'TYPE_NOT_AVAILABLE', 'доставка на этапе 1 выключена');
 
 // 4. Заполненный интервал: 5 заказов на 13:00 одновременно + шестой
-const slot = `${day} 13:00`;
+const slot = `${day} ${emptyB}`;
 const burst = await Promise.all(Array.from({ length: 6 }, () => call('/api/orders', { method: 'POST', body: order({ slot }) })));
 const created = burst.filter((r) => r.status === 201).length;
 const full = burst.filter((r) => r.data?.error === 'SLOT_FULL').length;
-ok(created === 5 && full === 1, `6 одновременных заказов на 13:00: принято ${created}, отказ «занято» ${full}`);
-const s2 = (await call(`/api/slots?type=pickup&day=${day}`)).data.slots.find((s) => s.time === '13:00');
-ok(s2.state === 'full', 'интервал 13:00 показан гостю как занятый');
+ok(created === 5 && full === 1, `6 одновременных заказов в один интервал: принято ${created}, отказ «занято» ${full}`);
+const s2 = (await call(`/api/slots?type=pickup&day=${day}`)).data.slots.find((s) => s.time === emptyB);
+ok(s2.state === 'full', 'заполненный интервал показан гостю как занятый');
 
 // 5. Оплата: «Я оплатил» ≠ «оплата подтверждена»
 const t = a.data.token;

@@ -54,7 +54,8 @@ function render() {
       <div class="line tot"><span>Итого</span><span>${fmt(o.total)}</span></div>
       ${o.comment ? `<p class="muted" style="margin:8px 0 0;font-size:14px">Комментарий: ${esc(o.comment)}</p>` : ''}
     </div>
-    <p class="muted" style="text-align:center;font-size:13px;margin:0">Сохраните эту страницу: статус обновляется сам.</p>`;
+    ${o.tgLink && !TGW && !['completed', 'cancelled'].includes(o.status) ? `<a class="btn ghost block" href="${esc(o.tgLink)}" target="_blank" rel="noopener">Получать статус в Telegram</a>` : ''}
+    <p class="muted" style="text-align:center;font-size:13px;margin:0">${o.inTelegram ? 'Статус придёт сообщением в Telegram, а эта страница обновляется сама.' : 'Сохраните эту страницу: статус обновляется сам.'}</p>`;
 
   const paid = $('#paid');
   if (paid) paid.onclick = reportPaid;
@@ -90,4 +91,4 @@ async function refresh() {
 }
 
 if (!token) root.innerHTML = '<p class="alert">Заказ не найден. Проверьте ссылку.</p>';
-else refresh();
+else tgReady().then(refresh);

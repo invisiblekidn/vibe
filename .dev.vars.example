@@ -3,3 +3,19 @@
 STAFF_PIN=1234
 # Секрет для подписи сессии сотрудника (любая длинная случайная строка)
 SESSION_SECRET=change-me-to-a-long-random-string
+
+# --- Telegram (этап 2). Настоящий токен — только здесь или в секретах Cloudflare, не в репозитории.
+# Токен тестового бота от @BotFather
+TG_BOT_TOKEN=
+# Любая длинная случайная строка: Telegram присылает её с каждым событием
+TG_WEBHOOK_SECRET=
+# Имя бота без @ (для ссылки «Получать статус в Telegram»)
+TG_BOT_USERNAME=
+# id закрытой группы сотрудников (бот подскажет командой /id в группе)
+TG_STAFF_CHAT_ID=
+# Кто может нажимать кнопки в группе: telegram-id:Имя через запятую
+TG_STAFF=
+# Публичный адрес сайта (https), на него ведёт кнопка «Открыть меню»
+PUBLIC_URL=
+# Только для локальной имитации Telegram (scripts/tg-smoke.mjs)
+# TG_API_BASE=http://localhost:8788
