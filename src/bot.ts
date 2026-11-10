@@ -14,9 +14,16 @@ import {
   staffAlertText,
   staffButtons,
   staffOrderText,
+  BILL_CODES,
+  billButtons,
+  billText,
+  parseTableCallback,
+  waiterCallText,
   type InlineButton,
 } from './lib/telegram';
 import { orderWithItems, transition } from './orders';
+import { tableTitle } from './lib/tables';
+import { billAction, billTotal, closeCall } from './tables';
 
 export interface TgEnv {
   DB: D1Database;
@@ -248,6 +255,10 @@ async function onStaffGroup(env: TgEnv, m: any) {
 }
 
 const ERR_TEXT: Record<string, string> = {
+  BILL_MERGED: 'Этот счёт уже объединён в общий счёт стола',
+  BILL_CLOSED: 'Счёт уже закрыт',
+  BILL_PAYMENT_PENDING: 'Гость уже оплачивает этот счёт, объединить нельзя',
+  NOTHING_TO_MERGE: 'За столом нет других открытых счетов',
   PAYMENT_NOT_CONFIRMED: 'Сначала подтвердите оплату',
   CHANGED_MEANWHILE: 'Заказ только что изменили, карточка обновлена',
   ORDER_CLOSED: 'Заказ уже закрыт',
@@ -302,6 +313,8 @@ async function pickGuest(env: TgEnv, q: any, answer: (t: string, a?: boolean) =>
 async function onCallback(env: TgEnv, q: any, baseUrl: string) {
   const answer = (text: string, show_alert = false) => tg(env, 'answerCallbackQuery', { callback_query_id: q.id, text, show_alert });
   if (/^g:\d{1,15}$/.test(q.data || '')) return pickGuest(env, q, answer);
+  const tc = parseTableCallback(q.data);
+  if (tc) return onTableCallback(env, q, tc, answer);
   const parsed = parseCallback(q.data);
   const chat = staffChat(env);
   if (!parsed || !chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
@@ -337,4 +350,103 @@ async function onCallback(env: TgEnv, q: any, baseUrl: string) {
   }
   await answer('Готово');
   await notifyOrderEvent(env, o.id, r.event, `staff:${name}`, baseUrl);
+}
+
+// ---------- Столы: вызовы официанта и счета ----------
+
+async function tableInfo(env: TgEnv, tableId: string) {
+  const t = await env.DB.prepare('SELECT id, zone FROM dining_tables WHERE id = ?').bind(tableId).first<any>();
+  return tableTitle(t ?? { id: tableId, zone: 'hall' });
+}
+
+/** Новый вызов со стола: сообщение в группу сотрудников с кнопкой «Иду». */
+export async function notifyTableCall(env: TgEnv, callId: number) {
+  const chat = staffChat(env);
+  if (!env.TG_BOT_TOKEN || !chat) return;
+  const c = await env.DB.prepare('SELECT * FROM table_calls WHERE id = ?').bind(callId).first<any>();
+  if (!c) return;
+  if (c.kind === 'bill' && c.bill_id) return syncBillCard(env, c.bill_id);
+  const sent = await tg(env, 'sendMessage', {
+    chat_id: chat,
+    text: waiterCallText(await tableInfo(env, c.table_id)),
+    parse_mode: 'HTML',
+    reply_markup: kb([[{ text: '🙋 Иду', callback_data: `c:${c.id}` }]]),
+  });
+  if (sent?.message_id) await env.DB.prepare('UPDATE table_calls SET staff_msg_id = ? WHERE id = ?').bind(sent.message_id, c.id).run();
+}
+
+/** Сообщение о счёте в группе: создаём при «Попросить счёт», дальше обновляем. */
+export async function syncBillCard(env: TgEnv, billId: number, lastActor?: string, alert?: string) {
+  const chat = staffChat(env);
+  if (!env.TG_BOT_TOKEN || !chat) return;
+  const b = await env.DB.prepare('SELECT * FROM bills WHERE id = ?').bind(billId).first<any>();
+  if (!b) return;
+  const total = b.status === 'paid' ? b.paid_total ?? 0 : await billTotal(env.DB, b.id);
+  const shared = !!(await env.DB.prepare('SELECT 1 FROM bills WHERE merged_into = ? LIMIT 1').bind(b.id).first());
+  const others = await env.DB.prepare(`SELECT COUNT(*) AS n FROM bills x WHERE x.table_id = ? AND x.status = 'open' AND x.id != ? AND x.payment_status = 'unpaid' AND EXISTS (SELECT 1 FROM orders o WHERE o.bill_id = x.id AND o.status != 'cancelled')`).bind(b.table_id, b.id).first<any>();
+  const title = await tableInfo(env, b.table_id);
+  const text = billText(title, { ...b, total, shared }, lastActor);
+  const reply_markup = kb(billButtons(b, (others?.n ?? 0) > 0));
+  if (b.staff_msg_id) {
+    await tg(env, 'editMessageText', { chat_id: chat, message_id: b.staff_msg_id, text, parse_mode: 'HTML', reply_markup });
+  } else if (b.status === 'open') {
+    const sent = await tg(env, 'sendMessage', { chat_id: chat, text, parse_mode: 'HTML', reply_markup });
+    if (sent?.message_id) await env.DB.prepare('UPDATE bills SET staff_msg_id = ? WHERE id = ? AND staff_msg_id IS NULL').bind(sent.message_id, b.id).run();
+    b.staff_msg_id = sent?.message_id;
+  }
+  if (alert) {
+    await tg(env, 'sendMessage', {
+      chat_id: chat,
+      text: alert,
+      parse_mode: 'HTML',
+      ...(b.staff_msg_id ? { reply_parameters: { message_id: b.staff_msg_id, allow_sending_without_reply: true } } : {}),
+      ...(b.staff_msg_id ? {} : { reply_markup }),
+    });
+  }
+}
+
+/** Событие счёта (с сайта или из панели) → группа сотрудников. */
+export async function notifyBillEvent(env: TgEnv, billId: number, event: string, actor: string) {
+  if (!env.TG_BOT_TOKEN || !staffChat(env)) return;
+  const who = actor.startsWith('staff:') ? actor.slice(6) : actor === 'guest' ? 'Гость' : '';
+  const b = await env.DB.prepare('SELECT table_id FROM bills WHERE id = ?').bind(billId).first<any>();
+  if (!b) return;
+  const title = await tableInfo(env, b.table_id);
+  if (event === 'payment_reported') {
+    const total = await billTotal(env.DB, billId);
+    return syncBillCard(env, billId, undefined, `⚠️ ${escHtml(title)}: гость сообщил об оплате счёта №${billId} на <b>${fmtVnd(total)}</b>. Подтверждайте, только когда увидите деньги в банке.`);
+  }
+  if (event === 'paid') return syncBillCard(env, billId, who ? `Оплату отметил(а) ${who}` : undefined);
+  if (event === 'merged') {
+    const total = await billTotal(env.DB, billId);
+    return syncBillCard(env, billId, undefined, `🔗 ${escHtml(title)}: все счета стола объединены в №${billId}${who ? ` (${escHtml(who)})` : ''}. Итого <b>${fmtVnd(total)}</b>.`);
+  }
+}
+
+async function onTableCallback(env: TgEnv, q: any, tc: NonNullable<ReturnType<typeof parseTableCallback>>, answer: (t: string, a?: boolean) => Promise<any>) {
+  const chat = staffChat(env);
+  if (!chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
+  const name = parseStaffList(env.TG_STAFF).get(q.from?.id);
+  if (!name) return void (await answer('Эти кнопки только для сотрудников из списка.', true));
+
+  if (tc.kind === 'call') {
+    const c = await env.DB.prepare('SELECT * FROM table_calls WHERE id = ?').bind(tc.id).first<any>();
+    if (!c) return void (await answer('Вызов не найден'));
+    const changed = await closeCall(env.DB, c.id, `staff:${name}`);
+    const doneBy = changed ? name : (c.done_by || '').replace(/^staff:/, '') || 'сотрудник';
+    await tg(env, 'editMessageText', { chat_id: chat, message_id: q.message.message_id, text: waiterCallText(await tableInfo(env, c.table_id), doneBy), parse_mode: 'HTML' });
+    return void (await answer(changed ? 'Отмечено: вы идёте' : 'Уже идёт ' + doneBy));
+  }
+
+  const r = await billAction(env.DB, tc.id, BILL_CODES[tc.code], `staff:${name}`);
+  if (!r.ok) {
+    await answer(ERR_TEXT[r.error] || 'Не получилось', true);
+    await syncBillCard(env, tc.id);
+    return;
+  }
+  if (!r.changed) return void (await answer('Уже сделано'));
+  // Кнопку могли нажать на копии сообщения: дальше обновляем её.
+  await env.DB.prepare('UPDATE bills SET staff_msg_id = COALESCE(staff_msg_id, ?) WHERE id = ?').bind(q.message?.message_id ?? null, tc.id).run();
+  await answer('Готово');
+  await notifyBillEvent(env, tc.id, tc.code === 'all' ? 'merged' : 'paid', `staff:${name}`);
 }

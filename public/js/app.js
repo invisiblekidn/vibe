@@ -19,10 +19,14 @@ const ERRORS = {
   NETWORK: 'Нет связи. Проверьте интернет и нажмите ещё раз: заказ не задвоится.',
 };
 
+// Гость открыл QR на столе: /?table=<код>. Заказ идёт на этот стол, без входа и выбора времени (см. table.js).
+const TABLE_CODE = (new URLSearchParams(location.search).get('table') || '').toLowerCase().replace(/[^a-z0-9]/g, '') || null;
+const CART_KEY = TABLE_CODE ? 'vibe_cart_table' : 'vibe_cart';
+
 const state = {
   menu: null,
   dishes: new Map(),
-  cart: load('vibe_cart', []), // [{key, dishId, qty, optionIds}]
+  cart: load(CART_KEY, []), // [{key, dishId, qty, optionIds}]
   type: 'pickup',
   day: null,
   slot: null,
@@ -49,7 +53,7 @@ const cartTotal = () => state.cart.reduce((s, i) => s + unitPrice(i) * i.qty, 0)
 const cartCount = () => state.cart.reduce((s, i) => s + i.qty, 0);
 
 function saveCart() {
-  save('vibe_cart', state.cart);
+  save(CART_KEY, state.cart);
   // Корзина изменилась — следующее оформление будет новым заказом.
   sessionStorage.removeItem('vibe_idem');
   renderCartbar();
@@ -75,6 +79,7 @@ async function init() {
   $('#f-addr').textContent = m.location.address;
   renderMenu();
   renderCartbar();
+  if (TABLE_CODE) tableInit();
 }
 
 function renderMenu() {
@@ -96,7 +101,7 @@ function renderMenu() {
                 <div><h3>${esc(tr(d.name))}${d.is_kids ? '<span class="tag-kids">детское</span>' : ''}</h3>
                 ${tr(d.description) ? `<p>${esc(tr(d.description))}</p>` : ''}</div>
                 <div class="row"><span class="price">${d.groups.some((g) => g.options.some((o) => o.price_delta > 0)) ? 'от ' : ''}${fmt(d.price)}</span>
-                ${d.is_alcohol ? '<small class="muted">только к визиту</small>' : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
+                ${d.is_alcohol && !TABLE_CODE ? '<small class="muted">только к визиту</small>' : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
               </div>
             </button>`;
           })
@@ -130,7 +135,7 @@ function openDish(id) {
       ${tr(d.description) ? `<p style="margin:0">${esc(tr(d.description))}</p>` : ''}
       ${d.weight ? `<p class="muted" style="margin:0">${esc(d.weight)}</p>` : ''}
       ${soldToday ? '<p class="alert warn" style="margin:0">Сегодня это блюдо закончилось. Его можно заказать на завтра и позже.</p>' : ''}
-      ${d.is_alcohol ? '<p class="hint" style="margin:0">Алкоголь подаём только к вашему визиту в ресторан.</p>' : ''}
+      ${d.is_alcohol && !TABLE_CODE ? '<p class="hint" style="margin:0">Алкоголь подаём только к вашему визиту в ресторан.</p>' : ''}
       ${d.groups
         .map((g) => {
           const radio = g.max_select === 1;
@@ -378,5 +383,5 @@ async function submit() {
   }
 }
 
-$('#open-cart').onclick = openCart;
+$('#open-cart').onclick = () => (TABLE_CODE ? openTableCart() : openCart());
 init();
