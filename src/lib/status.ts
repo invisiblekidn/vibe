@@ -3,7 +3,7 @@
 
 export type KitchenStatus = 'new' | 'cooking' | 'ready' | 'completed' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'reported' | 'confirmed' | 'refunded';
-export type PaymentMethod = 'qr' | 'cash' | 'on_site';
+export type PaymentMethod = 'qr' | 'cash' | 'on_site' | 'bill'; // bill — заказ со стола, оплата по счёту в конце
 
 export interface OrderState {
   status: KitchenStatus;
@@ -37,7 +37,7 @@ export function guestStatus(o: OrderState): GuestStatus {
 export function kitchenMayStart(o: OrderState): boolean {
   if (o.status !== 'new') return false;
   if (o.payment_method === 'qr') return o.payment_status === 'confirmed';
-  return true; // наличные и оплата на месте появятся на этапе 3 со своим подтверждением
+  return true; // стол (bill): админ принял — кухня готовит сразу; наличные и оплата на месте — этап 3
 }
 
 export type Action = 'report_payment' | 'confirm_payment' | 'start_cooking' | 'mark_ready' | 'complete' | 'cancel';

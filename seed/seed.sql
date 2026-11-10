@@ -2,6 +2,7 @@
 -- Вьетнамские названия пока совпадают с английскими: переведём на этапе 6.
 
 DELETE FROM order_events; DELETE FROM order_items; DELETE FROM orders;
+DELETE FROM bill_events; DELETE FROM table_calls; DELETE FROM bills;
 DELETE FROM options; DELETE FROM option_groups; DELETE FROM stop_list; DELETE FROM dishes; DELETE FROM categories; DELETE FROM locations;
 
 INSERT INTO locations (id, name, address, payment_qr_url) VALUES

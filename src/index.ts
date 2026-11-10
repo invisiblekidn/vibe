@@ -6,8 +6,10 @@ import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from '
 import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
 import { verifyInitData } from './lib/telegram';
-import { handleUpdate, notifyOrderEvent, type TgEnv } from './bot';
+import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, type TgEnv } from './bot';
 import { transition } from './orders';
+import { DEVICE_RE, TABLE_CODE_RE, tableOpenNow, tableTitle, type BillAction } from './lib/tables';
+import { billAction, billTotal, closeCall, createCall, findBill, guestBillView, markBillRequested, openBillFor, staffTablesView, tableByCode } from './tables';
 
 export interface Env extends TgEnv {
   DB: D1Database;
@@ -15,6 +17,8 @@ export interface Env extends TgEnv {
   LOCATION_ID: string;
   STAFF_PIN?: string;
   SESSION_SECRET?: string;
+  /** Только тестовая версия: заказ со стола в любое время суток, чтобы проверять ночью. */
+  TABLE_ANY_HOUR?: string;
 }
 
 type Ctx = { Bindings: Env; Variables: { staff: string } };
@@ -28,7 +32,11 @@ const baseUrl = (c: { env: Env; req: { url: string } }) => (c.env.PUBLIC_URL || 
 
 /** Уведомления в Telegram отправляются после ответа гостю и не задерживают его. */
 function notifyLater(c: any, orderId: number, event: string, actor: string) {
-  const p = notifyOrderEvent(c.env, orderId, event, actor, baseUrl(c)).catch((e) => console.warn('notify failed', e));
+  background(c, notifyOrderEvent(c.env, orderId, event, actor, baseUrl(c)));
+}
+
+function background(c: any, job: Promise<unknown>) {
+  const p = job.catch((e) => console.warn('notify failed', e));
   try {
     c.executionCtx.waitUntil(p);
   } catch {
@@ -274,12 +282,15 @@ app.get('/api/staff/orders', async (c) => {
   const orders = await db
     .prepare(
       `SELECT * FROM orders WHERE location_id = ?
-         AND (status IN ('new','cooking','ready') OR slot >= ?)
+         AND (status IN ('new','cooking','ready') OR slot >= ? OR (slot IS NULL AND created_at >= ?))
        ORDER BY slot, id LIMIT 200`,
     )
-    .bind(loc!.id, today)
+    .bind(loc!.id, today, new Date(nowMs() - 16 * 3600_000).toISOString())
     .all<any>();
   const ids = orders.results.map((o) => o.id);
+  const tableZones = new Map(
+    (await db.prepare('SELECT id, zone FROM dining_tables WHERE location_id = ?').bind(loc!.id).all<any>()).results.map((t) => [t.id, t.zone]),
+  );
   const items = ids.length
     ? await db.prepare(`SELECT * FROM order_items WHERE order_id IN (${ids.map(() => '?').join(',')}) ORDER BY id`).bind(...ids).all<any>()
     : { results: [] as any[] };
@@ -290,6 +301,8 @@ app.get('/api/staff/orders', async (c) => {
       channel: o.channel,
       type: o.type,
       slot: o.slot,
+      table: o.table_id ? tableTitle({ id: o.table_id, zone: tableZones.get(o.table_id) || 'hall' }) : null,
+      billId: o.bill_id,
       status: o.status,
       paymentMethod: o.payment_method,
       paymentStatus: o.payment_status,
@@ -322,7 +335,166 @@ app.get('/api/staff/orders/:id/events', async (c) => {
   return c.json({ events: r.results });
 });
 
+// ---------- Столы: для сотрудника ----------
+
+app.get('/api/staff/tables', async (c) => {
+  return c.json({ tables: await staffTablesView(c.env.DB, c.env.LOCATION_ID), publicUrl: baseUrl(c) });
+});
+
+const STAFF_BILL_ACTIONS: BillAction[] = ['paid_qr', 'paid_cash', 'merge_all'];
+
+app.post('/api/staff/bills/:id/action', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { action?: BillAction };
+  if (!body.action || !STAFF_BILL_ACTIONS.includes(body.action)) return c.json({ error: 'BAD_ACTION' }, 400);
+  const id = Number(c.req.param('id'));
+  const own = await c.env.DB.prepare('SELECT id FROM bills WHERE id = ? AND location_id = ?').bind(id, c.env.LOCATION_ID).first();
+  if (!own) return c.json({ error: 'NOT_FOUND' }, 404);
+  const actor = `staff:${c.get('staff')}`;
+  const r = await billAction(c.env.DB, id, body.action, actor);
+  if (!r.ok) return c.json({ error: r.error }, 409);
+  if (r.changed) background(c, notifyBillEvent(c.env, id, body.action === 'merge_all' ? 'merged' : 'paid', actor));
+  return c.json({ ok: true, changed: r.changed });
+});
+
+app.post('/api/staff/calls/:id/done', async (c) => {
+  const changed = await closeCall(c.env.DB, Number(c.req.param('id')), `staff:${c.get('staff')}`);
+  return c.json({ ok: true, changed });
+});
+
+// ---------- Столы: для гостя (QR на столе) ----------
+// Гость без входа. Телефон хранит свой ключ (device): по нему находится его счёт за этим столом.
+
+async function tableCtx(c: any) {
+  const code = String(c.req.param('code') || '');
+  if (!TABLE_CODE_RE.test(code)) return null;
+  const t = await tableByCode(c.env.DB, code);
+  return t && t.location_id === c.env.LOCATION_ID ? t : null;
+}
+const deviceOf = (v: unknown) => (typeof v === 'string' && DEVICE_RE.test(v) ? v : null);
+
+app.get('/api/table/:code', async (c) => {
+  const t = await tableCtx(c);
+  if (!t) return c.json({ error: 'TABLE_NOT_FOUND' }, 404);
+  const device = deviceOf(c.req.query('d'));
+  const loc = await getLocation(c.env.DB, t.location_id);
+  const view = device ? await guestBillView(c.env.DB, t, device, loc?.payment_qr_url ?? null) : { table: { id: t.id, zone: t.zone, title: tableTitle(t) }, bill: null, others: { count: 0, total: 0 }, calls: { waiter: false, bill: false }, qrUrl: loc?.payment_qr_url ?? null };
+  const now = toLocal(nowMs(), loc!.tz_offset_min);
+  return c.json({ ...view, open: c.env.TABLE_ANY_HOUR === '1' || tableOpenNow(now.minutes, loc!.open_min, loc!.close_min) });
+});
+
+interface TableOrderBody {
+  idempotencyKey: string;
+  device: string;
+  items: CartItemInput[];
+  comment?: string;
+  lang?: string;
+}
+
+app.post('/api/table/:code/orders', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as TableOrderBody | null;
+  if (!body) return c.json({ error: 'BAD_INPUT' }, 400);
+  const key = cleanText(body.idempotencyKey, 80);
+  const device = deviceOf(body.device);
+  if (key.length < 8 || !device) return c.json({ error: 'BAD_INPUT' }, 400);
+  const db = c.env.DB;
+  const existing = await db.prepare('SELECT id, total, bill_id FROM orders WHERE idempotency_key = ?').bind(key).first<any>();
+  if (existing) return c.json({ number: existing.id, total: existing.total, billId: existing.bill_id, duplicate: true });
+
+  const t = await tableCtx(c);
+  if (!t) return c.json({ error: 'TABLE_NOT_FOUND' }, 404);
+  const loc = await getLocation(db, t.location_id);
+  if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
+  const now = toLocal(nowMs(), loc.tz_offset_min);
+  if (c.env.TABLE_ANY_HOUR !== '1' && !tableOpenNow(now.minutes, loc.open_min, loc.close_min)) throw new OrderError('TABLE_CLOSED');
+
+  const lang = langOf(body.lang);
+  const menu = indexMenu(await loadMenu(db));
+  const soldOut = await soldOutOn(db, loc.id, now.day);
+  // В зале алкоголь можно.
+  const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: true, lang });
+
+  const insert = async (billId: number) => {
+    const ts = iso();
+    const insertOrder = db
+      .prepare(
+        `INSERT INTO orders (public_token, idempotency_key, location_id, channel, type, slot, status, payment_method, payment_status,
+           subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, table_id, bill_id)
+         SELECT ?, ?, ?, 'table', 'table', NULL, 'new', 'bill', 'unpaid', ?, 0, ?, ?, '', ?, ?, ?, ?, ?, ?
+         WHERE EXISTS (SELECT 1 FROM bills WHERE id = ? AND status = 'open')`,
+      )
+      .bind(crypto.randomUUID(), key, loc.id, subtotal, subtotal, tableTitle(t), cleanText(body.comment, 300) || null, lang, ts, ts, t.id, billId, billId);
+    const insertItems = lines.map((l) =>
+      db
+        .prepare(`INSERT INTO order_items (order_id, dish_id, name, qty, unit_price, options, line_total) SELECT id, ?, ?, ?, ?, ?, ? FROM orders WHERE idempotency_key = ?`)
+        .bind(l.dishId, l.name, l.qty, l.unitPrice, JSON.stringify(l.options), l.lineTotal, key),
+    );
+    const insertEvent = db.prepare(`INSERT INTO order_events (order_id, at, actor, kind) SELECT id, ?, 'guest', 'created' FROM orders WHERE idempotency_key = ?`).bind(ts, key);
+    const res = await db.batch([insertOrder, ...insertItems, insertEvent]);
+    return res[0].meta.changes ?? 0;
+  };
+
+  try {
+    let bill = await openBillFor(db, t, device);
+    let n = await insert(bill.id);
+    // Счёт закрыли (оплатили) ровно в этот момент — открываем новый и пробуем ещё раз.
+    if (n === 0) {
+      bill = await openBillFor(db, t, device);
+      n = await insert(bill.id);
+    }
+    if (n === 0) throw new OrderError('BILL_CLOSED');
+  } catch (e) {
+    const again = await db.prepare('SELECT id, total, bill_id FROM orders WHERE idempotency_key = ?').bind(key).first<any>();
+    if (again) return c.json({ number: again.id, total: again.total, billId: again.bill_id, duplicate: true });
+    throw e;
+  }
+  const row = await db.prepare('SELECT id, bill_id FROM orders WHERE idempotency_key = ?').bind(key).first<any>();
+  notifyLater(c, row.id, 'created', 'guest');
+  return c.json({ number: row.id, total: subtotal, billId: row.bill_id }, 201);
+});
+
+app.post('/api/table/:code/call', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { device?: string; kind?: string };
+  const device = deviceOf(body.device);
+  if (!device || (body.kind !== 'waiter' && body.kind !== 'bill')) return c.json({ error: 'BAD_INPUT' }, 400);
+  const t = await tableCtx(c);
+  if (!t) return c.json({ error: 'TABLE_NOT_FOUND' }, 404);
+  let billId: number | null = null;
+  if (body.kind === 'bill') {
+    const b = await findBill(c.env.DB, t, device);
+    if (!b || b.status !== 'open' || (await billTotal(c.env.DB, b.id)) <= 0) return c.json({ error: 'BILL_EMPTY' }, 409);
+    billId = b.id;
+    await markBillRequested(c.env.DB, b.id);
+  }
+  const r = await createCall(c.env.DB, t, body.kind, billId);
+  if (r.created && r.call) background(c, notifyTableCall(c.env, r.call.id));
+  return c.json({ ok: true, duplicate: !r.created });
+});
+
+async function guestBillAction(c: any, action: BillAction) {
+  const body = (await c.req.json().catch(() => ({}))) as { device?: string };
+  const device = deviceOf(body.device);
+  if (!device) return c.json({ error: 'BAD_INPUT' }, 400);
+  const t = await tableCtx(c);
+  if (!t) return c.json({ error: 'TABLE_NOT_FOUND' }, 404);
+  const b = await findBill(c.env.DB, t, device);
+  if (!b) return c.json({ error: 'BILL_EMPTY' }, 409);
+  const r = await billAction(c.env.DB, b.id, action, 'guest');
+  if (!r.ok) return c.json({ error: r.error }, 409);
+  if (r.changed) background(c, notifyBillEvent(c.env, b.id, action === 'merge_all' ? 'merged' : action === 'report_payment' ? 'payment_reported' : 'paid', 'guest'));
+  return c.json({ ok: true, changed: r.changed });
+}
+
+app.post('/api/table/:code/bill/merge', (c) => guestBillAction(c, 'merge_all'));
+app.post('/api/table/:code/bill/report-payment', (c) => guestBillAction(c, 'report_payment'));
+
 app.all('/api/*', (c) => c.json({ error: 'NOT_FOUND' }, 404));
+
+// Ссылка из QR на столе: /t/<код> → меню со столом.
+app.get('/t/:code', (c) => {
+  const code = c.req.param('code');
+  if (!TABLE_CODE_RE.test(code)) return c.redirect('/', 302);
+  return c.redirect(`/?table=${code}`, 302);
+});
 
 // ---------- Telegram ----------
 
