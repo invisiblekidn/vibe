@@ -75,6 +75,7 @@ h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
   display: inline-flex; align-items: center; border: 0; background: var(--v-chip); color: var(--v-ink);
   border-radius: 999px; padding: 7px 13px; font-weight: 700; font-size: 13.5px; white-space: nowrap;
 }
+a.chip { text-decoration: none; }
 .chip[aria-pressed="true"], .chip.on { background: var(--v-brush); color: var(--v-brush-fg); }
 .card { background: var(--v-paper); border-radius: var(--radius); }
 .muted { color: var(--v-soft); }
@@ -107,6 +108,10 @@ h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
 .menu { display: grid; gap: 18px; padding-block: 18px 120px; }
 .tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--v-bg); padding-top: 10px; z-index: 3; }
 .tabs::-webkit-scrollbar { display: none; }
+/* С мышью (компьютер, Telegram Desktop) ряд не листается вбок: переносим разделы на вторую строку. */
+@media (hover: hover) and (pointer: fine) { .tabs { flex-wrap: wrap; overflow: visible; } }
+/* На телефоне ряд листается пальцем; край затухает, чтобы было видно, что разделов больше. */
+@media (pointer: coarse) { .tabs { mask-image: linear-gradient(to right, #000 85%, transparent); -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); } }
 .cat { display: grid; gap: 12px; scroll-margin-top: 70px; }
 .dishes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
 .dish { display: grid; grid-template-rows: auto 1fr; overflow: hidden; border: 0; padding: 0; text-align: left; }
