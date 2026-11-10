@@ -25,5 +25,7 @@ const call = async (method, body) => {
 };
 await call('setWebhook', { url: `${url}/tg/webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'] });
 await call('setMyCommands', { commands: [{ command: 'start', description: 'Меню и заказ' }, { command: 'orders', description: 'Мои заказы' }] });
+const group = get('TG_STAFF_CHAT_ID');
+if (group) await call('setMyCommands', { scope: { type: 'chat', chat_id: Number(group) }, commands: [{ command: 'guests', description: 'Выбрать гостя и написать ему' }, { command: 'id', description: 'Показать id группы и ваш' }] });
 await call('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Меню', web_app: { url: `${url}/?tg=1` } } });
 await call('setMyDescription', { description: 'Семейный ресторан VIBE в Нячанге. Закажите заранее: самовывоз или к вашему приходу.' });

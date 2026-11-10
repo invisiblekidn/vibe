@@ -20,9 +20,10 @@ const fake = http.createServer((req, res) => {
   req.on('data', (c) => (b += c));
   req.on('end', () => {
     const method = req.url.split('/').pop();
-    calls.push({ method, body: JSON.parse(b || '{}') });
+    const result = method === 'answerCallbackQuery' || method === 'setMessageReaction' ? true : { message_id: ++msgId };
+    calls.push({ method, body: JSON.parse(b || '{}'), result });
     res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({ ok: true, result: method === 'answerCallbackQuery' || method === 'setMessageReaction' ? true : { message_id: ++msgId } }));
+    res.end(JSON.stringify({ ok: true, result }));
   });
 });
 await new Promise((r) => fake.listen(8788, r));
@@ -158,6 +159,28 @@ try {
   await hook(press(ANYA, `o:${site.data.number}:cx`, 5000));
   await settle();
   ok((await api(`/api/orders/${site.data.token}`)).data.status === 'cancelled', 'второе нажатие отменяет заказ');
+
+  // 9. Сотрудник сам выбирает гостя: /guests → кнопка гостя → ответ на «адрес» уходит этому гостю
+  i = calls.length;
+  await hook({ update_id: ++uid, message: { message_id: uid, from: { id: ANYA, first_name: 'Аня' }, chat: { id: GROUP, type: 'supergroup' }, date: 0, text: '/guests' } });
+  await settle();
+  const list = since(i).find((c) => c.method === 'sendMessage' && c.body.chat_id === GROUP && c.body.text.startsWith('Кому написать'));
+  const btn = list?.body.reply_markup.inline_keyboard.flat().find((b) => b.callback_data === 'g:777');
+  ok(!!btn && btn.text.includes('Мария'), '/guests: список гостей с кнопками, Мария в нём');
+  i = calls.length;
+  await hook(press(ANYA, 'g:777', 6000));
+  await settle();
+  const addr = since(i).find((c) => c.method === 'sendMessage' && c.body.chat_id === GROUP && c.body.text.includes('Пишем гостю'));
+  ok(!!addr, 'нажатие на гостя ставит сообщение «Пишем гостю»');
+  const addrId = addr?.result.message_id;
+  i = calls.length;
+  await hook({ update_id: ++uid, message: { message_id: uid, from: { id: ANYA, first_name: 'Аня' }, chat: { id: GROUP, type: 'supergroup' }, date: 0, text: 'Ваш столик готов', reply_to_message: { message_id: addrId } } });
+  await settle();
+  ok(since(i).some((c) => c.method === 'sendMessage' && c.body.chat_id === 777 && c.body.text.includes('Ваш столик готов')), 'ответ на «Пишем гостю» ушёл выбранному гостю');
+  i = calls.length;
+  await hook({ update_id: ++uid, message: { message_id: uid, from: { id: 999, first_name: 'Чужой' }, chat: { id: GROUP, type: 'supergroup' }, date: 0, text: '/guests' } });
+  await settle();
+  ok(!since(i).some((c) => c.body.text?.startsWith('Кому написать')), 'не сотруднику список гостей не показывается');
   void order;
 } finally {
   fake.close();

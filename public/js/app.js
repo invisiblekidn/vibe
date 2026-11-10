@@ -86,17 +86,17 @@ function renderMenu() {
     .map((c) => {
       const items = m.dishes.filter((d) => d.category_id === c.id);
       return `<section class="cat" id="cat-${c.id}">
-        <h2>${esc(tr(c.name))}</h2>
+        <h2 class="brush">${esc(tr(c.name))}</h2>
         <div class="dishes">${items
           .map((d) => {
             const out = soldOut.has(d.id);
             return `<button type="button" class="card dish${out ? ' out' : ''}" data-dish="${d.id}">
-              <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="400" height="300">` : ''}${out ? '<span class="tag-out">Сегодня закончилось</span>' : ''}</div>
+              <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${out ? '<span class="tag-out">Сегодня закончилось</span>' : ''}</div>
               <div class="body">
                 <div><h3>${esc(tr(d.name))}${d.is_kids ? '<span class="tag-kids">детское</span>' : ''}</h3>
                 ${tr(d.description) ? `<p>${esc(tr(d.description))}</p>` : ''}</div>
                 <div class="row"><span class="price">${d.groups.some((g) => g.options.some((o) => o.price_delta > 0)) ? 'от ' : ''}${fmt(d.price)}</span>
-                ${d.is_alcohol ? '<small class="muted">только к визиту</small>' : ''}</div>
+                ${d.is_alcohol ? '<small class="muted">только к визиту</small>' : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
               </div>
             </button>`;
           })

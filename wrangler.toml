@@ -10,10 +10,15 @@ run_worker_first = ["/api/*", "/tg/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "vibe-db"
-# Тестовая база: локально работает без аккаунта Cloudflare.
-# Перед публикацией сюда впишем id настоящей базы (согласуется отдельно).
-database_id = "00000000-0000-0000-0000-000000000000"
+# Тестовая база в Cloudflare (создана 10.11.2026). Локально wrangler dev использует свою копию.
+database_id = "9bfc16db-15f0-409c-a5bb-414fb0b62a4a"
 migrations_dir = "migrations"
 
 [vars]
 LOCATION_ID = "nt1"
+# Тестовый адрес (бесплатный workers.dev). Свой домен подключим к запуску.
+PUBLIC_URL = "https://vibe-restaurant.invisiblekidn.workers.dev"
+TG_BOT_USERNAME = "vibe_kid_bot"
+
+[observability]
+enabled = true
