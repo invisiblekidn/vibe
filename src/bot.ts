@@ -126,11 +126,13 @@ export async function handleUpdate(env: TgEnv, u: any, baseUrl: string): Promise
   const m = u.message;
   if (!m || !m.chat) return;
   if (m.chat.type === 'private') return onPrivate(env, m, baseUrl);
-  if (m.chat.id === staffChat(env)) return onStaffGroup(env, m);
   if (typeof m.text === 'string' && /^\/id(@\w+)?$/.test(m.text)) {
-    // Помогает настроить группу сотрудников: бот сообщает id этой группы.
-    await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `id этой группы: ${m.chat.id}` });
+    // Помогает настроить группу сотрудников: бот сообщает id группы и id написавшего (для списка TG_STAFF).
+    const who = m.from ? `\nваш id: ${m.from.id} (${[m.from.first_name, m.from.username && '@' + m.from.username].filter(Boolean).join(', ')})` : '';
+    await tg(env, 'sendMessage', { chat_id: m.chat.id, text: `id этой группы: ${m.chat.id}${who}` });
+    return;
   }
+  if (m.chat.id === staffChat(env)) return onStaffGroup(env, m);
 }
 
 function menuButton(baseUrl: string): InlineButton[][] {
