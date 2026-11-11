@@ -139,6 +139,20 @@ a.chip { text-decoration: none; }
 }
 .cartbar .btn { max-width: 520px; margin: 0 auto; display: flex; width: 100%; }
 
+/* Подвал и ссылка для сотрудников: мелко и приглушённо, чтобы не отвлекать гостей.
+   Нижний отступ — чтобы панель корзины не закрывала ссылку. */
+.sitefoot {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  margin-top: 32px; padding-top: 14px; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--v-line); font-size: 12px; color: var(--v-soft);
+}
+.staff-link {
+  color: var(--v-soft); text-decoration: none; opacity: .75;
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 4px;
+}
+.staff-link::before { content: "🔒"; font-size: 11px; margin-right: 5px; filter: grayscale(1); }
+.staff-link:hover, .staff-link:focus-visible { opacity: 1; text-decoration: underline; }
+
 /* Окно (карточка блюда, корзина) */
 dialog.sheet {
   border: 0; padding: 0; background: var(--v-bg); color: var(--v-ink);
