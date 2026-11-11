@@ -44,6 +44,6 @@ node scripts/table-smoke.mjs # заказ со стола, официант, с�
 ## Тестовая публикация (Cloudflare)
 
 - Адрес: https://vibe-restaurant.invisiblekidn.workers.dev, бот: @vibe_kid_bot.
-- База: D1 `vibe-db`. Схема: `npx wrangler d1 migrations apply vibe-db --remote`. Тестовое меню (стирает заказы!): `npx wrangler d1 execute vibe-db --remote --file=seed/seed.sql`, затем `--file=seed/menu-breakfast.sql` и `--file=seed/menu-kids.sql`. Эти два файла можно выполнять отдельно: обновляют свои блюда и не трогают заказы.
+- База: D1 `vibe-db`. Схема: `npx wrangler d1 migrations apply vibe-db --remote`. Тестовое меню (стирает заказы!): `npx wrangler d1 execute vibe-db --remote --file=seed/seed.sql`, затем `--file=seed/menu-breakfast.sql` , `--file=seed/menu-kids.sql` и `--file=seed/menu-bar.sql`. Эти три файла можно выполнять отдельно: обновляют свои блюда и не трогают заказы.
 - Секреты задаются командой `npx wrangler secret put ИМЯ`: TG_BOT_TOKEN, TG_WEBHOOK_SECRET, SESSION_SECRET, STAFF_PIN, TG_STAFF_CHAT_ID, TG_STAFF.
 - Публикация: `npx wrangler deploy`. После смены TG_WEBHOOK_SECRET заново выполнить `node scripts/tg-setup.mjs` с тем же секретом.
