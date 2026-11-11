@@ -1,5 +1,5 @@
 -- ТЕСТОВЫЕ ДАННЫЕ для разработки. Часть настоящего меню (ноябрь 2026), фото временные.
--- Завтраки и круассаны — в seed/menu-breakfast.sql (выполнять после этого файла).
+-- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql (выполнять после этого файла).
 -- Вьетнамские названия пока совпадают с английскими: переведём на этапе 6.
 
 DELETE FROM order_events; DELETE FROM order_items; DELETE FROM orders;
@@ -37,9 +37,6 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
  ('carbonara', 'mains', 3, '{"ru":"Карбонара","en":"Carbonara","vi":"Carbonara"}',
    '{"ru":"Паста с беконом в сливочном соусе с пармезаном.","en":"Pasta with bacon in a creamy sauce with Parmesan."}',
    159000, '/img/dishes/carbonara.jpg', NULL, 0, 0),
- ('kids-cutlets', 'kids', 1, '{"ru":"Куриные котлетки с пюре","en":"Chicken cutlets with mashed potatoes","vi":"Chicken cutlets with mashed potatoes"}',
-   '{"ru":"Нежные куриные котлетки с воздушным пюре.","en":"Tender chicken cutlets with fluffy mash."}',
-   89000, '/img/dishes/kids.jpg', '280 г', 1, 0),
  ('cappuccino', 'bar', 1, '{"ru":"Капучино","en":"Cappuccino","vi":"Cappuccino"}', '{}', 65000, '/img/dishes/cappuccino.jpg', NULL, 0, 0),
  ('mojito', 'bar', 2, '{"ru":"Мохито","en":"Mojito","vi":"Mojito"}',
    '{"ru":"Ром, лайм, мята, сахар, содовая.","en":"Rum, lime, mint, sugar, soda water."}',

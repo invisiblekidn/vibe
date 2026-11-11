@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "db:migrate:local": "wrangler d1 migrations apply vibe-db --local",
-    "db:seed:local": "wrangler d1 execute vibe-db --local --file=seed/seed.sql && wrangler d1 execute vibe-db --local --file=seed/menu-breakfast.sql",
+    "db:seed:local": "wrangler d1 execute vibe-db --local --file=seed/seed.sql && wrangler d1 execute vibe-db --local --file=seed/menu-breakfast.sql && wrangler d1 execute vibe-db --local --file=seed/menu-kids.sql",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
