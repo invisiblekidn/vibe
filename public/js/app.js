@@ -70,33 +70,84 @@ async function init() {
 function renderMenu() {
   const m = state.menu;
   const soldOut = new Set(m.soldOutToday);
+  const sections = m.sections || [];
   const cats = m.categories.filter((c) => m.dishes.some((d) => d.category_id === c.id));
+  const dishCard = (d) => {
+    const out = soldOut.has(d.id);
+    return `<button type="button" class="card dish${out ? ' out' : ''}" data-dish="${d.id}">
+      <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${out ? `<span class="tag-out">${esc(t('soldOutToday'))}</span>` : ''}</div>
+      <div class="body">
+        <div><h3>${esc(tr(d.name))}${d.is_kids ? `<span class="tag-kids">${esc(t('kidsTag'))}</span>` : ''}</h3>
+        ${tr(d.description) ? `<p>${esc(tr(d.description))}</p>` : ''}</div>
+        <div class="row"><span class="price">${d.groups.some((g) => g.options.some((o) => o.price_delta > 0)) ? t('priceFrom', { p: fmt(d.price) }) : fmt(d.price)}</span>
+        ${d.is_alcohol && !TABLE_CODE ? `<small class="muted">${esc(t('visitOnly'))}</small>` : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
+      </div>
+    </button>`;
+  };
   $('#tabs').innerHTML = cats.map((c) => `<a class="chip" href="#cat-${c.id}">${esc(tr(c.name))}</a>`).join('');
   $('#cats').innerHTML = cats
     .map((c) => {
       const items = m.dishes.filter((d) => d.category_id === c.id);
-      return `<section class="cat" id="cat-${c.id}">
+      // Раздел с группами (например, «Бар»): сначала плитки групп, по нажатию — напитки группы.
+      const secs = sections
+        .filter((x) => x.category_id === c.id)
+        .map((x) => ({ ...x, items: items.filter((d) => d.section_id === x.id) }))
+        .filter((x) => x.items.length);
+      if (!secs.length) {
+        return `<section class="cat" id="cat-${c.id}">
+          <h2 class="brush">${esc(tr(c.name))}</h2>
+          <div class="dishes">${items.map(dishCard).join('')}</div>
+        </section>`;
+      }
+      const loose = items.filter((d) => !secs.some((x) => x.id === d.section_id));
+      return `<section class="cat has-secs" id="cat-${c.id}">
         <h2 class="brush">${esc(tr(c.name))}</h2>
-        <div class="dishes">${items
-          .map((d) => {
-            const out = soldOut.has(d.id);
-            return `<button type="button" class="card dish${out ? ' out' : ''}" data-dish="${d.id}">
-              <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${out ? `<span class="tag-out">${esc(t('soldOutToday'))}</span>` : ''}</div>
-              <div class="body">
-                <div><h3>${esc(tr(d.name))}${d.is_kids ? `<span class="tag-kids">${esc(t('kidsTag'))}</span>` : ''}</h3>
-                ${tr(d.description) ? `<p>${esc(tr(d.description))}</p>` : ''}</div>
-                <div class="row"><span class="price">${d.groups.some((g) => g.options.some((o) => o.price_delta > 0)) ? t('priceFrom', { p: fmt(d.price) }) : fmt(d.price)}</span>
-                ${d.is_alcohol && !TABLE_CODE ? `<small class="muted">${esc(t('visitOnly'))}</small>` : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
-              </div>
-            </button>`;
+        <div class="sec-tiles" data-tiles="${c.id}">${secs
+          .map((x) => {
+            const alco = x.items.every((d) => d.is_alcohol);
+            const sample = x.items.slice(0, 3).map((d) => tr(d.name)).join(', ') + (x.items.length > 3 ? '…' : '');
+            return `<a class="sec-tile" href="#sec-${x.id}" data-sec="${x.id}">
+              <span class="sec-ph">${x.photo ? `<img src="${esc(x.photo)}" alt="" loading="lazy">` : ''}</span>
+              <span class="sec-txt"><b>${esc(tr(x.name))}</b><small>${esc(sample)}</small>
+              ${alco && !TABLE_CODE ? `<small class="sec-note">${esc(t('visitOnly'))}</small>` : ''}</span>
+            </a>`;
           })
           .join('')}</div>
+        ${secs
+          .map(
+            (x) => `<div class="sec" id="sec-${x.id}" data-cat="${c.id}" hidden>
+              <div class="sec-nav">
+                <a class="chip sec-back" href="#cat-${c.id}">← ${esc(t('secAll'))}</a>
+                ${secs.map((y) => `<a class="chip${y.id === x.id ? ' on' : ''}" href="#sec-${y.id}">${esc(tr(y.name))}</a>`).join('')}
+              </div>
+              <h3 class="sec-title">${esc(tr(x.name))}</h3>
+              <div class="dishes">${x.items.map(dishCard).join('')}</div>
+            </div>`,
+          )
+          .join('')}
+        ${loose.length ? `<div class="dishes" data-loose="${c.id}">${loose.map(dishCard).join('')}</div>` : ''}
       </section>`;
     })
     .join('');
   $('#cats').addEventListener('click', (e) => {
     const b = e.target.closest('[data-dish]');
     if (b) openDish(b.dataset.dish);
+  });
+  // Группы открываются по адресу #sec-<id>: работает кнопка «Назад» телефона и ссылки на группу.
+  window.addEventListener('hashchange', () => showSection(true));
+  showSection(false);
+}
+
+/** Показать группу из адреса (#sec-…) или плитки групп (#cat-… / без адреса). */
+function showSection(scroll) {
+  const h = decodeURIComponent(location.hash.slice(1));
+  const open = h.startsWith('sec-') ? document.getElementById(h) : null;
+  document.querySelectorAll('.cat.has-secs').forEach((cat) => {
+    const mine = open && open.dataset.cat === cat.id.slice(4);
+    cat.querySelectorAll('.sec').forEach((x) => { x.hidden = !(mine && x === open); });
+    cat.querySelector('.sec-tiles').hidden = !!mine;
+    cat.querySelectorAll('[data-loose]').forEach((x) => { x.hidden = !!mine; });
+    if (scroll && (mine || h === cat.id)) cat.scrollIntoView({ block: 'start' });
   });
 }
 

@@ -85,6 +85,7 @@ const I18N = {
   menuFailed: { ru: 'Не удалось загрузить меню. Обновите страницу.', vi: 'Không tải được thực đơn. Vui lòng tải lại trang.', en: 'Could not load the menu. Please refresh the page.' },
   soldOutToday: { ru: 'Сегодня закончилось', vi: 'Hôm nay đã hết', en: 'Sold out today' },
   kidsTag: { ru: 'детское', vi: 'trẻ em', en: 'kids' },
+  secAll: { ru: 'Все группы', vi: 'Tất cả nhóm', en: 'All groups' },
   priceFrom: { ru: 'от {p}', vi: 'từ {p}', en: 'from {p}' },
   visitOnly: { ru: 'только к визиту', vi: 'chỉ khi đến quán', en: 'for your visit only' },
   cartBar: { ru: 'Корзина · {n} · {sum}', vi: 'Giỏ hàng · {n} · {sum}', en: 'Cart · {n} · {sum}' },

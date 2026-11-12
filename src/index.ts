@@ -74,6 +74,7 @@ app.get('/api/menu', async (c) => {
     today,
     soldOutToday: [...soldOut],
     categories: menu.categories,
+    sections: menu.sections,
     dishes: menu.dishes.map((d) => ({
       ...d,
       groups: menu.groups
