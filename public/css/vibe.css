@@ -139,6 +139,16 @@ a.chip { text-decoration: none; }
 }
 .cartbar .btn { max-width: 520px; margin: 0 auto; display: flex; width: 100%; }
 
+/* Ссылка для сотрудников в шапке справа: мелко и приглушённо, чтобы не отвлекать гостей. */
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.staff-link {
+  color: var(--v-soft); text-decoration: none; opacity: .75; font-size: 12px; line-height: 1.2;
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 2px; max-width: 9em;
+}
+@media (min-width: 720px) { .staff-link { max-width: none; } }
+.staff-link::before { content: "🔒"; font-size: 11px; margin-right: 5px; filter: grayscale(1); }
+.staff-link:hover, .staff-link:focus-visible { opacity: 1; text-decoration: underline; }
+
 /* Окно (карточка блюда, корзина) */
 dialog.sheet {
   border: 0; padding: 0; background: var(--v-bg); color: var(--v-ink);
