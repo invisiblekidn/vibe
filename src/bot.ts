@@ -4,7 +4,10 @@ import { toLocal } from './lib/time';
 import type { Action } from './lib/status';
 import {
   ACTION_CODES,
-  WELCOME,
+  WELCOME_L,
+  asLang,
+  botLang,
+  bt,
   escHtml,
   fmtVnd,
   guestEventText,
@@ -113,14 +116,15 @@ export async function notifyOrderEvent(env: TgEnv, orderId: number, event: strin
   }
 
   if (o.tg_user_id) {
-    const text = guestEventText(event, o, day);
+    const lang = asLang(o.lang);
+    const text = guestEventText(event, o, day, lang);
     if (text) {
       const open = event === 'created' || event === 'payment_reported';
       await tg(env, 'sendMessage', {
         chat_id: o.tg_user_id,
         text,
         parse_mode: 'HTML',
-        ...(open ? { reply_markup: kb([[{ text: event === 'created' ? 'Открыть заказ и QR' : 'Открыть заказ', web_app: { url: orderUrl(baseUrl, o.public_token) } }]]) } : {}),
+        ...(open ? { reply_markup: kb([[{ text: bt(event === 'created' ? 'openOrderQr' : 'openOrder', lang), web_app: { url: orderUrl(baseUrl, o.public_token) } }]]) } : {}),
       });
     }
   }
@@ -161,13 +165,14 @@ export async function handleUpdate(env: TgEnv, u: any, baseUrl: string): Promise
   if (m.chat.id === staffChat(env)) return onStaffGroup(env, m);
 }
 
-function menuButton(baseUrl: string): InlineButton[][] {
-  return [[{ text: 'Открыть меню и заказать', web_app: { url: `${baseUrl}/?tg=1` } }]];
+function menuButton(baseUrl: string, lang: ReturnType<typeof botLang> = 'ru'): InlineButton[][] {
+  return [[{ text: bt('openMenu', lang), web_app: { url: `${baseUrl}/?tg=1` } /* язык сайт берёт из настроек Telegram или выбора гостя */ }]];
 }
 
 async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
   const userId: number = m.from?.id ?? m.chat.id;
   const text: string = typeof m.text === 'string' ? m.text.trim() : '';
+  const lang = botLang(m.from?.language_code);
 
   if (text.startsWith('/start')) {
     const payload = text.split(/\s+/)[1] || '';
@@ -179,27 +184,27 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
         await env.DB.prepare('UPDATE orders SET tg_user_id = ? WHERE id = ? AND tg_user_id IS NULL').bind(userId, o.id).run();
         await tg(env, 'sendMessage', {
           chat_id: userId,
-          text: `Готово! Статус заказа №${o.id} будем присылать сюда.`,
-          reply_markup: kb([[{ text: `Открыть заказ №${o.id}`, web_app: { url: orderUrl(baseUrl, o.public_token) } }]]),
+          text: bt('linked', lang, { n: o.id }),
+          reply_markup: kb([[{ text: bt('openOrderN', lang, { n: o.id }), web_app: { url: orderUrl(baseUrl, o.public_token) } }]]),
         });
         return;
       }
     }
-    await tg(env, 'sendMessage', { chat_id: userId, text: WELCOME, reply_markup: kb(menuButton(baseUrl)) });
+    await tg(env, 'sendMessage', { chat_id: userId, text: WELCOME_L[lang], reply_markup: kb(menuButton(baseUrl, lang)) });
     return;
   }
 
   if (text === '/orders' || text === '/my') {
     const r = await env.DB.prepare('SELECT id, public_token, slot, status, payment_status, total FROM orders WHERE tg_user_id = ? ORDER BY id DESC LIMIT 5').bind(userId).all<any>();
     if (!r.results.length) {
-      await tg(env, 'sendMessage', { chat_id: userId, text: 'Заказов пока нет.', reply_markup: kb(menuButton(baseUrl)) });
+      await tg(env, 'sendMessage', { chat_id: userId, text: bt('noOrders', lang), reply_markup: kb(menuButton(baseUrl, lang)) });
       return;
     }
     const day = await today(env);
     await tg(env, 'sendMessage', {
       chat_id: userId,
-      text: 'Ваши последние заказы:',
-      reply_markup: kb(r.results.map((o) => [{ text: `№${o.id} · ${slotText(o.slot, day)} · ${fmtVnd(o.total)}`, web_app: { url: orderUrl(baseUrl, o.public_token) } }])),
+      text: bt('myOrders', lang),
+      reply_markup: kb(r.results.map((o) => [{ text: `№${o.id} · ${slotText(o.slot, day, lang)} · ${fmtVnd(o.total)}`, web_app: { url: orderUrl(baseUrl, o.public_token) } }])),
     });
     return;
   }
@@ -207,7 +212,7 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
   // Любое другое сообщение — администратору в группу сотрудников. Ответ сотрудника вернётся сюда.
   const chat = staffChat(env);
   if (!chat) {
-    await tg(env, 'sendMessage', { chat_id: userId, text: 'Спасибо! Сейчас ответить здесь не можем, позвоните нам, пожалуйста.' });
+    await tg(env, 'sendMessage', { chat_id: userId, text: bt('noStaff', lang) });
     return;
   }
   const last = await env.DB.prepare('SELECT id FROM orders WHERE tg_user_id = ? ORDER BY id DESC LIMIT 1').bind(userId).first<any>();
@@ -229,7 +234,7 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
   for (const id of ids) {
     await env.DB.prepare('INSERT OR IGNORE INTO tg_relay (group_msg_id, user_id, order_id, created_at) VALUES (?, ?, ?, ?)').bind(id, userId, last?.id ?? null, now).run();
   }
-  if (!recent) await tg(env, 'sendMessage', { chat_id: userId, text: 'Передали администратору. Ответ придёт сюда.' });
+  if (!recent) await tg(env, 'sendMessage', { chat_id: userId, text: bt('relayed', lang) });
 }
 
 async function onStaffGroup(env: TgEnv, m: any) {
@@ -249,7 +254,8 @@ async function onStaffGroup(env: TgEnv, m: any) {
     return;
   }
   let sent;
-  if (typeof m.text === 'string') sent = await tg(env, 'sendMessage', { chat_id: userId, text: `<b>Администратор VIBE:</b>\n${escHtml(m.text)}`, parse_mode: 'HTML' });
+  const last = await env.DB.prepare('SELECT lang FROM orders WHERE tg_user_id = ? ORDER BY id DESC LIMIT 1').bind(userId).first<any>();
+  if (typeof m.text === 'string') sent = await tg(env, 'sendMessage', { chat_id: userId, text: `<b>${bt('adminPrefix', asLang(last?.lang))}</b>\n${escHtml(m.text)}`, parse_mode: 'HTML' });
   else sent = await tg(env, 'copyMessage', { chat_id: userId, from_chat_id: m.chat.id, message_id: m.message_id });
   await tg(env, 'setMessageReaction', { chat_id: m.chat.id, message_id: m.message_id, reaction: [{ type: 'emoji', emoji: sent ? '👌' : '🤷' }] });
 }

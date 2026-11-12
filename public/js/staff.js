@@ -104,7 +104,7 @@ function orderCard(o, compact = false) {
   const waited = o.paymentStatus === 'reported' ? minutesSince(o.paymentReportedAt) : 0;
   const kitchenOnly = filter === 'kitchen';
   return `<article class="card ord${(!isTable && o.paymentStatus === 'reported') || (isTable && o.status === 'new') ? ' attn' : ''}">
-    <div class="top"><span class="no">№ ${o.id}</span><span>${isTable ? `<b>${esc(o.table || 'Стол')}</b> · ${minutesSince(o.createdAt)} мин назад` : `${TYPE_LABEL[o.type]} · <b>${esc(slotLabel(o.slot, today))}</b>`}</span></div>
+    <div class="top"><span class="no">№ ${o.id}</span><span>${isTable ? `<b>${esc(o.table || 'Стол')}</b> · ${minutesSince(o.createdAt)} мин назад` : `${typeLabel(o.type)} · <b>${esc(slotLabel(o.slot, today))}</b>`}</span></div>
     ${compact ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill ${isTable && o.status === 'new' ? 'warn' : 'mute'}">${(isTable ? TABLE_KITCHEN : KITCHEN)[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : o.channel === 'table' ? 'QR на столе' : esc(o.channel)}</span></div>`}
     ${!isTable && o.paymentStatus === 'reported' ? `<p class="hint" style="margin:0">Гость нажал «Я оплатил» ${waited} мин назад. Подтверждайте, только когда увидите <b>${fmt(o.total)}</b> в банке (в комментарии должен быть № ${o.id}).${waited >= 30 ? ' <b>Прошло 30 минут: свяжитесь с гостем.</b>' : ''}</p>` : ''}
     <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>

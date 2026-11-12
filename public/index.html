@@ -3,18 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>VIBE — семейный ресторан в Нячанге</title>
-<meta name="description" content="Семейный ресторан VIBE в Нячанге: домашняя кухня, детская зона и детское меню. Предзаказ на самовывоз и к визиту.">
+<title data-i18n="metaTitle">VIBE — семейный ресторан в Нячанге</title>
+<meta name="description" data-i18n-attr="content:metaDesc" content="Семейный ресторан VIBE в Нячанге: домашняя кухня, детская зона и детское меню. Предзаказ на самовывоз и к визиту.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Pangolin&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="/css/vibe.css">
 </head>
 <body>
-<div class="test-banner">Тестовая версия: заказы не настоящие, оплата не принимается</div>
+<div class="test-banner" data-i18n="testBanner">Тестовая версия: заказы не настоящие, оплата не принимается</div>
+<!-- Выбор языка: отдельная строка над шапкой (утверждено 12.11.2026). -->
+<nav class="langbar" id="langbar" aria-label="Язык"></nav>
 <header class="wrap topbar">
   <a class="logo" href="/">VIBE<small>FAMILY RESTAURANT</small></a>
   <div class="topbar-right">
-    <a class="btn small" href="#menu">Меню</a>
+    <a class="btn small" href="#menu" data-i18n="menu">Меню</a>
     <!-- Тихая ссылка для сотрудников: мелко и приглушённо, гостей не отвлекает. -->
     <a class="staff-link" href="/staff" rel="nofollow" data-i18n="staffLink">Для сотрудников</a>
   </div>
@@ -23,32 +25,32 @@
 <main>
   <!-- Гость за столом (открыл QR): стол, вызов официанта, свой счёт. -->
   <section class="wrap tablebar card" id="tablebar" hidden>
-    <div class="tb-title"><span class="muted">Вы за столом</span><b id="tb-name"></b></div>
+    <div class="tb-title"><span class="muted" data-i18n="atTable">Вы за столом</span><b id="tb-name"></b></div>
     <div class="tb-acts">
-      <button class="btn small ghost" type="button" id="tb-waiter">Позвать официанта</button>
-      <button class="btn small" type="button" id="tb-bill">Мой счёт</button>
+      <button class="btn small ghost" type="button" id="tb-waiter" data-i18n="callWaiter">Позвать официанта</button>
+      <button class="btn small" type="button" id="tb-bill" data-i18n="myBill">Мой счёт</button>
     </div>
   </section>
   <section class="wrap hero" id="hero">
     <div>
-      <h1>Домашняя кухня для всей семьи</h1>
-      <p>Завтраки весь день, супы как у бабушки, детское меню и игровая зона, пока взрослые спокойно обедают.</p>
-      <a class="btn" href="#menu">Заказать заранее</a>
+      <h1 data-i18n="heroTitle">Домашняя кухня для всей семьи</h1>
+      <p data-i18n="heroText">Завтраки весь день, супы как у бабушки, детское меню и игровая зона, пока взрослые спокойно обедают.</p>
+      <a class="btn" href="#menu" data-i18n="heroBtn">Заказать заранее</a>
     </div>
-    <div class="photo"><img src="/img/dishes/breakfast.jpg" alt="Большой завтрак VIBE" width="800" height="600"></div>
+    <div class="photo"><img src="/img/dishes/breakfast.jpg" data-i18n-attr="alt:heroAlt" alt="Большой завтрак VIBE" width="800" height="600"></div>
   </section>
   <section class="wrap" id="facts">
     <div class="facts">
-      <div><b>Часы</b><span id="f-hours">ежедневно 9:00–22:00</span></div>
-      <div><b>Адрес</b><span id="f-addr">25 Đ. Nguyễn Đình Chiểu, Bắc Nha Trang</span></div>
-      <div><b>Предзаказ</b>самовывоз и к визиту, до 7 дней вперёд</div>
+      <div><b data-i18n="factHours">Часы</b><span id="f-hours">ежедневно 9:00–22:00</span></div>
+      <div><b data-i18n="factAddr">Адрес</b><span id="f-addr">25 Đ. Nguyễn Đình Chiểu, Bắc Nha Trang</span></div>
+      <div><b data-i18n="factPre">Предзаказ</b><span data-i18n="factPreVal">самовывоз и к визиту, до 7 дней вперёд</span></div>
     </div>
   </section>
 
-  <section class="wrap menu" id="menu" aria-label="Меню">
-    <span class="brush" style="justify-self:start">Меню</span>
-    <nav class="tabs" id="tabs" aria-label="Разделы меню"></nav>
-    <div id="cats"><p class="muted">Загружаем меню…</p></div>
+  <section class="wrap menu" id="menu" aria-label="Меню" data-i18n-attr="aria-label:menu">
+    <span class="brush" style="justify-self:start" data-i18n="menu">Меню</span>
+    <nav class="tabs" id="tabs" aria-label="Разделы меню" data-i18n-attr="aria-label:menuSections"></nav>
+    <div id="cats"><p class="muted" data-i18n="menuLoading">Загружаем меню…</p></div>
   </section>
 </main>
 
@@ -60,6 +62,7 @@
 <dialog class="sheet" id="cart-sheet" aria-labelledby="cart-title"></dialog>
 <dialog class="sheet" id="bill-sheet" aria-labelledby="bill-title"></dialog>
 
+<script src="/js/i18n.js"></script>
 <script src="/js/common.js"></script>
 <script src="/js/app.js"></script>
 <script src="/js/table.js"></script>

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { getLocation, indexMenu, loadMenu, soldOutOn, takenSlots } from './db';
+import { getLocation, indexMenu, loadMenu, localizeItems, soldOutOn, takenSlots } from './db';
 import { OrderError, priceCart, type CartItemInput } from './lib/pricing';
 import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from './lib/time';
 import { guestStatus, type Action, type OrderState } from './lib/status';
@@ -146,7 +146,7 @@ app.post('/api/orders', async (c) => {
   const lang = langOf(body.lang);
   const menu = indexMenu(await loadMenu(db));
   const soldOut = await soldOutOn(db, loc.id, body.slot.slice(0, 10));
-  const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: body.type === 'visit', lang });
+  const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: body.type === 'visit', lang: 'ru' }); // названия в заказе — по-русски, для кухни
 
   const token = crypto.randomUUID();
   const now = iso();
@@ -225,7 +225,11 @@ app.get('/api/orders/:token', async (c) => {
   if (!o) return c.json({ error: 'NOT_FOUND' }, 404);
   const items = await c.env.DB.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY id').bind(o.id).all<any>();
   const loc = await getLocation(c.env.DB, o.location_id);
-  return c.json(publicOrder(o, items.results, loc?.payment_qr_url ?? null, c.env.TG_BOT_USERNAME));
+  // Язык страницы гостя (?lang=), иначе язык, на котором оформляли заказ.
+  const lang = c.req.query('lang') ? langOf(c.req.query('lang')) : langOf(o.lang);
+  const raw = items.results.map((i: any) => ({ ...i, options: JSON.parse(i.options) }));
+  const named = await localizeItems(c.env.DB, raw, lang);
+  return c.json(publicOrder(o, named.map((i: any) => ({ ...i, options: JSON.stringify(i.options) })), loc?.payment_qr_url ?? null, c.env.TG_BOT_USERNAME));
 });
 
 app.post('/api/orders/:token/report-payment', async (c) => {
@@ -377,7 +381,7 @@ app.get('/api/table/:code', async (c) => {
   if (!t) return c.json({ error: 'TABLE_NOT_FOUND' }, 404);
   const device = deviceOf(c.req.query('d'));
   const loc = await getLocation(c.env.DB, t.location_id);
-  const view = device ? await guestBillView(c.env.DB, t, device, loc?.payment_qr_url ?? null) : { table: { id: t.id, zone: t.zone, title: tableTitle(t) }, bill: null, others: { count: 0, total: 0 }, calls: { waiter: false, bill: false }, qrUrl: loc?.payment_qr_url ?? null };
+  const view = device ? await guestBillView(c.env.DB, t, device, loc?.payment_qr_url ?? null, langOf(c.req.query('lang'))) : { table: { id: t.id, zone: t.zone, title: tableTitle(t) }, bill: null, others: { count: 0, total: 0 }, calls: { waiter: false, bill: false }, qrUrl: loc?.payment_qr_url ?? null };
   const now = toLocal(nowMs(), loc!.tz_offset_min);
   return c.json({ ...view, open: c.env.TABLE_ANY_HOUR === '1' || tableOpenNow(now.minutes, loc!.open_min, loc!.close_min) });
 });
@@ -411,7 +415,7 @@ app.post('/api/table/:code/orders', async (c) => {
   const menu = indexMenu(await loadMenu(db));
   const soldOut = await soldOutOn(db, loc.id, now.day);
   // В зале алкоголь можно.
-  const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: true, lang });
+  const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: true, lang: 'ru' }); // названия в заказе — по-русски, для кухни
 
   const insert = async (billId: number) => {
     const ts = iso();

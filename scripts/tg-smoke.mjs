@@ -65,7 +65,7 @@ try {
   await hook(start);
   await settle();
   const greet = since(i).filter((c) => c.method === 'sendMessage' && c.body.chat_id === 777);
-  ok(greet.length === 1 && greet[0].body.reply_markup.inline_keyboard[0][0].web_app?.url.endsWith('/?tg=1'), '«Старт»: одно приветствие с кнопкой «Открыть меню» даже при повторе события');
+  ok(greet.length === 1 && greet[0].body.reply_markup.inline_keyboard[0][0].web_app?.url.includes('/?tg=1'), '«Старт»: одно приветствие с кнопкой «Открыть меню» даже при повторе события');
 
   // 3. Заказ из Mini App
   const slots = (await api('/api/slots?type=pickup')).data;

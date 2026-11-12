@@ -1,23 +1,8 @@
 // Сайт гостя: меню → карточка блюда → корзина → время → оформление.
 // Цену, наличие и время проверяет сервер; здесь только удобный показ.
 
-const ERRORS = {
-  EMPTY_CART: 'Корзина пуста.',
-  DISH_UNAVAILABLE: 'Одного из блюд больше нет в меню. Уберите его из корзины.',
-  DISH_SOLD_OUT: 'Одно из блюд закончилось на выбранный день. Уберите его или выберите другой день.',
-  ALCOHOL_NOT_ALLOWED: 'Алкоголь можно заказать только «к визиту».',
-  OPTION_REQUIRED: 'Для одного из блюд нужно выбрать вариант.',
-  OPTION_INVALID: 'Одна из добавок недоступна. Откройте блюдо и выберите заново.',
-  SLOT_FULL: 'Это время только что заняли. Выберите другое.',
-  SLOT_TOO_SOON: 'На это время уже не успеем приготовить. Выберите время позже.',
-  SLOT_INVALID: 'Выберите время из списка.',
-  SLOT_OUT_OF_RANGE: 'Заказать можно на сегодня и до 7 дней вперёд.',
-  NOT_ACCEPTING: 'Сейчас ресторан не принимает предзаказы. Позвоните нам.',
-  TYPE_NOT_AVAILABLE: 'Этот способ получения сейчас недоступен.',
-  BAD_INPUT: 'Проверьте имя и телефон.',
-  TG_AUTH: 'Telegram не подтвердил вход. Закройте меню и откройте его заново кнопкой в боте.',
-  NETWORK: 'Нет связи. Проверьте интернет и нажмите ещё раз: заказ не задвоится.',
-};
+// Тексты ошибок по кодам сервера — в i18n.js (err_<КОД>).
+const errText = (code) => (I18N['err_' + code] ? t('err_' + code) : null);
 
 // Гость открыл QR на столе: /?table=<код>. Заказ идёт на этот стол, без входа и выбора времени (см. table.js).
 const TABLE_CODE = (new URLSearchParams(location.search).get('table') || '').toLowerCase().replace(/[^a-z0-9]/g, '') || null;
@@ -68,14 +53,14 @@ async function init() {
   try {
     state.menu = await api('/api/menu');
   } catch {
-    $('#cats').innerHTML = '<p class="alert">Не удалось загрузить меню. Обновите страницу.</p>';
+    $('#cats').innerHTML = `<p class="alert">${esc(t('menuFailed'))}</p>`;
     return;
   }
   const m = state.menu;
   for (const d of m.dishes) state.dishes.set(d.id, d);
   state.cart = state.cart.filter((i) => state.dishes.has(i.dishId));
   const hh = (v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
-  $('#f-hours').textContent = `ежедневно ${hh(m.location.open)}–${hh(m.location.close)}`;
+  $('#f-hours').textContent = t('factHoursVal', { from: hh(m.location.open), to: hh(m.location.close) });
   $('#f-addr').textContent = m.location.address;
   renderMenu();
   renderCartbar();
@@ -96,12 +81,12 @@ function renderMenu() {
           .map((d) => {
             const out = soldOut.has(d.id);
             return `<button type="button" class="card dish${out ? ' out' : ''}" data-dish="${d.id}">
-              <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${out ? '<span class="tag-out">Сегодня закончилось</span>' : ''}</div>
+              <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${out ? `<span class="tag-out">${esc(t('soldOutToday'))}</span>` : ''}</div>
               <div class="body">
-                <div><h3>${esc(tr(d.name))}${d.is_kids ? '<span class="tag-kids">детское</span>' : ''}</h3>
+                <div><h3>${esc(tr(d.name))}${d.is_kids ? `<span class="tag-kids">${esc(t('kidsTag'))}</span>` : ''}</h3>
                 ${tr(d.description) ? `<p>${esc(tr(d.description))}</p>` : ''}</div>
-                <div class="row"><span class="price">${d.groups.some((g) => g.options.some((o) => o.price_delta > 0)) ? 'от ' : ''}${fmt(d.price)}</span>
-                ${d.is_alcohol && !TABLE_CODE ? '<small class="muted">только к визиту</small>' : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
+                <div class="row"><span class="price">${d.groups.some((g) => g.options.some((o) => o.price_delta > 0)) ? t('priceFrom', { p: fmt(d.price) }) : fmt(d.price)}</span>
+                ${d.is_alcohol && !TABLE_CODE ? `<small class="muted">${esc(t('visitOnly'))}</small>` : ''}${out ? '' : '<span class="add" aria-hidden="true">+</span>'}</div>
               </div>
             </button>`;
           })
@@ -118,7 +103,7 @@ function renderMenu() {
 function renderCartbar() {
   const n = cartCount();
   $('#cartbar').hidden = n === 0;
-  $('#open-cart').textContent = `Корзина · ${n} · ${fmt(cartTotal())}`;
+  $('#open-cart').textContent = t('cartBar', { n, sum: fmt(cartTotal()) });
 }
 
 // ---------- Карточка блюда ----------
@@ -129,17 +114,17 @@ function openDish(id) {
   const soldToday = state.menu.soldOutToday.includes(id);
   let qty = 1;
   dlg.innerHTML = `<form method="dialog" class="sheet-inner">
-    <div class="sheet-head"><h2 id="dish-title">${esc(tr(d.name))}</h2><button class="icon-btn" value="close" aria-label="Закрыть">×</button></div>
+    <div class="sheet-head"><h2 id="dish-title">${esc(tr(d.name))}</h2><button class="icon-btn" value="close" aria-label="${esc(t('close'))}">×</button></div>
     <div class="sheet-scroll">
       ${d.photo ? `<div class="ph"><img src="${esc(d.photo)}" alt="${esc(tr(d.name))}"></div>` : ''}
       ${tr(d.description) ? `<p style="margin:0">${esc(tr(d.description))}</p>` : ''}
-      ${d.weight ? `<p class="muted" style="margin:0">${esc(d.weight)}</p>` : ''}
-      ${soldToday ? '<p class="alert warn" style="margin:0">Сегодня это блюдо закончилось. Его можно заказать на завтра и позже.</p>' : ''}
-      ${d.is_alcohol && !TABLE_CODE ? '<p class="hint" style="margin:0">Алкоголь подаём только к вашему визиту в ресторан.</p>' : ''}
+      ${d.weight ? `<p class="muted" style="margin:0">${esc(weightText(d.weight))}</p>` : ''}
+      ${soldToday ? `<p class="alert warn" style="margin:0">${esc(t('dishSoldToday'))}</p>` : ''}
+      ${d.is_alcohol && !TABLE_CODE ? `<p class="hint" style="margin:0">${esc(t('alcoholVisit'))}</p>` : ''}
       ${d.groups
         .map((g) => {
           const radio = g.max_select === 1;
-          const need = g.min_select > 0 ? 'обязательно' : g.max_select > 1 ? `до ${g.max_select}` : 'по желанию';
+          const need = g.min_select > 0 ? t('optRequired') : g.max_select > 1 ? t('optUpTo', { n: g.max_select }) : t('optOptional');
           return `<fieldset data-group="${g.id}" data-min="${g.min_select}" data-max="${g.max_select}">
             <legend>${esc(tr(g.name))} <span class="muted" style="font-weight:600">· ${need}</span></legend>
             ${g.options
@@ -154,14 +139,14 @@ function openDish(id) {
       <p class="alert" id="dish-err" hidden style="margin:0"></p>
     </div>
     <div class="sheet-foot">
-      <div class="qty"><button type="button" data-q="-1" aria-label="Меньше">−</button><span id="dq">1</span><button type="button" data-q="1" aria-label="Больше">+</button></div>
+      <div class="qty"><button type="button" data-q="-1" aria-label="${esc(t('less'))}">−</button><span id="dq">1</span><button type="button" data-q="1" aria-label="${esc(t('more'))}">+</button></div>
       <button class="btn" style="flex:1" value="add" id="dish-add"></button>
     </div>
   </form>`;
   const chosen = () => [...dlg.querySelectorAll('input:checked')].map((i) => i.value);
   const refresh = () => {
     $('#dq', dlg).textContent = qty;
-    $('#dish-add', dlg).textContent = `В корзину · ${fmt(unitPrice({ dishId: id, optionIds: chosen() }) * qty)}`;
+    $('#dish-add', dlg).textContent = t('addToCart', { sum: fmt(unitPrice({ dishId: id, optionIds: chosen() }) * qty) });
   };
   dlg.onclick = (e) => {
     const q = e.target.closest('[data-q]');
@@ -179,7 +164,7 @@ function openDish(id) {
       if (fs.querySelectorAll('input:checked').length < Number(fs.dataset.min)) {
         e.preventDefault();
         const err = $('#dish-err', dlg);
-        err.textContent = `Выберите: ${fs.querySelector('legend').firstChild.textContent.trim()}`;
+        err.textContent = t('choose', { x: fs.querySelector('legend').firstChild.textContent.trim() });
         err.hidden = false;
         fs.scrollIntoView({ block: 'center', behavior: 'smooth' });
         return;
@@ -207,7 +192,7 @@ function optionNames(item) {
 function openCart() {
   const dlg = $('#cart-sheet');
   dlg.innerHTML = `<div class="sheet-inner">
-    <div class="sheet-head"><h2 id="cart-title">Ваш заказ</h2><button class="icon-btn" type="button" data-close aria-label="Закрыть">×</button></div>
+    <div class="sheet-head"><h2 id="cart-title">${esc(t('yourOrder'))}</h2><button class="icon-btn" type="button" data-close aria-label="${esc(t('close'))}">×</button></div>
     <div class="sheet-scroll" id="cart-body"></div>
     <div class="sheet-foot"><button class="btn block" type="button" id="submit"></button></div>
   </div>`;
@@ -227,30 +212,30 @@ function renderCart() {
   const hasAlcohol = state.cart.some((i) => state.dishes.get(i.dishId).is_alcohol);
   const today = state.menu.today;
   const problems = [];
-  if (hasAlcohol && state.type !== 'visit') problems.push('Алкоголь можно заказать только «к визиту». Выберите «К визиту» или уберите напиток.');
-  if (state.cart.some((i) => daySold.has(i.dishId))) problems.push('Часть блюд закончилась на выбранный день: они отмечены ниже.');
+  if (hasAlcohol && state.type !== 'visit') problems.push(t('alcoholProblem'));
+  if (state.cart.some((i) => daySold.has(i.dishId))) problems.push(t('soldProblem'));
 
   body.innerHTML = `
     <div class="card">${state.cart
       .map(
         (i, idx) => `<div class="cart-item">
-          <div><b>${esc(tr(state.dishes.get(i.dishId).name))}</b>${daySold.has(i.dishId) ? ' <span class="pill bad">закончилось</span>' : ''}
+          <div><b>${esc(tr(state.dishes.get(i.dishId).name))}</b>${daySold.has(i.dishId) ? ` <span class="pill bad">${esc(t('soldOutPill'))}</span>` : ''}
             ${i.optionIds.length ? `<small>${esc(optionNames(i))}</small>` : ''}<small>${fmt(unitPrice(i))}</small></div>
-          <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="Меньше">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="Больше">+</button></div>
+          <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="${esc(t('less'))}">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="${esc(t('more'))}">+</button></div>
         </div>`,
       )
       .join('')}</div>
-    <div class="line tot"><span>Итого</span><span>${fmt(cartTotal())}</span></div>
+    <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
 
-    <h3 style="font-size:16px">Как получить</h3>
-    <div class="seg">${types.map((t) => `<button type="button" data-type="${t}" aria-pressed="${state.type === t}">${TYPE_LABEL[t]}</button>`).join('')}</div>
+    <h3 style="font-size:16px">${esc(t('howGet'))}</h3>
+    <div class="seg">${types.map((t) => `<button type="button" data-type="${t}" aria-pressed="${state.type === t}">${esc(typeLabel(t))}</button>`).join('')}</div>
     <p class="muted" style="margin:0;font-size:13.5px">${
       state.type === 'visit'
-        ? 'Приготовим к вашему приходу, стол будет ждать. Минимум за 30 минут.'
-        : 'Заберёте сами в ресторане. Минимум за 30 минут.'
+        ? esc(t('visitHint'))
+        : esc(t('pickupHint'))
     }</p>
 
-    <h3 style="font-size:16px">Когда</h3>
+    <h3 style="font-size:16px">${esc(t('when'))}</h3>
     <div class="days" id="days">${(state.slotsData?.days || [])
       .map((d) => {
         const l = dayLabel(d, today);
@@ -262,23 +247,23 @@ function renderCart() {
         ? state.slotsData.slots
             .map((s) => {
               const off = s.state !== 'free';
-              const note = s.state === 'full' ? 'занято' : s.state === 'too_soon' ? 'не успеем' : s.left <= 2 ? `осталось ${s.left}` : '';
+              const note = s.state === 'full' ? t('slotFull') : s.state === 'too_soon' ? t('slotSoon') : s.left <= 2 ? t('slotLeft', { n: s.left }) : '';
               return `<button type="button" class="slot" data-slot="${s.time}" ${off ? 'disabled' : ''} aria-pressed="${state.slot === state.day + ' ' + s.time}">${s.time}${note ? `<small>${note}</small>` : ''}</button>`;
             })
-            .join('') || '<p class="muted">На этот день свободного времени нет.</p>'
-        : '<p class="muted">Загружаем время…</p>'
+            .join('') || `<p class="muted">${esc(t('noSlots'))}</p>`
+        : `<p class="muted">${esc(t('slotsLoading'))}</p>`
     }</div>
 
-    <h3 style="font-size:16px">Контакты</h3>
-    <div class="field"><label for="g-name">Имя</label><input id="g-name" autocomplete="name" value="${esc(state.guest.name)}" maxlength="60"></div>
-    <div class="field"><label for="g-phone">Телефон</label><input id="g-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+84 …" value="${esc(state.guest.phone)}" maxlength="20"></div>
-    <div class="field"><label for="g-comment">Комментарий</label><textarea id="g-comment" maxlength="300" placeholder="Например: без лука, детский стульчик">${esc(state.comment)}</textarea></div>
-    <p class="hint" style="margin:0">Оплата по QR-коду. После оформления покажем номер заказа и сумму. Готовить начнём, когда сотрудник увидит поступление денег.</p>
+    <h3 style="font-size:16px">${esc(t('contacts'))}</h3>
+    <div class="field"><label for="g-name">${esc(t('name'))}</label><input id="g-name" autocomplete="name" value="${esc(state.guest.name)}" maxlength="60"></div>
+    <div class="field"><label for="g-phone">${esc(t('phone'))}</label><input id="g-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+84 …" value="${esc(state.guest.phone)}" maxlength="20"></div>
+    <div class="field"><label for="g-comment">${esc(t('comment'))}</label><textarea id="g-comment" maxlength="300" placeholder="${esc(t('commentPh'))}">${esc(state.comment)}</textarea></div>
+    <p class="hint" style="margin:0">${esc(t('payHint'))}</p>
     ${problems.map((p) => `<p class="alert warn" style="margin:0">${esc(p)}</p>`).join('')}
     <p class="alert" id="cart-err" hidden style="margin:0"></p>`;
 
   const sub = $('#submit', dlg);
-  sub.textContent = state.slot ? `Оформить на ${slotLabel(state.slot, today)}` : 'Выберите время';
+  sub.textContent = state.slot ? t('submitFor', { when: slotLabel(state.slot, today) }) : t('chooseTime');
   sub.disabled = !state.slot || state.cart.length === 0;
 
   body.onclick = (e) => {
@@ -335,8 +320,8 @@ async function submit() {
   if (sending) return;
   const name = state.guest.name.trim();
   const phone = state.guest.phone.trim();
-  if (!name) return showErr('Напишите, как к вам обращаться.');
-  if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr('Проверьте номер телефона: только цифры, можно с +.');
+  if (!name) return showErr(t('needName'));
+  if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr(t('badPhone'));
   save('vibe_guest', { name, phone });
 
   // Один ключ на одну попытку оформления: повторное нажатие или повтор после обрыва связи вернёт тот же заказ.
@@ -346,7 +331,7 @@ async function submit() {
   sending = true;
   const btn = $('#submit');
   btn.disabled = true;
-  btn.textContent = 'Оформляем…';
+  btn.textContent = t('submitting');
   try {
     const r = await api('/api/orders', {
       method: 'POST',
@@ -370,16 +355,16 @@ async function submit() {
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
-    showErr(ERRORS[e.code] || 'Что-то пошло не так. Попробуйте ещё раз.');
+    showErr(errText(e.code) || t('genericErr'));
     if (e.code === 'SLOT_FULL' || e.code === 'SLOT_TOO_SOON' || e.code === 'DISH_SOLD_OUT') {
       state.slot = e.code === 'DISH_SOLD_OUT' ? state.slot : null;
       await loadSlots();
-      showErr(ERRORS[e.code]);
+      showErr(errText(e.code));
     }
   } finally {
     sending = false;
     const b = $('#submit');
-    if (b && b.textContent === 'Оформляем…') { b.disabled = !state.slot; b.textContent = state.slot ? `Оформить на ${slotLabel(state.slot, state.menu.today)}` : 'Выберите время'; }
+    if (b && b.textContent === t('submitting')) { b.disabled = !state.slot; b.textContent = state.slot ? t('submitFor', { when: slotLabel(state.slot, state.menu.today) }) : t('chooseTime'); }
   }
 }
 

@@ -1,5 +1,6 @@
 // Заказ со стола по QR: счета, вызовы официанта, объединение «Весь стол». Работа с базой.
 import { BILL_STALE_MS, checkBillAction, tableOrderStatus, tableTitle, type BillAction } from './lib/tables';
+import { localizeItems } from './db';
 
 export interface DiningTable {
   id: string;
@@ -57,13 +58,14 @@ export async function billTotal(db: D1Database, billId: number): Promise<number>
   return r?.t ?? 0;
 }
 
-async function billOrders(db: D1Database, billIds: number[]) {
+async function billOrders(db: D1Database, billIds: number[], lang = 'ru') {
   if (!billIds.length) return [];
   const q = billIds.map(() => '?').join(',');
   const [orders, items] = await db.batch([
     db.prepare(`SELECT id, bill_id, status, total, comment, created_at FROM orders WHERE bill_id IN (${q}) ORDER BY id`).bind(...billIds),
-    db.prepare(`SELECT oi.order_id, oi.name, oi.qty, oi.options, oi.line_total FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.bill_id IN (${q}) ORDER BY oi.id`).bind(...billIds),
+    db.prepare(`SELECT oi.order_id, oi.dish_id, oi.name, oi.qty, oi.options, oi.line_total FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.bill_id IN (${q}) ORDER BY oi.id`).bind(...billIds),
   ]);
+  const lines = await localizeItems(db, (items.results as any[]).map((i) => ({ ...i, options: JSON.parse(i.options) as { id?: string; name: string }[] })), lang);
   return (orders.results as any[]).map((o) => ({
     number: o.id,
     billId: o.bill_id,
@@ -72,9 +74,9 @@ async function billOrders(db: D1Database, billIds: number[]) {
     total: o.total,
     comment: o.comment,
     createdAt: o.created_at,
-    items: (items.results as any[])
+    items: lines
       .filter((i) => i.order_id === o.id)
-      .map((i) => ({ name: i.name, qty: i.qty, options: JSON.parse(i.options).map((x: any) => x.name), lineTotal: i.line_total })),
+      .map((i) => ({ name: i.name, qty: i.qty, options: i.options.map((x: { name: string }) => x.name), lineTotal: i.line_total })),
   }));
 }
 
@@ -83,7 +85,7 @@ async function openCalls(db: D1Database, tableId: string) {
 }
 
 /** Что видит гость: свой счёт с заказами, другие счета стола (только суммы), открытые вызовы. */
-export async function guestBillView(db: D1Database, table: DiningTable, device: string, qrUrl: string | null) {
+export async function guestBillView(db: D1Database, table: DiningTable, device: string, qrUrl: string | null, lang = 'ru') {
   const bill = await findBill(db, table, device);
   const others = await db
     .prepare(
@@ -94,7 +96,7 @@ export async function guestBillView(db: D1Database, table: DiningTable, device: 
     .all<any>();
   const otherBills = others.results.filter((o) => o.total > 0);
   const calls = await openCalls(db, table.id);
-  const orders = bill ? await billOrders(db, [bill.id]) : [];
+  const orders = bill ? await billOrders(db, [bill.id], lang) : [];
   const total = orders.filter((o) => o.kitchenStatus !== 'cancelled').reduce((s, o) => s + o.total, 0);
   return {
     table: { id: table.id, zone: table.zone, title: tableTitle(table) },

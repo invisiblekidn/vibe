@@ -97,3 +97,33 @@ export async function takenSlots(db: D1Database, locationId: string, day: string
     .all<{ t: string; n: number }>();
   return Object.fromEntries(r.results.map((x) => [x.t, x.n]));
 }
+
+/**
+ * Названия блюд и опций в заказе — на языке гостя. В базе заказа они хранятся по-русски (для кухни и сотрудников),
+ * гостю подставляем перевод из меню по id; если блюдо уже убрали из меню, остаётся сохранённое название.
+ */
+export async function localizeItems<T extends { dish_id: string; name: string; options: { id?: string; name: string }[] }>(
+  db: D1Database,
+  items: T[],
+  lang: string,
+): Promise<T[]> {
+  if (lang === 'ru' || !items.length) return items;
+  const dishIds = [...new Set(items.map((i) => i.dish_id))];
+  const optIds = [...new Set(items.flatMap((i) => i.options.map((o) => o.id).filter((x): x is string => !!x)))];
+  const q = (n: number) => Array(n).fill('?').join(',');
+  const [d, o] = await db.batch([
+    db.prepare(`SELECT id, name FROM dishes WHERE id IN (${q(dishIds.length)})`).bind(...dishIds),
+    db.prepare(optIds.length ? `SELECT id, name FROM options WHERE id IN (${q(optIds.length)})` : 'SELECT id, name FROM options WHERE 0').bind(...optIds),
+  ]);
+  const pick = (s: string) => {
+    const n = parse(s);
+    return n[lang] || '';
+  };
+  const dn = new Map((d.results as any[]).map((r) => [r.id, pick(r.name)]));
+  const on = new Map((o.results as any[]).map((r) => [r.id, pick(r.name)]));
+  return items.map((i) => ({
+    ...i,
+    name: dn.get(i.dish_id) || i.name,
+    options: i.options.map((x) => ({ ...x, name: (x.id && on.get(x.id)) || x.name })),
+  }));
+}
