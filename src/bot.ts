@@ -23,8 +23,9 @@ import {
   parseTableCallback,
   waiterCallText,
   type InlineButton,
+  parseCourseCallback,
 } from './lib/telegram';
-import { orderWithItems, transition } from './orders';
+import { courseTransition, orderWithItems, transition } from './orders';
 import { tableTitle } from './lib/tables';
 import { billAction, billTotal, closeCall } from './tables';
 
@@ -93,6 +94,9 @@ const ACTOR_NOTE: Record<string, string> = {
   ready: 'отметил(а) «готово»',
   completed: 'выдал(а) заказ',
   cancelled: 'отменил(а) заказ',
+  course_started: 'начал(а) подачу',
+  course_ready: 'отметил(а) «готово» у подачи',
+  course_served: 'подал(а) подачу',
 };
 
 /** Сообщить гостю и сотрудникам о событии заказа. Ошибки Telegram не мешают заказу. */
@@ -102,7 +106,8 @@ export async function notifyOrderEvent(env: TgEnv, orderId: number, event: strin
   if (!o) return;
   const day = await today(env);
   const who = actor.startsWith('staff:') ? actor.slice(6) : actor === 'guest' ? 'Гость' : '';
-  const note = ACTOR_NOTE[event] && who ? `${who} ${ACTOR_NOTE[event]}` : undefined;
+  const [base, num] = event.split(':');
+  const note = ACTOR_NOTE[base] && who ? `${who} ${ACTOR_NOTE[base]}${num ? ' ' + num : ''}` : undefined;
 
   await syncStaffCard(env, o, day, note);
   const alert = staffAlertText(event, o);
@@ -270,6 +275,11 @@ const ERR_TEXT: Record<string, string> = {
   ORDER_CLOSED: 'Заказ уже закрыт',
   NOT_COOKING: 'Заказ ещё не готовится',
   NOT_READY: 'Заказ ещё не готов',
+  USE_COURSES: 'У этого заказа подачи: отмечайте каждую подачу',
+  NOT_ACCEPTED: 'Сначала примите заказ',
+  EARLIER_COURSE_WAITING: 'Сначала начните более раннюю подачу',
+  COURSE_NOT_STARTED: 'Эту подачу ещё не начали',
+  COURSE_NOT_READY: 'Эта подача ещё не готова',
 };
 
 // ---------- Выбор гостя, которому пишет сотрудник ----------
@@ -321,6 +331,8 @@ async function onCallback(env: TgEnv, q: any, baseUrl: string) {
   if (/^g:\d{1,15}$/.test(q.data || '')) return pickGuest(env, q, answer);
   const tc = parseTableCallback(q.data);
   if (tc) return onTableCallback(env, q, tc, answer);
+  const kc = parseCourseCallback(q.data);
+  if (kc) return onCourseCallback(env, q, kc, answer, baseUrl);
   const parsed = parseCallback(q.data);
   const chat = staffChat(env);
   if (!parsed || !chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
@@ -354,6 +366,32 @@ async function onCallback(env: TgEnv, q: any, baseUrl: string) {
     await answer('Уже сделано');
     return;
   }
+  await answer('Готово');
+  await notifyOrderEvent(env, o.id, r.event, `staff:${name}`, baseUrl);
+}
+
+/** Кнопки подачи в группе: «Начать подачу N», «Подача N готова», «Подача N подана». */
+async function onCourseCallback(
+  env: TgEnv,
+  q: any,
+  kc: NonNullable<ReturnType<typeof parseCourseCallback>>,
+  answer: (t: string, a?: boolean) => Promise<any>,
+  baseUrl: string,
+) {
+  const chat = staffChat(env);
+  if (!chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
+  const name = parseStaffList(env.TG_STAFF).get(q.from?.id);
+  if (!name) return void (await answer('Эти кнопки только для сотрудников из списка.', true));
+  const o = await env.DB.prepare('SELECT * FROM orders WHERE id = ? AND location_id = ?').bind(kc.orderId, env.LOCATION_ID).first<any>();
+  if (!o) return void (await answer('Заказ не найден'));
+  const r = await courseTransition(env.DB, o, kc.course, kc.action, `staff:${name}`);
+  if (!r.ok) {
+    await answer(ERR_TEXT[r.error] || 'Не получилось');
+    const full = await orderWithItems(env.DB, o.id);
+    if (full) await syncStaffCard(env, { ...full, staff_msg_id: o.staff_msg_id ?? q.message.message_id }, await today(env));
+    return;
+  }
+  if (!r.changed) return void (await answer('Уже сделано'));
   await answer('Готово');
   await notifyOrderEvent(env, o.id, r.event, `staff:${name}`, baseUrl);
 }

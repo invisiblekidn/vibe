@@ -7,7 +7,8 @@ import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
 import { verifyInitData } from './lib/telegram';
 import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, type TgEnv } from './bot';
-import { transition } from './orders';
+import { courseTransition, transition } from './orders';
+import { planCourses, type CourseAction } from './lib/courses';
 import { DEVICE_RE, TABLE_CODE_RE, tableOpenNow, tableTitle, type BillAction } from './lib/tables';
 import { billAction, billTotal, closeCall, createCall, findBill, guestBillView, markBillRequested, openBillFor, staffTablesView, tableByCode } from './tables';
 
@@ -297,7 +298,10 @@ app.get('/api/staff/orders', async (c) => {
     (await db.prepare('SELECT id, zone FROM dining_tables WHERE location_id = ?').bind(loc!.id).all<any>()).results.map((t) => [t.id, t.zone]),
   );
   const items = ids.length
-    ? await db.prepare(`SELECT * FROM order_items WHERE order_id IN (${ids.map(() => '?').join(',')}) ORDER BY id`).bind(...ids).all<any>()
+    ? await db.prepare(`SELECT * FROM order_items WHERE order_id IN (${ids.map(() => '?').join(',')}) ORDER BY course, id`).bind(...ids).all<any>()
+    : { results: [] as any[] };
+  const courseRows = ids.length
+    ? await db.prepare(`SELECT order_id, course, status FROM order_courses WHERE order_id IN (${ids.map(() => '?').join(',')}) ORDER BY course`).bind(...ids).all<any>()
     : { results: [] as any[] };
   return c.json({
     today,
@@ -318,9 +322,11 @@ app.get('/api/staff/orders', async (c) => {
       guestPhone: o.guest_phone,
       comment: o.comment,
       createdAt: o.created_at,
+      serveMode: o.serve_mode,
+      courses: courseRows.results.filter((r) => r.order_id === o.id).map((r) => ({ course: r.course, status: r.status })),
       items: items.results
         .filter((i) => i.order_id === o.id)
-        .map((i) => ({ name: i.name, qty: i.qty, options: JSON.parse(i.options).map((x: any) => x.name), lineTotal: i.line_total })),
+        .map((i) => ({ name: i.name, qty: i.qty, options: JSON.parse(i.options).map((x: any) => x.name), lineTotal: i.line_total, course: i.course })),
     })),
   });
 });
@@ -333,6 +339,21 @@ app.post('/api/staff/orders/:id/action', async (c) => {
   const o = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ? AND location_id = ?').bind(Number(c.req.param('id')), c.env.LOCATION_ID).first<any>();
   if (!o) return c.json({ error: 'NOT_FOUND' }, 404);
   return runAction(c.env.DB, o, body.action, `staff:${c.get('staff')}`, c);
+});
+
+const COURSE_ACTIONS: CourseAction[] = ['start', 'ready', 'served'];
+
+// Подача заказа: «Начать подачу N» (шеф), «Готово», «Подано».
+app.post('/api/staff/orders/:id/course', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { course?: number; action?: CourseAction };
+  if (!body.action || !COURSE_ACTIONS.includes(body.action) || !Number.isInteger(body.course)) return c.json({ error: 'BAD_ACTION' }, 400);
+  const o = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ? AND location_id = ?').bind(Number(c.req.param('id')), c.env.LOCATION_ID).first<any>();
+  if (!o) return c.json({ error: 'NOT_FOUND' }, 404);
+  const actor = `staff:${c.get('staff')}`;
+  const r = await courseTransition(c.env.DB, o, body.course!, body.action, actor);
+  if (!r.ok) return c.json({ error: r.error }, 409);
+  if (r.changed) notifyLater(c, o.id, r.event, actor);
+  return c.json({ ok: true, changed: r.changed, kitchenStatus: r.order.status });
 });
 
 app.get('/api/staff/orders/:id/events', async (c) => {
@@ -393,6 +414,10 @@ interface TableOrderBody {
   items: CartItemInput[];
   comment?: string;
   lang?: string;
+  /** «courses» — гость выбрал «По очереди» и разложил блюда по подачам (items[].course). */
+  serveMode?: string;
+  /** Подпись порядка, который гость подтвердил на экране «Проверьте порядок подачи». */
+  serveConfirm?: string;
 }
 
 app.post('/api/table/:code/orders', async (c) => {
@@ -417,24 +442,33 @@ app.post('/api/table/:code/orders', async (c) => {
   const soldOut = await soldOutOn(db, loc.id, now.day);
   // В зале алкоголь можно.
   const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: true, lang: 'ru' }); // названия в заказе — по-русски, для кухни
+  // Порядок подачи: номера подряд с 1 и подтверждение гостя именно этого порядка.
+  const plan = planCourses(body.items, body.serveMode, body.serveConfirm);
+  if (!plan.ok) throw new OrderError(plan.reason);
 
   const insert = async (billId: number) => {
     const ts = iso();
     const insertOrder = db
       .prepare(
         `INSERT INTO orders (public_token, idempotency_key, location_id, channel, type, slot, status, payment_method, payment_status,
-           subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, table_id, bill_id)
-         SELECT ?, ?, ?, 'table', 'table', NULL, 'new', 'bill', 'unpaid', ?, 0, ?, ?, '', ?, ?, ?, ?, ?, ?
+           subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, table_id, bill_id, serve_mode)
+         SELECT ?, ?, ?, 'table', 'table', NULL, 'new', 'bill', 'unpaid', ?, 0, ?, ?, '', ?, ?, ?, ?, ?, ?, ?
          WHERE EXISTS (SELECT 1 FROM bills WHERE id = ? AND status = 'open')`,
       )
-      .bind(crypto.randomUUID(), key, loc.id, subtotal, subtotal, tableTitle(t), cleanText(body.comment, 300) || null, lang, ts, ts, t.id, billId, billId);
-    const insertItems = lines.map((l) =>
+      .bind(crypto.randomUUID(), key, loc.id, subtotal, subtotal, tableTitle(t), cleanText(body.comment, 300) || null, lang, ts, ts, t.id, billId, plan.mode, billId);
+    const insertItems = lines.map((l, idx) =>
       db
-        .prepare(`INSERT INTO order_items (order_id, dish_id, name, qty, unit_price, options, line_total) SELECT id, ?, ?, ?, ?, ?, ? FROM orders WHERE idempotency_key = ?`)
-        .bind(l.dishId, l.name, l.qty, l.unitPrice, JSON.stringify(l.options), l.lineTotal, key),
+        .prepare(`INSERT INTO order_items (order_id, dish_id, name, qty, unit_price, options, line_total, course) SELECT id, ?, ?, ?, ?, ?, ?, ? FROM orders WHERE idempotency_key = ?`)
+        .bind(l.dishId, l.name, l.qty, l.unitPrice, JSON.stringify(l.options), l.lineTotal, plan.mode === 'courses' ? plan.courses[idx] : 1, key),
     );
+    const insertCourses =
+      plan.mode === 'courses'
+        ? Array.from({ length: plan.count }, (_, k) =>
+            db.prepare(`INSERT INTO order_courses (order_id, course, status) SELECT id, ?, 'waiting' FROM orders WHERE idempotency_key = ?`).bind(k + 1, key),
+          )
+        : [];
     const insertEvent = db.prepare(`INSERT INTO order_events (order_id, at, actor, kind) SELECT id, ?, 'guest', 'created' FROM orders WHERE idempotency_key = ?`).bind(ts, key);
-    const res = await db.batch([insertOrder, ...insertItems, insertEvent]);
+    const res = await db.batch([insertOrder, ...insertItems, ...insertCourses, insertEvent]);
     return res[0].meta.changes ?? 0;
   };
 

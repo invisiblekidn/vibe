@@ -1,6 +1,7 @@
 // Чистые функции для Telegram: проверка данных Mini App, тексты сообщений, кнопки.
 // Сетевые вызовы — в src/bot.ts.
 import { tableTitle } from './tables';
+import { nextWaiting, type CourseRow } from './courses';
 
 const enc = new TextEncoder();
 
@@ -142,7 +143,33 @@ export interface OrderForText {
   guest_phone: string;
   comment?: string | null;
   channel: string;
-  items: { name: string; qty: number; options: { name: string }[] }[];
+  items: { name: string; qty: number; options: { name: string }[]; course?: number }[];
+  /** Заказ со стола по подачам: «courses». */
+  serve_mode?: string;
+  courses?: CourseRow[];
+}
+
+const COURSE_LINE: Record<string, string> = {
+  waiting: '⏸ ждёт команды шефа',
+  cooking: '👩‍🍳 готовится',
+  ready: '🍽 готово, отнести',
+  served: '✔️ подано',
+};
+const NUM = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+export const courseEmoji = (n: number) => NUM[n] ?? `${n}.`;
+
+const itemLine = (i: { name: string; qty: number; options: { name: string }[] }) =>
+  `${escHtml(i.name)}${i.options.length ? ` (${escHtml(i.options.map((x) => x.name).join(', '))})` : ''} ×${i.qty}`;
+
+/** Блюда по подачам: заголовок подачи со статусом и блюда под ним. */
+function coursesBlock(o: OrderForText): string {
+  const accepted = o.status !== 'new' && o.status !== 'cancelled';
+  return (o.courses ?? [])
+    .map((c) => {
+      const items = o.items.filter((i) => (i.course ?? 1) === c.course).map((i) => `• ${itemLine(i)}`).join('\n');
+      return `<b>${courseEmoji(c.course)} Подача ${c.course}</b>${accepted ? ` · ${COURSE_LINE[c.status] || c.status}` : ''}\n${items}`;
+    })
+    .join('\n');
 }
 
 const PAY_LINE: Record<string, string> = {
@@ -170,19 +197,19 @@ export function orderTableTitle(o: { table_id?: string | null; table_zone?: stri
 export function staffOrderText(o: OrderForText, today?: string, lastActor?: string): string {
   const isTable = o.type === 'table';
   const head = o.status === 'cancelled' ? `<s>Заказ №${o.id}</s> · отменён` : `<b>Заказ №${o.id}</b> · ${CHANNEL[o.channel] || o.channel}`;
-  const items = o.items
-    .map((i) => `${escHtml(i.name)}${i.options.length ? ` (${escHtml(i.options.map((x) => x.name).join(', '))})` : ''} ×${i.qty}`)
-    .join('\n');
+  const byCourse = o.serve_mode === 'courses' && (o.courses?.length ?? 0) > 1;
+  const items = byCourse ? coursesBlock(o) : o.items.map(itemLine).join('\n');
   return [
     head,
     isTable ? `🍽 <b>${escHtml(orderTableTitle(o))}</b>` : `${TYPE[o.type] || o.type} · ${slotText(o.slot, today)}`,
+    byCourse ? '🔢 <b>Подача по очереди</b> · гость подтвердил порядок' : '',
     items,
     `<b>${fmtVnd(o.total)}</b> · ${isTable ? 'по счёту в конце' : 'QR'}`,
     isTable ? '' : `${escHtml(o.guest_name)} · ${escHtml(o.guest_phone)}`,
     o.comment ? `«${escHtml(o.comment)}»` : '',
     '',
     isTable ? '' : `Оплата: ${PAY_LINE[o.payment_status] || o.payment_status}`,
-    `Кухня: ${isTable && o.status === 'new' ? '⏳ ждёт, когда администратор примет' : isTable && o.status === 'completed' ? '✔️ подан' : KITCHEN_LINE[o.status] || o.status}`,
+    byCourse && o.status !== 'new' && o.status !== 'cancelled' ? '' : `Кухня: ${isTable && o.status === 'new' ? '⏳ ждёт, когда администратор примет' : isTable && o.status === 'completed' ? '✔️ подан' : KITCHEN_LINE[o.status] || o.status}`,
     lastActor ? `<i>${escHtml(lastActor)}</i>` : '',
   ]
     .filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== ''))
@@ -201,11 +228,35 @@ export function parseCallback(data: string | undefined): { orderId: number; code
   return m ? { orderId: Number(m[1]), code: m[2] as Code } : null;
 }
 
+/** Кнопки подачи: k:<заказ>:<подача>:<s — начать, r — готово, v — подано>. */
+export function parseCourseCallback(data: string | undefined): { orderId: number; course: number; action: 'start' | 'ready' | 'served' } | null {
+  const m = /^k:(\d{1,9}):(\d{1,2}):(s|r|v)$/.exec(data || '');
+  if (!m) return null;
+  return { orderId: Number(m[1]), course: Number(m[2]), action: m[3] === 's' ? 'start' : m[3] === 'r' ? 'ready' : 'served' };
+}
+
+/** Кнопки по подачам: «Подача N готова» у готовящихся, «Подача N подана» у готовых, «Начать подачу N» у следующей. */
+function courseButtons(o: { id: number; courses?: CourseRow[] }): InlineButton[][] {
+  const k = (text: string, n: number, code: string): InlineButton => ({ text, callback_data: `k:${o.id}:${n}:${code}` });
+  const rows: InlineButton[][] = [];
+  for (const c of o.courses ?? []) {
+    if (c.status === 'cooking') rows.push([k(`✅ Подача ${c.course} готова`, c.course, 'r')]);
+    if (c.status === 'ready') rows.push([k(`🍽 Подача ${c.course} подана`, c.course, 'v')]);
+  }
+  const next = nextWaiting(o.courses ?? []);
+  if (next) rows.push([k(`▶️ Начать подачу ${next}`, next, 's')]);
+  return rows;
+}
+
 /** Кнопки под сообщением о заказе. Отмена — в два нажатия. */
-export function staffButtons(o: { id: number; type?: string; status: string; payment_status: string; payment_method: string }, askCancel = false): InlineButton[][] {
+export function staffButtons(
+  o: { id: number; type?: string; status: string; payment_status: string; payment_method: string; serve_mode?: string; courses?: CourseRow[] },
+  askCancel = false,
+): InlineButton[][] {
   if (o.status === 'completed' || o.status === 'cancelled') return [];
   const b = (text: string, code: string): InlineButton => ({ text, callback_data: `o:${o.id}:${code}` });
   if (askCancel) return [[b('Да, отменить заказ', 'cx'), b('Назад', 'back')]];
+  if (o.serve_mode === 'courses' && o.status !== 'new') return [...courseButtons(o), [b('Отменить', 'cx?')]];
   const row: InlineButton[] = [];
   if (o.payment_method === 'qr' && o.payment_status !== 'confirmed') row.push(b('💳 Деньги пришли', 'cp'));
   const table = o.type === 'table';
@@ -258,6 +309,13 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
 
 /** Кому из сотрудников сообщить отдельным сообщением (а не только обновить карточку). */
 export function staffAlertText(event: string, o: OrderForText): string | null {
+  const [base, num] = event.split(':');
+  if (base === 'course_served' && o.serve_mode === 'courses') {
+    const next = nextWaiting(o.courses ?? []);
+    const where = escHtml(orderTableTitle(o));
+    if (next) return `🍽 ${where}, заказ №${o.id}: подача ${num} подана. Следующая — <b>подача ${next}</b>, шеф запускает кнопкой «Начать подачу ${next}».`;
+    return null;
+  }
   if (event === 'payment_reported') return `⚠️ Гость сообщил об оплате №${o.id} на <b>${fmtVnd(o.total)}</b>. Подтверждайте, только когда увидите деньги в банке.`;
   return null;
 }

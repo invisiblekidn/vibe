@@ -61,9 +61,10 @@ export async function billTotal(db: D1Database, billId: number): Promise<number>
 async function billOrders(db: D1Database, billIds: number[], lang = 'ru') {
   if (!billIds.length) return [];
   const q = billIds.map(() => '?').join(',');
-  const [orders, items] = await db.batch([
-    db.prepare(`SELECT id, bill_id, status, total, comment, created_at FROM orders WHERE bill_id IN (${q}) ORDER BY id`).bind(...billIds),
-    db.prepare(`SELECT oi.order_id, oi.dish_id, oi.name, oi.qty, oi.options, oi.line_total FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.bill_id IN (${q}) ORDER BY oi.id`).bind(...billIds),
+  const [orders, items, courses] = await db.batch([
+    db.prepare(`SELECT id, bill_id, status, total, comment, created_at, serve_mode FROM orders WHERE bill_id IN (${q}) ORDER BY id`).bind(...billIds),
+    db.prepare(`SELECT oi.order_id, oi.dish_id, oi.name, oi.qty, oi.options, oi.line_total, oi.course FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE o.bill_id IN (${q}) ORDER BY oi.course, oi.id`).bind(...billIds),
+    db.prepare(`SELECT oc.order_id, oc.course, oc.status FROM order_courses oc JOIN orders o ON o.id = oc.order_id WHERE o.bill_id IN (${q}) ORDER BY oc.course`).bind(...billIds),
   ]);
   const lines = await localizeItems(db, (items.results as any[]).map((i) => ({ ...i, options: JSON.parse(i.options) as { id?: string; name: string }[] })), lang);
   return (orders.results as any[]).map((o) => ({
@@ -74,9 +75,11 @@ async function billOrders(db: D1Database, billIds: number[], lang = 'ru') {
     total: o.total,
     comment: o.comment,
     createdAt: o.created_at,
+    serveMode: o.serve_mode,
+    courses: (courses.results as any[]).filter((r) => r.order_id === o.id).map((r) => ({ course: r.course, status: r.status })),
     items: lines
       .filter((i) => i.order_id === o.id)
-      .map((i) => ({ name: i.name, qty: i.qty, options: i.options.map((x: { name: string }) => x.name), lineTotal: i.line_total })),
+      .map((i) => ({ name: i.name, qty: i.qty, options: i.options.map((x: { name: string }) => x.name), lineTotal: i.line_total, course: i.course })),
   }));
 }
 
