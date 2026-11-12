@@ -4,18 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Заказ — VIBE</title>
+<title data-i18n="orderTitle">Заказ — VIBE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Pangolin&family=Nunito:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="/css/vibe.css">
 </head>
 <body>
-<div class="test-banner">Тестовая версия: заказы не настоящие, оплата не принимается</div>
+<div class="test-banner" data-i18n="testBanner">Тестовая версия: заказы не настоящие, оплата не принимается</div>
+<nav class="langbar" id="langbar" aria-label="Язык"></nav>
 <header class="wrap topbar">
   <a class="logo" href="/">VIBE<small>FAMILY RESTAURANT</small></a>
-  <a class="btn small ghost" href="/#menu">Меню</a>
+  <a class="btn small ghost" href="/#menu" data-i18n="menu">Меню</a>
 </header>
-<main class="wrap"><div class="order" id="order"><p class="muted">Загружаем заказ…</p></div></main>
+<main class="wrap"><div class="order" id="order"><p class="muted" data-i18n="orderLoading">Загружаем заказ…</p></div></main>
+<script src="/js/i18n.js"></script>
 <script src="/js/common.js"></script>
 <script src="/js/order.js"></script>
 </body>

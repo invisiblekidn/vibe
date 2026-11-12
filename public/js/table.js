@@ -1,22 +1,15 @@
 // Гость за столом (QR на столе): заказ без входа и без выбора времени, вызов официанта, свой счёт.
 // Каждый телефон получает свой ключ (vibe_device): по нему сервер находит счёт этого телефона за столом.
 
-const TABLE_ERRORS = {
-  TABLE_NOT_FOUND: 'Не узнали этот QR-код. Позовите официанта, пожалуйста.',
-  TABLE_CLOSED: 'Сейчас ресторан закрыт, заказ со стола не принимаем.',
-  BILL_EMPTY: 'В счёте пока ничего нет.',
-  BILL_CLOSED: 'Этот счёт уже закрыт. Обновите страницу.',
-  BILL_MERGED: 'Ваш счёт уже входит в общий счёт стола.',
-  BILL_PAYMENT_PENDING: 'Счёт уже оплачивается, объединить сейчас нельзя. Позовите официанта.',
-  NOTHING_TO_MERGE: 'За столом нет других счетов.',
-};
+// Тексты ошибок стола — в i18n.js (err_<КОД>).
+const tableErr = (code) => (I18N['err_' + code] ? t('err_' + code) : null);
 
 const ORDER_STATUS = {
-  sent: ['warn', 'Отправлен, ждём подтверждения'],
-  cooking: ['ok', 'Принят, готовим'],
-  ready: ['ok', 'Готово, несём'],
-  served: ['mute', 'Подано'],
-  cancelled: ['bad', 'Отменён'],
+  sent: 'warn',
+  cooking: 'ok',
+  ready: 'ok',
+  served: 'mute',
+  cancelled: 'bad',
 };
 
 const tableState = { info: null, timer: null, sureMerge: false };
@@ -53,10 +46,10 @@ async function tableInit() {
 
 async function refreshTable() {
   try {
-    tableState.info = await api(`/api/table/${encodeURIComponent(TABLE_CODE)}?d=${encodeURIComponent(deviceKey())}`);
+    tableState.info = await api(`/api/table/${encodeURIComponent(TABLE_CODE)}?d=${encodeURIComponent(deviceKey())}&lang=${LANG}`);
   } catch (e) {
     if (e.code === 'TABLE_NOT_FOUND') {
-      $('#cats').insertAdjacentHTML('beforebegin', `<p class="alert">${TABLE_ERRORS.TABLE_NOT_FOUND}</p>`);
+      $('#cats').insertAdjacentHTML('beforebegin', `<p class="alert">${esc(t('err_TABLE_NOT_FOUND'))}</p>`);
       tableState.info = null;
     }
     return;
@@ -66,13 +59,13 @@ async function refreshTable() {
 }
 
 function renderTablebar() {
-  const t = tableState.info;
-  $('#tb-name').textContent = t.table.title;
+  const info = tableState.info;
+  $('#tb-name').textContent = tableName(info.table);
   const w = $('#tb-waiter');
-  w.setAttribute('aria-busy', String(t.calls.waiter));
-  w.textContent = t.calls.waiter ? 'Официант уже идёт' : 'Позвать официанта';
-  const b = t.bill && t.bill.status === 'open' && t.bill.total > 0 ? t.bill : null;
-  $('#tb-bill').textContent = b ? `Мой счёт · ${fmt(b.total)}` : 'Мой счёт';
+  w.setAttribute('aria-busy', String(info.calls.waiter));
+  w.textContent = info.calls.waiter ? t('waiterComing') : t('callWaiter');
+  const b = info.bill && info.bill.status === 'open' && info.bill.total > 0 ? info.bill : null;
+  $('#tb-bill').textContent = b ? t('myBillSum', { sum: fmt(b.total) }) : t('myBill');
 }
 
 async function callWaiter() {
@@ -84,7 +77,7 @@ async function callWaiter() {
     tableState.info.calls.waiter = true;
     renderTablebar();
   } catch (e) {
-    w.textContent = e.code === 'NETWORK' ? 'Нет связи, нажмите ещё раз' : 'Не получилось';
+    w.textContent = e.code === 'NETWORK' ? t('noNetRetry') : t('failed');
   } finally {
     w.disabled = false;
   }
@@ -95,7 +88,7 @@ async function callWaiter() {
 function openTableCart() {
   const dlg = $('#cart-sheet');
   dlg.innerHTML = `<div class="sheet-inner">
-    <div class="sheet-head"><h2 id="cart-title">Ваш заказ</h2><button class="icon-btn" type="button" data-close aria-label="Закрыть">×</button></div>
+    <div class="sheet-head"><h2 id="cart-title">${esc(t('yourOrder'))}</h2><button class="icon-btn" type="button" data-close aria-label="${esc(t('close'))}">×</button></div>
     <div class="sheet-scroll" id="cart-body"></div>
     <div class="sheet-foot"><button class="btn block" type="button" id="submit"></button></div>
   </div>`;
@@ -108,24 +101,24 @@ function openTableCart() {
 function renderTableCart() {
   const dlg = $('#cart-sheet');
   const body = $('#cart-body', dlg);
-  const title = tableState.info ? tableState.info.table.title : 'Стол';
+  const title = tableName(tableState.info && tableState.info.table);
   body.innerHTML = `
     <div class="card">${state.cart
       .map(
         (i, idx) => `<div class="cart-item">
           <div><b>${esc(tr(state.dishes.get(i.dishId).name))}</b>
             ${i.optionIds.length ? `<small>${esc(optionNames(i))}</small>` : ''}<small>${fmt(unitPrice(i))}</small></div>
-          <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="Меньше">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="Больше">+</button></div>
+          <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="${esc(t('less'))}">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="${esc(t('more'))}">+</button></div>
         </div>`,
       )
       .join('')}</div>
-    <div class="line tot"><span>Итого</span><span>${fmt(cartTotal())}</span></div>
-    <p class="hint" style="margin:0"><b>${esc(title)}</b><br>Заказ увидит администратор и сразу передаст на кухню. Обычно готовим 15–20 минут. Оплата по счёту в конце, по QR или наличными.</p>
-    <div class="field"><label for="g-comment">Комментарий</label><textarea id="g-comment" maxlength="300" placeholder="Например: без лука, сначала детям">${esc(state.comment)}</textarea></div>
-    ${tableState.info && !tableState.info.open ? `<p class="alert warn" style="margin:0">${TABLE_ERRORS.TABLE_CLOSED}</p>` : ''}
+    <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
+    <p class="hint" style="margin:0"><b>${esc(title)}</b><br>${esc(t('tableHint'))}</p>
+    <div class="field"><label for="g-comment">${esc(t('comment'))}</label><textarea id="g-comment" maxlength="300" placeholder="${esc(t('tableCommentPh'))}">${esc(state.comment)}</textarea></div>
+    ${tableState.info && !tableState.info.open ? `<p class="alert warn" style="margin:0">${esc(t('err_TABLE_CLOSED'))}</p>` : ''}
     <p class="alert" id="cart-err" hidden style="margin:0"></p>`;
   const sub = $('#submit', dlg);
-  sub.textContent = `Отправить заказ · ${fmt(cartTotal())}`;
+  sub.textContent = t('sendOrder', { sum: fmt(cartTotal()) });
   sub.disabled = state.cart.length === 0 || !tableState.info;
   body.onclick = (e) => {
     const q = e.target.closest('[data-ci]');
@@ -152,7 +145,7 @@ async function submitTable() {
   tableSending = true;
   const btn = $('#submit');
   btn.disabled = true;
-  btn.textContent = 'Отправляем…';
+  btn.textContent = t('sending');
   try {
     await tableApi('/orders', {
       idempotencyKey: key,
@@ -171,10 +164,10 @@ async function submitTable() {
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
     const el = $('#cart-err');
-    el.textContent = TABLE_ERRORS[e.code] || ERRORS[e.code] || 'Что-то пошло не так. Попробуйте ещё раз или позовите официанта.';
+    el.textContent = tableErr(e.code) || t('tableErr');
     el.hidden = false;
     btn.disabled = false;
-    btn.textContent = `Отправить заказ · ${fmt(cartTotal())}`;
+    btn.textContent = t('sendOrder', { sum: fmt(cartTotal()) });
   } finally {
     tableSending = false;
   }
@@ -186,7 +179,7 @@ function openBill() {
   const dlg = $('#bill-sheet');
   tableState.sureMerge = false;
   dlg.innerHTML = `<div class="sheet-inner">
-    <div class="sheet-head"><h2 id="bill-title">Мой счёт</h2><button class="icon-btn" type="button" data-close aria-label="Закрыть">×</button></div>
+    <div class="sheet-head"><h2 id="bill-title">${esc(t('myBill'))}</h2><button class="icon-btn" type="button" data-close aria-label="${esc(t('close'))}">×</button></div>
     <div class="sheet-scroll" id="bill-body"></div>
   </div>`;
   dlg.querySelector('[data-close]').onclick = () => dlg.close();
@@ -196,52 +189,53 @@ function openBill() {
 }
 
 function renderBill() {
-  const t = tableState.info;
+  const info = tableState.info;
   const body = $('#bill-body');
-  if (!t || !body) return;
-  const b = t.bill;
+  if (!info || !body) return;
+  const b = info.bill;
   if (!b || (!b.orders.length && b.status === 'open')) {
-    body.innerHTML = `<p class="muted" style="margin:0">Вы ещё ничего не заказали с этого телефона. Выберите блюда в меню и нажмите «Отправить заказ».</p>
-      ${t.others.count ? `<p class="hint" style="margin:0">За столом есть другие счета: ${t.others.count} на ${fmt(t.others.total)}.</p>` : ''}`;
+    body.innerHTML = `<p class="muted" style="margin:0">${esc(t('billEmpty'))}</p>
+      ${info.others.count ? `<p class="hint" style="margin:0">${esc(t('otherBills', { n: info.others.count, sum: fmt(info.others.total) }))}</p>` : ''}`;
     return;
   }
   if (b.status === 'paid') {
-    body.innerHTML = `<p class="alert ok" style="margin:0">Счёт №${b.id} оплачен${b.paymentMethod === 'cash' ? ' наличными' : ''}: ${fmt(b.paidTotal ?? b.total)}. Спасибо, что были у нас!</p>
-      <p class="muted" style="margin:0">Захотите что-то ещё — просто закажите из меню, откроется новый счёт.</p>`;
+    body.innerHTML = `<p class="alert ok" style="margin:0">${esc(t(b.paymentMethod === 'cash' ? 'billPaidCash' : 'billPaid', { n: b.id, sum: fmt(b.paidTotal ?? b.total) }))}</p>
+      <p class="muted" style="margin:0">${esc(t('billAgain'))}</p>`;
     return;
   }
   const open = b.status === 'open';
-  const canMerge = open && b.paymentStatus === 'unpaid' && t.others.count > 0;
+  const canMerge = open && b.paymentStatus === 'unpaid' && info.others.count > 0;
   body.innerHTML = `
     <div class="card" style="padding:12px 14px;display:grid;gap:2px">
-      <span class="muted">${esc(t.table.title)} · счёт №${b.id}${b.shared ? ' · весь стол' : ''}</span>
+      <span class="muted">${esc(tableName(info.table))} · ${esc(t('billNo', { n: b.id }))}${b.shared ? ' · ' + esc(t('wholeTable')) : ''}</span>
       <span class="sum">${fmt(b.total)}</span>
     </div>
-    ${b.shared ? '<p class="hint" style="margin:0">Это общий счёт стола: в нём заказы со всех телефонов, которые объединили.</p>' : ''}
+    ${b.shared ? `<p class="hint" style="margin:0">${esc(t('sharedHint'))}</p>` : ''}
     ${b.orders
       .map((o) => {
-        const [cls, label] = ORDER_STATUS[o.status] || ['mute', o.status];
+        const cls = ORDER_STATUS[o.status] || 'mute';
+        const label = I18N['st_' + o.status] ? t('st_' + o.status) : o.status;
         return `<div class="card bill-order${o.status === 'cancelled' ? ' cancelled' : ''}">
-          <div class="hd"><span>Заказ №${o.number}</span><span class="pill ${cls}">${label}</span></div>
+          <div class="hd"><span>${esc(t('orderNo', { n: o.number }))}</span><span class="pill ${cls}">${label}</span></div>
           <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
-          <div class="line" style="padding:0"><span class="muted">Сумма</span><span>${fmt(o.total)}</span></div>
+          <div class="line" style="padding:0"><span class="muted">${esc(t('sum'))}</span><span>${fmt(o.total)}</span></div>
         </div>`;
       })
       .join('')}
     ${canMerge ? `<div class="card" style="padding:12px 14px;display:grid;gap:8px">
-        <span>За столом ещё ${t.others.count === 1 ? 'один счёт' : `${t.others.count} счёта`} на ${fmt(t.others.total)}.</span>
-        <button class="btn ghost block" type="button" data-merge>${tableState.sureMerge ? `Да, оплачу весь стол · ${fmt(b.total + t.others.total)}` : 'Оплатить весь стол одним счётом'}</button>
-        ${tableState.sureMerge ? '<span class="muted" style="font-size:13px">Счета других телефонов закроются и войдут в ваш.</span>' : ''}
+        <span>${esc(info.others.count === 1 ? t('othersOne', { sum: fmt(info.others.total) }) : t('othersMany', { n: info.others.count, sum: fmt(info.others.total) }))}</span>
+        <button class="btn ghost block" type="button" data-merge>${esc(tableState.sureMerge ? t('payAllSure', { sum: fmt(b.total + info.others.total) }) : t('payAll'))}</button>
+        ${tableState.sureMerge ? `<span class="muted" style="font-size:13px">${esc(t('payAllNote'))}</span>` : ''}
       </div>` : ''}
-    ${!b.requested && open ? `<button class="btn block" type="button" data-ask>Попросить счёт</button>` : ''}
+    ${!b.requested && open ? `<button class="btn block" type="button" data-ask>${esc(t('askBill'))}</button>` : ''}
     ${b.requested && open && b.paymentStatus === 'unpaid' ? `<div class="card payblock">
-        <span class="muted">Официант скоро подойдёт. Можно оплатить наличными или по QR:</span>
+        <span class="muted">${esc(t('waiterSoon'))}</span>
         <span class="sum">${fmt(b.total)}</span>
-        ${t.qrUrl ? `<img class="qr" src="${esc(t.qrUrl)}" alt="QR-код для оплаты">` : ''}
-        <p class="hint" style="margin:0">В комментарии к переводу укажите: <b>стол ${esc(t.table.id)}, счёт ${b.id}</b>.</p>
-        <button class="btn block" type="button" data-paid>Я оплатил по QR</button>
+        ${info.qrUrl ? `<img class="qr" src="${esc(info.qrUrl)}" alt="${esc(t('qrAlt'))}">` : ''}
+        <p class="hint" style="margin:0">${t('tableTransferNote', { t: esc(info.table.id), n: b.id })}</p>
+        <button class="btn block" type="button" data-paid>${esc(t('paidQr'))}</button>
       </div>` : ''}
-    ${b.paymentStatus === 'reported' && open ? `<p class="alert warn" style="margin:0">Спасибо! Вы сообщили об оплате ${fmt(b.total)}. Сотрудник проверит поступление и закроет счёт.</p>` : ''}
+    ${b.paymentStatus === 'reported' && open ? `<p class="alert warn" style="margin:0">${esc(t('billReported', { sum: fmt(b.total) }))}</p>` : ''}
     <p class="alert" id="bill-err" hidden style="margin:0"></p>`;
 }
 
@@ -264,7 +258,7 @@ async function onBillClick(e) {
     await refreshTable();
     const el = $('#bill-err');
     if (el) {
-      el.textContent = TABLE_ERRORS[err.code] || (err.code === 'NETWORK' ? ERRORS.NETWORK : 'Не получилось. Позовите официанта.');
+      el.textContent = tableErr(err.code) || t('billFailed');
       el.hidden = false;
     }
   }

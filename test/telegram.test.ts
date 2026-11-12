@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guestEventText, parseCallback, parseStaffList, signInitData, staffButtons, staffOrderText, verifyInitData } from '../src/lib/telegram';
+import { botLang, guestEventText, slotText, parseCallback, parseStaffList, signInitData, staffButtons, staffOrderText, verifyInitData } from '../src/lib/telegram';
 
 const TOKEN = '123456:TEST-token';
 const NOW = Date.UTC(2026, 10, 10, 8, 0);
@@ -62,5 +62,20 @@ describe('группа сотрудников', () => {
     expect(guestEventText('payment_confirmed', o)).toContain('Оплата подтверждена');
     expect(guestEventText('ready', { ...o, type: 'visit' })).toContain('стол готов');
     expect(guestEventText('noop', o)).toBeNull();
+  });
+
+  it('сообщения гостю на языке заказа', () => {
+    expect(guestEventText('payment_confirmed', o, undefined, 'vi')).toContain('Đã xác nhận thanh toán');
+    expect(guestEventText('ready', { ...o, type: 'visit' }, undefined, 'en')).toContain('Your table is ready');
+    expect(guestEventText('created', o, undefined, 'en')).not.toMatch(/[А-Яа-я]/);
+    expect(slotText('2026-11-13 16:00', '2026-11-12', 'vi')).toBe('16:00 ngày mai');
+    expect(slotText('2026-11-20 09:30', '2026-11-12', 'en')).toBe('20 November at 09:30');
+  });
+
+  it('язык гостя по настройкам Telegram', () => {
+    expect(botLang('vi')).toBe('vi');
+    expect(botLang('uk')).toBe('ru');
+    expect(botLang('ko')).toBe('en');
+    expect(botLang(undefined)).toBe('ru');
   });
 });

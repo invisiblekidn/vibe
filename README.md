@@ -41,9 +41,16 @@ node scripts/table-smoke.mjs # заказ со стола, официант, с�
 - Сотрудник (панель «Столы» или группа): «Принять» — кухня готовит сразу; «Готово», «Подано»; «Иду» на вызов; «Деньги пришли (QR)» только после проверки банка, «Оплачено наличными»; «Весь стол» объединяет счета.
 - `TABLE_ANY_HOUR = "1"` в wrangler.toml — только для тестовой версии (заказ со стола круглосуточно). К запуску убрать.
 
+## Языки (RU / VI / EN)
+
+- Строка RU · VI · EN над шапкой сайта; выбор запоминается на телефоне. Первый раз язык берётся из `?lang=` в ссылке, из настроек Telegram (Mini App) или телефона, иначе русский.
+- Тексты сайта — `public/js/i18n.js` (по ключу три языка). Меню хранит названия и описания как `{"ru","vi","en"}`; вьетнамский текст меню — `seed/menu-vi.json` → `node scripts/gen-menu-vi.mjs` → `seed/menu-vi.sql`.
+- В заказе названия блюд сохраняются по-русски (для кухни и группы сотрудников), гостю на странице заказа и в счёте показываются на его языке.
+- Бот пишет гостю на языке заказа; приветствие и кнопки — по языку Telegram. Панель и группа сотрудников — по-русски.
+
 ## Тестовая публикация (Cloudflare)
 
 - Адрес: https://vibe-restaurant.invisiblekidn.workers.dev, бот: @vibe_kid_bot.
-- База: D1 `vibe-db`. Схема: `npx wrangler d1 migrations apply vibe-db --remote`. Тестовое меню (стирает заказы!): `npx wrangler d1 execute vibe-db --remote --file=seed/seed.sql`, затем `--file=seed/menu-breakfast.sql` , `--file=seed/menu-kids.sql` и `--file=seed/menu-bar.sql`. Эти три файла можно выполнять отдельно: обновляют свои блюда и не трогают заказы.
+- База: D1 `vibe-db`. Схема: `npx wrangler d1 migrations apply vibe-db --remote`. Тестовое меню (стирает заказы!): `npx wrangler d1 execute vibe-db --remote --file=seed/seed.sql`, затем `--file=seed/menu-breakfast.sql` , `--file=seed/menu-kids.sql`, `--file=seed/menu-bar.sql` и последним `--file=seed/menu-vi.sql` (вьетнамский текст меню). Эти файлы можно выполнять отдельно: обновляют свои блюда и не трогают заказы.
 - Секреты задаются командой `npx wrangler secret put ИМЯ`: TG_BOT_TOKEN, TG_WEBHOOK_SECRET, SESSION_SECRET, STAFF_PIN, TG_STAFF_CHAT_ID, TG_STAFF.
 - Публикация: `npx wrangler deploy`. После смены TG_WEBHOOK_SECRET заново выполнить `node scripts/tg-setup.mjs` с тем же секретом.

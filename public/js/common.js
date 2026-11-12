@@ -1,18 +1,23 @@
 // Общие помощники для страниц гостя и сотрудника.
-const LANG = 'ru';
-const fmt = (v) => new Intl.NumberFormat('ru-RU').format(v).replace(/ /g, ' ') + ' ₫';
+// LANG, t() и строка выбора языка — в i18n.js (подключается раньше этого файла).
+const fmt = (v) => new Intl.NumberFormat(LOCALE[LANG]).format(v).replace(/[\u00a0\u202f ]/g, LANG === 'vi' ? '.' : '\u00a0') + ' ₫';
 const tr = (n) => (n && (n[LANG] || n.ru || n.en)) || '';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const $ = (sel, root = document) => root.querySelector(sel);
 
-// Подписи статичной вёрстки на трёх языках (полный перевод сайта — этап 3).
-const UI_TEXT = {
-  staffLink: { ru: 'Для сотрудников', vi: 'Dành cho nhân viên', en: 'Staff' },
-};
-document.querySelectorAll('[data-i18n]').forEach((el) => {
-  const t = UI_TEXT[el.dataset.i18n];
-  if (t) el.textContent = tr(t);
-});
+/** Вес/порция из меню («250 г», «2 шт.», «2 шарика / 100 г») на языке гостя. */
+function weightText(w) {
+  if (!w || LANG === 'ru') return w || '';
+  const map = LANG === 'vi' ? [[/шарика?|шариков/g, 'viên'], [/шт\.?/g, 'cái'], [/г\b|г$/g, 'g'], [/мл/g, 'ml'], [/л\b|л$/g, 'l']]
+    : [[/шарика?|шариков/g, 'scoops'], [/шт\.?/g, 'pcs'], [/г\b|г$/g, 'g'], [/мл/g, 'ml'], [/л\b|л$/g, 'l']];
+  return map.reduce((s, [re, to]) => s.replace(re, to), w);
+}
+
+/** Название стола на языке гостя: «В зале, стол 3» / «На улице, стол У2». */
+function tableName(tb) {
+  if (!tb) return t('table');
+  return t(tb.zone === 'outdoor' ? 'tableOut' : 'tableHall', { n: tb.id });
+}
 
 async function api(path, opts = {}) {
   let res;
@@ -40,24 +45,33 @@ async function api(path, opts = {}) {
   return data;
 }
 
-const TYPE_LABEL = { pickup: 'Самовывоз', visit: 'К визиту', delivery: 'Доставка' };
+const typeLabel = (type) => t('type_' + type);
 
 function dayLabel(day, today) {
   const d = new Date(day + 'T00:00:00Z');
-  const wd = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'UTC' }).format(d);
-  const dm = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(d).replace('.', '');
-  if (day === today) return { top: 'Сегодня', bottom: dm };
-  const t = new Date(today + 'T00:00:00Z');
-  if ((d - t) / 864e5 === 1) return { top: 'Завтра', bottom: dm };
-  return { top: wd.charAt(0).toUpperCase() + wd.slice(1), bottom: dm };
+  const loc = LOCALE[LANG];
+  const wd = new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' }).format(d);
+  const dm = LANG === 'vi'
+    ? `${d.getUTCDate()}/${d.getUTCMonth() + 1}`
+    : new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(d).replace('.', '');
+  if (day === today) return { top: t('today'), bottom: dm, rel: true };
+  const tt = new Date(today + 'T00:00:00Z');
+  if ((d - tt) / 864e5 === 1) return { top: t('tomorrow'), bottom: dm, rel: true };
+  return { top: wd.charAt(0).toUpperCase() + wd.slice(1), bottom: dm, rel: false };
 }
 
 function slotLabel(slot, today) {
   const [day, time] = slot.split(' ');
-  const long = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(day + 'T00:00:00Z'));
-  if (!today) return `${long} в ${time}`;
-  const l = dayLabel(day, today);
-  return `${l.top === 'Сегодня' || l.top === 'Завтра' ? l.top.toLowerCase() + ', ' + long : long} в ${time}`;
+  const d = new Date(day + 'T00:00:00Z');
+  const long = LANG === 'vi'
+    ? `ngày ${d.getUTCDate()}/${d.getUTCMonth() + 1}`
+    : new Intl.DateTimeFormat(LOCALE[LANG], { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(d);
+  let dayText = long;
+  if (today) {
+    const l = dayLabel(day, today);
+    if (l.rel) dayText = `${l.top.toLowerCase()}, ${long}`;
+  }
+  return t('slotAt', { day: dayText, time });
 }
 
 // Telegram Mini App: сайт открыт кнопкой из бота (?tg=1). Скрипт Telegram грузим только тогда.

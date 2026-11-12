@@ -51,6 +51,21 @@ h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
 .logo small { display: block; font-size: 8px; letter-spacing: .32em; font-weight: 600; margin-top: 4px; }
 .test-banner { background: var(--warn-bg); color: var(--warn); font-size: 13px; font-weight: 700; text-align: center; padding: 6px 12px; }
 
+/* Выбор языка: отдельная строка над шапкой. */
+.langbar { background: var(--v-chip); border-bottom: 1px solid var(--v-line); }
+.langbar-in { display: flex; justify-content: flex-end; align-items: center; gap: 2px; padding-block: 4px; }
+.langbar span { color: var(--v-soft); padding-inline: 2px; }
+.langbar button {
+  border: 0; background: none; padding: 6px 12px; min-height: 36px; border-radius: 999px;
+  font-weight: 800; font-size: 14px; letter-spacing: .06em; color: var(--v-soft);
+}
+.langbar button:hover { color: var(--v-ink); }
+.langbar button[aria-pressed="true"] { background: var(--v-brush); color: var(--v-brush-fg); }
+
+/* В Caveat нет вьетнамских букв: для вьетнамского рукописные заголовки другим шрифтом. */
+html[lang="vi"] { --hand: "Pangolin", "Segoe Print", cursive; }
+html[lang="vi"] .brush, html[lang="vi"] .hero h1 { letter-spacing: 0; }
+
 /* Кнопки и элементы */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

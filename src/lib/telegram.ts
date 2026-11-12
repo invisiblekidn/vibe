@@ -79,18 +79,53 @@ export const escHtml = (s: unknown) => String(s ?? '').replace(/[&<>]/g, (c) => 
 const TYPE = { pickup: 'Самовывоз', visit: 'К визиту', delivery: 'Доставка', table: 'В зале' } as Record<string, string>;
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
-export function slotText(slot: string | null, today?: string): string {
-  if (!slot) return 'сейчас';
+// ---------- Язык гостя в боте ----------
+
+export type Lang = 'ru' | 'vi' | 'en';
+/** Язык из настроек Telegram: вьетнамский → vi, русский и близкие → ru, остальные → en. */
+export function botLang(code: string | null | undefined): Lang {
+  const c = (code || '').toLowerCase().slice(0, 2);
+  if (c === 'vi') return 'vi';
+  if (['ru', 'uk', 'be', 'kk'].includes(c) || !c) return 'ru';
+  return 'en';
+}
+export const asLang = (v: unknown): Lang => (v === 'vi' || v === 'en' ? v : 'ru');
+
+const TYPE_L: Record<Lang, Record<string, string>> = {
+  ru: TYPE,
+  vi: { pickup: 'Tự đến lấy', visit: 'Đặt trước khi đến', delivery: 'Giao hàng', table: 'Tại bàn' },
+  en: { pickup: 'Pickup', visit: 'For your visit', delivery: 'Delivery', table: 'At the table' },
+};
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export function slotText(slot: string | null, today?: string, lang: Lang = 'ru'): string {
+  if (!slot) return lang === 'vi' ? 'ngay bây giờ' : lang === 'en' ? 'now' : 'сейчас';
   const [day, time] = slot.split(' ');
   const [, m, d] = day.split('-').map(Number);
-  let prefix = `${d} ${MONTHS[m - 1]}`;
+  let prefix = lang === 'vi' ? `ngày ${d}/${m}` : lang === 'en' ? `${d} ${MONTHS_EN[m - 1]}` : `${d} ${MONTHS[m - 1]}`;
   if (today) {
     const diff = Math.round((Date.parse(day) - Date.parse(today)) / 864e5);
-    if (diff === 0) prefix = 'сегодня';
-    else if (diff === 1) prefix = 'завтра';
+    if (diff === 0) prefix = lang === 'vi' ? 'hôm nay' : lang === 'en' ? 'today' : 'сегодня';
+    else if (diff === 1) prefix = lang === 'vi' ? 'ngày mai' : lang === 'en' ? 'tomorrow' : 'завтра';
   }
-  return `${prefix} в ${time}`;
+  return lang === 'vi' ? `${time} ${prefix}` : lang === 'en' ? `${prefix} at ${time}` : `${prefix} в ${time}`;
 }
+
+/** Короткие тексты бота для гостя на трёх языках. */
+export const BOT_TEXT: Record<string, Record<Lang, string>> = {
+  openMenu: { ru: 'Открыть меню и заказать', vi: 'Xem thực đơn và đặt món', en: 'Open menu and order' },
+  openOrder: { ru: 'Открыть заказ', vi: 'Xem đơn hàng', en: 'Open order' },
+  openOrderQr: { ru: 'Открыть заказ и QR', vi: 'Xem đơn hàng và mã QR', en: 'Open order and QR' },
+  openOrderN: { ru: 'Открыть заказ №{n}', vi: 'Xem đơn số {n}', en: 'Open order #{n}' },
+  linked: { ru: 'Готово! Статус заказа №{n} будем присылать сюда.', vi: 'Xong! Chúng tôi sẽ gửi trạng thái đơn số {n} vào đây.', en: 'Done! We will send updates on order #{n} here.' },
+  noOrders: { ru: 'Заказов пока нет.', vi: 'Bạn chưa có đơn hàng nào.', en: 'No orders yet.' },
+  myOrders: { ru: 'Ваши последние заказы:', vi: 'Các đơn hàng gần đây của bạn:', en: 'Your recent orders:' },
+  noStaff: { ru: 'Спасибо! Сейчас ответить здесь не можем, позвоните нам, пожалуйста.', vi: 'Cảm ơn bạn! Hiện chúng tôi chưa thể trả lời tại đây, vui lòng gọi điện cho nhà hàng.', en: 'Thank you! We cannot reply here right now, please give us a call.' },
+  relayed: { ru: 'Передали администратору. Ответ придёт сюда.', vi: 'Đã chuyển cho quản lý. Câu trả lời sẽ được gửi vào đây.', en: 'Sent to the manager. The reply will come here.' },
+  adminPrefix: { ru: 'Администратор VIBE:', vi: 'Quản lý VIBE:', en: 'VIBE manager:' },
+};
+export const bt = (key: string, lang: Lang, vars: Record<string, string | number> = {}) =>
+  (BOT_TEXT[key]?.[lang] ?? BOT_TEXT[key]?.ru ?? key).replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 
 export interface OrderForText {
   id: number;
@@ -180,30 +215,45 @@ export function staffButtons(o: { id: number; type?: string; status: string; pay
   return [row, [b('Отменить', 'cx?')]].filter((r) => r.length);
 }
 
-/** Сообщение гостю в бот при смене статуса. null — ничего не отправляем. */
-export function guestEventText(event: string, o: OrderForText, today?: string): string | null {
-  const n = `№${o.id}`;
-  const when = `${TYPE[o.type] || ''} ${slotText(o.slot, today)}`.trim();
-  switch (event) {
-    case 'created':
-      return `<b>Заказ ${n} принят</b>\n${when}\nСумма: <b>${fmtVnd(o.total)}</b>\n\nОплатите по QR в окне заказа и нажмите «Я оплатил». Начнём готовить, когда подтвердим оплату.`;
-    case 'payment_reported':
-      return `⏳ <b>Оплата проверяется</b>\nСпасибо! Вы отметили оплату заказа ${n} на ${fmtVnd(o.total)}.\nАдминистратор сверяет поступление. Мы напишем сюда, как только деньги придут.`;
-    case 'payment_confirmed':
-      return `✅ <b>Оплата подтверждена</b>\nДеньги поступили, заказ ${n} передаём на кухню.`;
-    case 'cooking_started':
-      return `👩‍🍳 Заказ ${n} готовим.`;
-    case 'ready':
-      return o.type === 'visit'
-        ? `🍽 <b>Заказ ${n} готов</b>\nЖдём вас, стол готов. Назовите номер ${o.id}.`
-        : `🍽 <b>Заказ ${n} готов</b>\nМожно забирать на кассе. Назовите номер ${o.id}.`;
-    case 'completed':
-      return `Заказ ${n} выдан. Приятного аппетита!\nБудем рады видеть вас снова, у нас есть детская зона.`;
-    case 'cancelled':
-      return `Заказ ${n} отменён. Если это ошибка, напишите сюда, мы ответим.`;
-    default:
-      return null;
-  }
+/** Сообщение гостю в бот при смене статуса, на языке заказа. null — ничего не отправляем. */
+export function guestEventText(event: string, o: OrderForText, today?: string, lang: Lang = 'ru'): string | null {
+  const when = `${TYPE_L[lang][o.type] || ''}, ${slotText(o.slot, today, lang)}`.replace(/^, /, '');
+  const sum = fmtVnd(o.total);
+  const id = o.id;
+  const T: Record<Lang, Record<string, string>> = {
+    ru: {
+      created: `<b>Заказ №${id} принят</b>\n${when}\nСумма: <b>${sum}</b>\n\nОплатите по QR в окне заказа и нажмите «Я оплатил». Начнём готовить, когда подтвердим оплату.`,
+      payment_reported: `⏳ <b>Оплата проверяется</b>\nСпасибо! Вы отметили оплату заказа №${id} на ${sum}.\nАдминистратор сверяет поступление. Мы напишем сюда, как только деньги придут.`,
+      payment_confirmed: `✅ <b>Оплата подтверждена</b>\nДеньги поступили, заказ №${id} передаём на кухню.`,
+      cooking_started: `👩‍🍳 Заказ №${id} готовим.`,
+      ready_visit: `🍽 <b>Заказ №${id} готов</b>\nЖдём вас, стол готов. Назовите номер ${id}.`,
+      ready: `🍽 <b>Заказ №${id} готов</b>\nМожно забирать на кассе. Назовите номер ${id}.`,
+      completed: `Заказ №${id} выдан. Приятного аппетита!\nБудем рады видеть вас снова, у нас есть детская зона.`,
+      cancelled: `Заказ №${id} отменён. Если это ошибка, напишите сюда, мы ответим.`,
+    },
+    vi: {
+      created: `<b>Đã nhận đơn số ${id}</b>\n${when}\nTổng tiền: <b>${sum}</b>\n\nVui lòng thanh toán bằng mã QR trong trang đơn hàng và bấm «Tôi đã thanh toán». Chúng tôi sẽ bắt đầu nấu khi xác nhận thanh toán.`,
+      payment_reported: `⏳ <b>Đang kiểm tra thanh toán</b>\nCảm ơn bạn! Bạn đã báo thanh toán đơn số ${id}, số tiền ${sum}.\nQuản lý đang kiểm tra tiền về. Chúng tôi sẽ nhắn vào đây ngay khi nhận được.`,
+      payment_confirmed: `✅ <b>Đã xác nhận thanh toán</b>\nĐã nhận tiền, đơn số ${id} được chuyển vào bếp.`,
+      cooking_started: `👩‍🍳 Đơn số ${id} đang được nấu.`,
+      ready_visit: `🍽 <b>Đơn số ${id} đã sẵn sàng</b>\nBàn của bạn đã sẵn sàng, chúng tôi đang chờ bạn. Hãy đọc số ${id}.`,
+      ready: `🍽 <b>Đơn số ${id} đã sẵn sàng</b>\nBạn có thể nhận tại quầy. Hãy đọc số ${id}.`,
+      completed: `Đơn số ${id} đã được giao. Chúc bạn ngon miệng!\nRất mong được đón bạn lần sau, chúng tôi có khu vui chơi cho trẻ em.`,
+      cancelled: `Đơn số ${id} đã bị hủy. Nếu có nhầm lẫn, hãy nhắn vào đây, chúng tôi sẽ trả lời.`,
+    },
+    en: {
+      created: `<b>Order #${id} received</b>\n${when}\nTotal: <b>${sum}</b>\n\nPay with the QR code on the order page and tap “I have paid”. We start cooking once the payment is confirmed.`,
+      payment_reported: `⏳ <b>Checking your payment</b>\nThank you! You reported paying ${sum} for order #${id}.\nThe manager is checking the transfer. We will message you here as soon as it arrives.`,
+      payment_confirmed: `✅ <b>Payment confirmed</b>\nWe received the money, order #${id} goes to the kitchen.`,
+      cooking_started: `👩‍🍳 We are cooking order #${id}.`,
+      ready_visit: `🍽 <b>Order #${id} is ready</b>\nYour table is ready and waiting. Just say number ${id}.`,
+      ready: `🍽 <b>Order #${id} is ready</b>\nYou can pick it up at the counter. Just say number ${id}.`,
+      completed: `Order #${id} handed over. Enjoy your meal!\nWe hope to see you again, we have a play area for kids.`,
+      cancelled: `Order #${id} was cancelled. If this is a mistake, write here and we will reply.`,
+    },
+  };
+  const key = event === 'ready' && o.type === 'visit' ? 'ready_visit' : event;
+  return T[lang][key] ?? null;
 }
 
 /** Кому из сотрудников сообщить отдельным сообщением (а не только обновить карточку). */
@@ -212,11 +262,24 @@ export function staffAlertText(event: string, o: OrderForText): string | null {
   return null;
 }
 
-export const WELCOME =
-  'Здравствуйте! Это семейный ресторан VIBE в Нячанге 🌿\n\n' +
-  'Здесь можно заказать заранее: забрать самому или к своему приходу.\n\n' +
-  'Работаем ежедневно 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
-  'Если хотите что-то спросить, просто напишите сюда, ответит администратор.';
+export const WELCOME_L: Record<Lang, string> = {
+  ru:
+    'Здравствуйте! Это семейный ресторан VIBE в Нячанге 🌿\n\n' +
+    'Здесь можно заказать заранее: забрать самому или к своему приходу.\n\n' +
+    'Работаем ежедневно 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
+    'Если хотите что-то спросить, просто напишите сюда, ответит администратор.',
+  vi:
+    'Xin chào! Đây là nhà hàng gia đình VIBE ở Nha Trang 🌿\n\n' +
+    'Bạn có thể đặt món trước: tự đến lấy hoặc chuẩn bị sẵn khi bạn đến.\n\n' +
+    'Mở cửa hằng ngày 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
+    'Nếu bạn có câu hỏi, cứ nhắn vào đây, quản lý sẽ trả lời.',
+  en:
+    'Hello! This is VIBE, a family restaurant in Nha Trang 🌿\n\n' +
+    'Order ahead here: pick it up yourself or have it ready for your visit.\n\n' +
+    'Open daily 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
+    'If you have a question, just write here and the manager will reply.',
+};
+export const WELCOME = WELCOME_L.ru;
 
 // ---------- Столы: вызовы и счета ----------
 
