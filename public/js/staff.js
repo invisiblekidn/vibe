@@ -30,6 +30,11 @@ const ERR = {
   PAYMENT_NOT_CONFIRMED: 'Сначала подтвердите оплату: кухня готовит только оплаченные заказы.',
   CHANGED_MEANWHILE: 'Заказ только что изменил другой сотрудник. Список обновлён.',
   ORDER_CLOSED: 'Заказ уже закрыт.',
+  USE_COURSES: 'У этого заказа подачи: отмечайте «Готово» и «Подано» у каждой подачи.',
+  NOT_ACCEPTED: 'Сначала примите заказ.',
+  EARLIER_COURSE_WAITING: 'Сначала начните более раннюю подачу.',
+  COURSE_NOT_STARTED: 'Эту подачу ещё не начали.',
+  COURSE_NOT_READY: 'Эта подача ещё не готова.',
 };
 
 // Заказ со стола: «Принять» (кухня готовит сразу), «Готово», «Подано». Оплата — по счёту стола.
@@ -37,9 +42,15 @@ const TABLE_ACTION_LABEL = { start_cooking: 'Принять', mark_ready: 'Го�
 const TABLE_KITCHEN = { new: 'Ждёт, примите', cooking: 'Готовится', ready: 'Готово, отнести', completed: 'Подано', cancelled: 'Отменён' };
 const actionLabel = (o, a) => (o.type === 'table' ? TABLE_ACTION_LABEL[a] : ACTION_LABEL[a]);
 
+const byCourses = (o) => o.serveMode === 'courses' && (o.courses || []).length > 1;
+// На кухне: заказ готовится, или у заказа по подачам есть готовящаяся подача.
+const inKitchen = (o) => o.status === 'cooking' || (byCourses(o) && o.status === 'ready' && o.courses.some((c) => c.status === 'cooking'));
+
 function actionsFor(o) {
   if (o.status === 'completed' || o.status === 'cancelled') return [];
   const a = [];
+  // Заказ по подачам: «Готово» и «Подано» — у каждой подачи (см. coursesBlock).
+  if (byCourses(o) && o.status !== 'new') return ['cancel'];
   if (o.paymentMethod === 'qr' && o.paymentStatus !== 'confirmed') a.push('confirm_payment');
   if (o.status === 'new' && (o.paymentMethod !== 'qr' || o.paymentStatus === 'confirmed')) a.push('start_cooking');
   if (o.status === 'cooking') a.push('mark_ready');
@@ -78,7 +89,7 @@ function render(flash = '') {
   $('#logout').onclick = async () => { await api('/api/staff/logout', { method: 'POST' }).catch(() => {}); clearTimeout(timer); me = null; renderLogin(); };
   const isActive = (o) => !['completed', 'cancelled'].includes(o.status);
   const list = orders.filter((o) =>
-    filter === 'active' ? isActive(o) : filter === 'check' ? o.paymentStatus === 'reported' && isActive(o) && o.type !== 'table' : filter === 'kitchen' ? o.status === 'cooking' : true,
+    filter === 'active' ? isActive(o) : filter === 'check' ? o.paymentStatus === 'reported' && isActive(o) && o.type !== 'table' : filter === 'kitchen' ? inKitchen(o) : true,
   );
   const nCheck = orders.filter((o) => o.paymentStatus === 'reported' && isActive(o) && o.type !== 'table').length;
   const nCalls = tables.reduce((s, t) => s + t.calls.length, 0);
@@ -87,7 +98,7 @@ function render(flash = '') {
     <div class="filters">
       <button class="chip" data-f="active" aria-pressed="${filter === 'active'}">Активные · ${orders.filter(isActive).length}</button>
       <button class="chip" data-f="tables" aria-pressed="${filter === 'tables'}">Столы${nCalls + nBillCheck ? ` · 🔔 ${nCalls + nBillCheck}` : ''}</button>
-      <button class="chip" data-f="kitchen" aria-pressed="${filter === 'kitchen'}">Кухня · ${orders.filter((o) => o.status === 'cooking').length}</button>
+      <button class="chip" data-f="kitchen" aria-pressed="${filter === 'kitchen'}">Кухня · ${orders.filter(inKitchen).length}</button>
       <button class="chip" data-f="check" aria-pressed="${filter === 'check'}">Проверить оплату · ${nCheck}</button>
       <button class="chip" data-f="all" aria-pressed="${filter === 'all'}">Все</button>
     </div>
@@ -107,11 +118,35 @@ function orderCard(o, compact = false) {
     <div class="top"><span class="no">№ ${o.id}</span><span>${isTable ? `<b>${esc(o.table || 'Стол')}</b> · ${minutesSince(o.createdAt)} мин назад` : `${typeLabel(o.type)} · <b>${esc(slotLabel(o.slot, today))}</b>`}</span></div>
     ${compact ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill ${isTable && o.status === 'new' ? 'warn' : 'mute'}">${(isTable ? TABLE_KITCHEN : KITCHEN)[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : o.channel === 'table' ? 'QR на столе' : esc(o.channel)}</span></div>`}
     ${!isTable && o.paymentStatus === 'reported' ? `<p class="hint" style="margin:0">Гость нажал «Я оплатил» ${waited} мин назад. Подтверждайте, только когда увидите <b>${fmt(o.total)}</b> в банке (в комментарии должен быть № ${o.id}).${waited >= 30 ? ' <b>Прошло 30 минут: свяжитесь с гостем.</b>' : ''}</p>` : ''}
-    <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
+    ${byCourses(o) ? coursesBlock(o, kitchenOnly) : `<ul>${o.items.map(itemLi).join('')}</ul>`}
     ${kitchenOnly || compact ? '' : `<div class="line tot" style="margin:0"><span>Сумма</span><span>${fmt(o.total)}</span></div>`}
     ${isTable ? (o.comment ? `<div class="muted" style="font-size:14px">«${esc(o.comment)}»</div>` : '') : `<div class="muted" style="font-size:14px">${esc(o.guestName)} · <a href="tel:${esc(o.guestPhone)}">${esc(o.guestPhone)}</a>${o.comment ? `<br>«${esc(o.comment)}»` : ''}</div>`}
     <div class="acts">${actionsFor(o).filter((a) => !kitchenOnly || a === 'mark_ready').map((a) => `<button class="btn small${a === 'cancel' ? ' ghost' : ''}" data-id="${o.id}" data-a="${a}">${actionLabel(o, a)}</button>`).join('')}</div>
   </article>`;
+}
+
+const itemLi = (i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`;
+const COURSE_ST = { waiting: ['mute', 'Ждёт команды шефа'], cooking: ['warn', 'Готовить сейчас'], ready: ['ok', 'Готово, отнести'], served: ['mute', 'Подано'] };
+
+/** Заказ по подачам: блюда по подачам, статус и кнопки каждой подачи. Следующую подачу запускает шеф. */
+function coursesBlock(o, kitchenOnly) {
+  const accepted = o.status !== 'new' && o.status !== 'cancelled' && o.status !== 'completed';
+  const waiting = o.courses.filter((c) => c.status === 'waiting').map((c) => c.course);
+  const next = waiting.length ? Math.min(...waiting) : null;
+  return `<div class="hint" style="margin:0">🔢 Подача по очереди · гость подтвердил порядок</div>
+    <div class="krows">${o.courses.map((c) => {
+      const [pc, pt] = COURSE_ST[c.status] || ['mute', c.status];
+      const btns = !accepted ? [] : [
+        c.status === 'cooking' ? `<button class="btn small" data-id="${o.id}" data-course="${c.course}" data-ca="ready">Готово</button>` : '',
+        c.status === 'ready' && !kitchenOnly ? `<button class="btn small" data-id="${o.id}" data-course="${c.course}" data-ca="served">Подано</button>` : '',
+        c.course === next ? `<button class="btn small${o.courses.some((x) => x.status === 'cooking') ? ' ghost' : ''}" data-id="${o.id}" data-course="${c.course}" data-ca="start">Начать подачу ${c.course}</button>` : '',
+      ].filter(Boolean);
+      return `<div class="krow ${c.status}">
+        <span class="cnum${c.status === 'served' ? ' ok' : c.status === 'waiting' ? ' wait' : ''}">${c.course}</span>
+        <ul>${o.items.filter((i) => i.course === c.course).map(itemLi).join('')}</ul>
+        <div class="kbtns">${accepted ? `<span class="pill ${pc}">${pt}</span>` : ''}${btns.join('')}</div>
+      </div>`;
+    }).join('')}</div>`;
 }
 
 // Столы: вызовы, счета каждого телефона, оплата и «Весь стол».
@@ -161,6 +196,18 @@ root.addEventListener('click', async (e) => {
     bb.disabled = true;
     try {
       await api(`/api/staff/bills/${bb.dataset.bill}/action`, { method: 'POST', body: { action: ba } });
+      await load();
+    } catch (err) {
+      if (err.status === 401) return renderLogin('Смена закончилась, войдите снова.');
+      await load(ERR[err.code] || 'Не получилось. Обновите список.');
+    }
+    return;
+  }
+  const cb = e.target.closest('[data-ca]');
+  if (cb) {
+    cb.disabled = true;
+    try {
+      await api(`/api/staff/orders/${cb.dataset.id}/course`, { method: 'POST', body: { course: Number(cb.dataset.course), action: cb.dataset.ca } });
       await load();
     } catch (err) {
       if (err.status === 401) return renderLogin('Смена закончилась, войдите снова.');

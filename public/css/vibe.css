@@ -258,3 +258,47 @@ body.at-table .tabs { top: 64px; }
 .sec-nav .chip { white-space: nowrap; flex: none; }
 .sec-back { font-weight: 800; }
 .sec-title { margin: 2px 0 0; font-size: 20px; }
+
+/* ---------- Порядок подачи (заказ со стола) ---------- */
+.serve-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--v-chip); border-radius: 14px; }
+.serve-seg button { border: 0; background: transparent; border-radius: 10px; padding: 8px 6px; color: var(--v-ink); display: grid; gap: 1px; line-height: 1.2; }
+.serve-seg button small { font-size: 12.5px; color: var(--v-soft); }
+.serve-seg button[aria-pressed="true"] { background: var(--v-brush); color: var(--v-brush-fg); }
+.serve-seg button[aria-pressed="true"] small { color: var(--v-brush-fg); opacity: .85; }
+.courses { display: grid; gap: 10px; }
+.course { background: var(--v-chip); border: 2px dashed transparent; border-radius: 14px; padding: 8px; display: grid; gap: 6px; transition: border-color .12s, background .12s; }
+.course.over, .course-new.over { border-color: var(--v-brush); background: var(--ok-bg); }
+.course-h { display: flex; align-items: center; gap: 8px; padding: 2px 4px; }
+.course-h .muted { margin-left: auto; font-size: 13px; }
+.cnum { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--v-brush); color: var(--v-brush-fg); display: inline-grid; place-items: center; font-weight: 800; font-size: 14px; }
+.cnum.ok { background: var(--ok); }
+.cnum.wait { background: var(--v-line); color: var(--v-soft); }
+.course-new { border: 2px dashed var(--v-line); border-radius: 14px; padding: 12px; text-align: center; color: var(--v-soft); font-size: 14px; font-weight: 700; }
+.ci-course { grid-template-columns: auto minmax(0, 1fr) auto; background: var(--v-paper); border-radius: 10px; padding: 8px 10px 8px 2px; }
+.ci-course .mv { grid-column: 2 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.ci-course .mv button { border: 0; border-radius: 999px; background: var(--v-chip); color: var(--v-ink); font-weight: 700; font-size: 13px; padding: 4px 10px; }
+.ci-course .mv button:disabled { opacity: .35; }
+.grip { touch-action: none; cursor: grab; border: 0; background: transparent; color: var(--v-soft); width: 32px; height: 40px; display: grid; place-items: center; border-radius: 8px; grid-row: span 2; align-self: center; }
+.grip svg { width: 14px; height: 20px; }
+.grip:active { cursor: grabbing; }
+.cart-item.dragging { opacity: .35; }
+.drag-ghost { position: fixed; z-index: 50; pointer-events: none; margin: 0; box-shadow: 0 10px 24px rgba(43, 33, 25, .3); transform: rotate(-1.5deg); }
+.chk-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.chk-list li { display: flex; gap: 10px; align-items: flex-start; }
+.chk-list li div { display: grid; gap: 1px; padding-top: 2px; min-width: 0; }
+.chk-list li .muted { font-size: 13px; }
+.chk-btns { display: grid; gap: 8px; width: 100%; }
+.bill-courses { display: grid; gap: 6px; }
+.bill-course { background: var(--v-bg); border-radius: 10px; padding: 6px 8px; display: grid; gap: 2px; }
+.bill-course.done { opacity: .7; }
+.bill-course .hd > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
+.bill-course .cnum { width: 22px; height: 22px; font-size: 12px; }
+@media (prefers-reduced-motion: reduce) { .course { transition: none; } }
+/* Панель сотрудника: подачи заказа */
+.krows { display: grid; gap: 6px; }
+.krow { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--v-bg); }
+.krow ul { margin: 0; padding: 0; list-style: none; font-size: 15px; }
+.krow.cooking { background: var(--ok-bg); box-shadow: inset 0 0 0 2px var(--v-brush); }
+.krow.waiting ul, .krow.served ul, .krow.waiting .pill, .krow.served .pill { opacity: .65; }
+.kbtns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+@media (max-width: 560px) { .krow { grid-template-columns: 28px minmax(0, 1fr); } .kbtns { grid-column: 2; justify-content: flex-start; } }
