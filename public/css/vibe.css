@@ -240,3 +240,21 @@ body.at-table .tabs { top: 64px; }
 .bill-order .hd { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 800; }
 .bill-order ul { margin: 0; padding-left: 18px; font-size: 14px; }
 .bill-order.cancelled { opacity: .55; }
+
+/* Группы внутри раздела (Бар): плитки → список напитков группы */
+.sec-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 720px) { .sec-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.sec-tile { display: grid; grid-template-rows: auto 1fr; background: var(--v-paper); border-radius: var(--radius); overflow: hidden; text-decoration: none; color: var(--v-ink); box-shadow: 0 1px 0 var(--v-line); }
+.sec-ph { display: block; aspect-ratio: 4 / 3; background: var(--v-chip); }
+.sec-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sec-txt { display: grid; gap: 3px; padding: 10px 12px 12px; }
+.sec-txt b { font-size: 16px; line-height: 1.25; }
+.sec-txt small { color: var(--v-soft); font-size: 12.5px; line-height: 1.3; }
+.sec-txt .sec-note { color: var(--v-brush); font-weight: 700; }
+.sec { display: grid; gap: 12px; }
+.sec[hidden], .sec-tiles[hidden], [data-loose][hidden] { display: none; }
+.sec-nav { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.sec-nav::-webkit-scrollbar { display: none; }
+.sec-nav .chip { white-space: nowrap; flex: none; }
+.sec-back { font-weight: 800; }
+.sec-title { margin: 2px 0 0; font-size: 20px; }

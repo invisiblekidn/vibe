@@ -25,23 +25,28 @@ export async function getLocation(db: D1Database, id: string): Promise<Location 
 
 export interface MenuData {
   categories: { id: string; sort: number; name: I18n }[];
-  dishes: (Dish & { category_id: string; sort: number; description: I18n; photo: string | null; weight: string | null; is_kids: boolean })[];
+  /** Группы внутри раздела (в «Баре»: кофе и чай, соки, прохладительные, алкоголь). */
+  sections: { id: string; category_id: string; sort: number; name: I18n; photo: string | null }[];
+  dishes: (Dish & { category_id: string; section_id: string | null; sort: number; description: I18n; photo: string | null; weight: string | null; is_kids: boolean })[];
   groups: OptionGroup[];
   options: Option[];
 }
 
 export async function loadMenu(db: D1Database): Promise<MenuData> {
-  const [cats, dishes, groups, options] = await db.batch([
+  const [cats, sections, dishes, groups, options] = await db.batch([
     db.prepare('SELECT id, sort, name FROM categories ORDER BY sort'),
+    db.prepare('SELECT id, category_id, sort, name, photo FROM menu_sections ORDER BY category_id, sort'),
     db.prepare('SELECT * FROM dishes WHERE active = 1 ORDER BY category_id, sort'),
     db.prepare('SELECT * FROM option_groups ORDER BY dish_id, sort'),
     db.prepare('SELECT * FROM options ORDER BY group_id, sort'),
   ]);
   return {
     categories: (cats.results as any[]).map((c) => ({ id: c.id, sort: c.sort, name: parse(c.name) })),
+    sections: (sections.results as any[]).map((x) => ({ id: x.id, category_id: x.category_id, sort: x.sort, name: parse(x.name), photo: x.photo })),
     dishes: (dishes.results as any[]).map((d) => ({
       id: d.id,
       category_id: d.category_id,
+      section_id: d.section_id ?? null,
       sort: d.sort,
       name: parse(d.name),
       description: parse(d.description),

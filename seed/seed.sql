@@ -4,7 +4,7 @@
 
 DELETE FROM order_events; DELETE FROM order_items; DELETE FROM orders;
 DELETE FROM bill_events; DELETE FROM table_calls; DELETE FROM bills;
-DELETE FROM options; DELETE FROM option_groups; DELETE FROM stop_list; DELETE FROM dishes; DELETE FROM categories; DELETE FROM locations;
+DELETE FROM options; DELETE FROM option_groups; DELETE FROM stop_list; DELETE FROM dishes; DELETE FROM menu_sections; DELETE FROM categories; DELETE FROM locations;
 
 INSERT INTO locations (id, name, address, payment_qr_url) VALUES
  ('nt1', 'VIBE Нячанг', '25 Đ. Nguyễn Đình Chiểu, Bắc Nha Trang, Khánh Hòa', '/img/test-qr.svg');
