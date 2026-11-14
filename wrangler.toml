@@ -21,6 +21,8 @@ PUBLIC_URL = "https://vibe-restaurant.invisiblekidn.workers.dev"
 TG_BOT_USERNAME = "vibe_kid_bot"
 # Только для тестовой версии: заказ со стола в любое время суток. К запуску убрать (будет 9:00–22:00).
 TABLE_ANY_HOUR = "1"
+# Живая карточка заказа в боте (виджет Telegram): off — выключена, staff — только сотрудникам из TG_STAFF (показ), all — всем гостям.
+TG_GUEST_WIDGET = "all"
 
 [observability]
 enabled = true

@@ -23,7 +23,7 @@ const call = async (method, body) => {
   console.log(`${d.ok ? '✓' : '✗'} ${method}${d.ok ? '' : ': ' + d.description}`);
   return d;
 };
-await call('setWebhook', { url: `${url}/tg/webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query'] });
+await call('setWebhook', { url: `${url}/tg/webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query', 'widget_query'] });
 await call('setMyCommands', { commands: [{ command: 'start', description: 'Меню и заказ' }, { command: 'orders', description: 'Мои заказы' }] });
 const group = get('TG_STAFF_CHAT_ID');
 if (group) await call('setMyCommands', { scope: { type: 'chat', chat_id: Number(group) }, commands: [{ command: 'guests', description: 'Выбрать гостя и написать ему' }, { command: 'id', description: 'Показать id группы и ваш' }] });
