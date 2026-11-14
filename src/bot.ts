@@ -27,6 +27,7 @@ import {
 import { orderWithItems, transition } from './orders';
 import { tableTitle } from './lib/tables';
 import { billAction, billTotal, closeCall } from './tables';
+import { paidButtonText, statusCardText, widgetCaption, widgetHtml, widgetMode, widgetState } from './lib/widget';
 
 export interface TgEnv {
   DB: D1Database;
@@ -38,6 +39,8 @@ export interface TgEnv {
   TG_BOT_USERNAME?: string;
   TG_API_BASE?: string;
   PUBLIC_URL?: string;
+  /** Живая карточка заказа у гостя: off | staff (только сотрудникам из TG_STAFF, для проверки) | all. */
+  TG_GUEST_WIDGET?: string;
 }
 
 export async function tg(env: TgEnv, method: string, payload: Record<string, unknown>): Promise<any> {
@@ -116,6 +119,7 @@ export async function notifyOrderEvent(env: TgEnv, orderId: number, event: strin
   }
 
   if (o.tg_user_id) {
+    if (await guestWidgetEvent(env, o, event, day, baseUrl)) return;
     const lang = asLang(o.lang);
     const text = guestEventText(event, o, day, lang);
     if (text) {
@@ -128,6 +132,118 @@ export async function notifyOrderEvent(env: TgEnv, orderId: number, event: strin
       });
     }
   }
+}
+
+// ---------- Живая карточка заказа у гостя ----------
+
+/** Показывать ли этому гостю карточку вместо отдельных сообщений. */
+export function widgetFor(env: TgEnv, userId: number): boolean {
+  const mode = widgetMode(env.TG_GUEST_WIDGET);
+  return mode === 'all' || (mode === 'staff' && parseStaffList(env.TG_STAFF).has(userId));
+}
+
+async function tzOffset(env: TgEnv) {
+  return (await getLocation(env.DB, env.LOCATION_ID))?.tz_offset_min ?? 420;
+}
+
+function widgetKeyboard(o: any, baseUrl: string) {
+  const lang = asLang(o.lang);
+  const key = awaitingPayment(o) ? 'openOrderQr' : 'openOrder';
+  return kb([[{ text: bt(key, lang), web_app: { url: orderUrl(baseUrl, o.public_token) } }]]);
+}
+
+/** Отправить карточку заказа гостю. true — отправлена (Telegram принял sendWidget). */
+export async function sendGuestWidget(env: TgEnv, o: any, day: string, baseUrl: string): Promise<boolean> {
+  const lang = asLang(o.lang);
+  const sent = await tg(env, 'sendWidget', {
+    chat_id: o.tg_user_id,
+    html: widgetHtml(o, lang, day),
+    chat_data: widgetState(o, await tzOffset(env)),
+    allow_queries: true,
+    caption: widgetCaption(o, lang),
+    reply_markup: widgetKeyboard(o, baseUrl),
+  });
+  if (!sent?.message_id) return false;
+  await env.DB.prepare('UPDATE orders SET guest_widget_msg_id = ? WHERE id = ?').bind(sent.message_id, o.id).run();
+  o.guest_widget_msg_id = sent.message_id;
+  return true;
+}
+
+const awaitingPayment = (o: any) => o.payment_method === 'qr' && o.payment_status === 'unpaid' && o.status === 'new';
+
+/** Кнопки под текстовой карточкой: «Я оплатил», пока ждём оплату, и вход в заказ. */
+function cardKeyboard(o: any, baseUrl: string) {
+  const rows: InlineButton[][] = [];
+  if (awaitingPayment(o)) rows.push([{ text: `💳 ${paidButtonText(asLang(o.lang))}`, callback_data: `gp:${o.id}` }]);
+  rows.push(widgetKeyboard(o, baseUrl).inline_keyboard[0]);
+  return kb(rows);
+}
+
+/** Запасной вариант: одно обычное сообщение-карточка, которое бот редактирует при каждой смене статуса. */
+export async function sendGuestCard(env: TgEnv, o: any, day: string, baseUrl: string): Promise<boolean> {
+  const sent = await tg(env, 'sendMessage', {
+    chat_id: o.tg_user_id,
+    text: statusCardText(o, asLang(o.lang), day, await tzOffset(env)),
+    parse_mode: 'HTML',
+    reply_markup: cardKeyboard(o, baseUrl),
+  });
+  if (!sent?.message_id) return false;
+  await env.DB.prepare('UPDATE orders SET guest_card_msg_id = ? WHERE id = ?').bind(sent.message_id, o.id).run();
+  o.guest_card_msg_id = sent.message_id;
+  return true;
+}
+
+/** Первая карточка: виджет, если Telegram его принимает, иначе текстовая карточка. */
+async function sendFirstCard(env: TgEnv, o: any, day: string, baseUrl: string) {
+  return (await sendGuestWidget(env, o, day, baseUrl)) || (await sendGuestCard(env, o, day, baseUrl));
+}
+
+/** Обновить карточку на месте. Сообщение со звуком — только когда гостю пора действовать: заказ готов или отменён. */
+async function guestWidgetEvent(env: TgEnv, o: any, event: string, day: string, baseUrl: string): Promise<boolean> {
+  if (!o.guest_widget_msg_id && !o.guest_card_msg_id) {
+    if (event !== 'created' || !widgetFor(env, o.tg_user_id)) return false;
+    return sendFirstCard(env, o, day, baseUrl); // не вышло — обычные сообщения, как раньше
+  }
+  const lang = asLang(o.lang);
+  const chat_id = o.tg_user_id;
+  const message_id = o.guest_widget_msg_id || o.guest_card_msg_id;
+  if (o.guest_widget_msg_id) {
+    await tg(env, 'editMessageWidgetData', { chat_id, message_id, chat_data: widgetState(o, await tzOffset(env)) });
+    await tg(env, 'editMessageCaption', { chat_id, message_id, caption: widgetCaption(o, lang), reply_markup: widgetKeyboard(o, baseUrl) });
+  } else {
+    await tg(env, 'editMessageText', { chat_id, message_id, text: statusCardText(o, lang, day, await tzOffset(env)), parse_mode: 'HTML', reply_markup: cardKeyboard(o, baseUrl) });
+  }
+  if (event === 'ready' || event === 'cancelled') {
+    const text = guestEventText(event, o, day, lang);
+    if (text) await tg(env, 'sendMessage', { chat_id, text, parse_mode: 'HTML', reply_parameters: { message_id, allow_sending_without_reply: true } });
+  }
+  return true;
+}
+
+/** «Я оплатил» под текстовой карточкой. Повторное нажатие ничего не меняет. */
+async function onGuestPaid(env: TgEnv, q: any, baseUrl: string, answer: (t: string, a?: boolean) => Promise<any>) {
+  const id = Number(String(q.data).slice(3));
+  const o = await env.DB.prepare('SELECT * FROM orders WHERE id = ? AND location_id = ?').bind(id, env.LOCATION_ID).first<any>();
+  if (!o || o.tg_user_id !== q.from?.id || o.guest_card_msg_id !== q.message?.message_id) return void (await answer(''));
+  const r = await transition(env.DB, o, 'report_payment', 'guest');
+  const lang = asLang(o.lang);
+  const T = { ru: 'Спасибо! Проверяем поступление', vi: 'Cảm ơn! Đang kiểm tra tiền về', en: 'Thank you! Checking the transfer' };
+  await answer(r.ok ? T[lang] : '');
+  if (r.ok && r.changed) await notifyOrderEvent(env, o.id, r.event, 'guest', baseUrl);
+}
+
+/** Нажатие внутри карточки. Пока одно действие: «Я оплатил». Ответ — новое состояние, чтобы карточка сразу перерисовалась. */
+async function onWidgetQuery(env: TgEnv, q: any, baseUrl: string) {
+  const answer = (data?: string) => tg(env, 'answerWidgetQuery', { widget_query_id: q.id, ...(data ? { data } : {}) });
+  const o = q.chat?.id && q.message_id
+    ? await env.DB.prepare('SELECT * FROM orders WHERE guest_widget_msg_id = ? AND tg_user_id = ? AND location_id = ?').bind(q.message_id, q.chat.id, env.LOCATION_ID).first<any>()
+    : null;
+  if (!o || q.from?.id !== o.tg_user_id || q.data !== 'paid') return void (await answer());
+  const tz = await tzOffset(env);
+  const r = await transition(env.DB, o, 'report_payment', 'guest');
+  if (!r.ok) return void (await answer(widgetState(o, tz)));
+  await answer(widgetState(r.order, tz));
+  if (r.changed) await notifyOrderEvent(env, o.id, r.event, 'guest', baseUrl);
 }
 
 // ---------- События от Telegram ----------
@@ -146,6 +262,7 @@ async function rememberPeople(env: TgEnv, users: any[]) {
 
 export async function handleUpdate(env: TgEnv, u: any, baseUrl: string): Promise<void> {
   if (u.callback_query) return onCallback(env, u.callback_query, baseUrl);
+  if (u.widget_query) return onWidgetQuery(env, u.widget_query, baseUrl);
   const m = u.message;
   if (!m || !m.chat) return;
   if (m.chat.type === 'private') {
@@ -182,6 +299,10 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
       const o = await env.DB.prepare('SELECT id, public_token, tg_user_id FROM orders WHERE public_token = ?').bind(link[1]).first<any>();
       if (o && (!o.tg_user_id || o.tg_user_id === userId)) {
         await env.DB.prepare('UPDATE orders SET tg_user_id = ? WHERE id = ? AND tg_user_id IS NULL').bind(userId, o.id).run();
+        if (widgetFor(env, userId)) {
+          const full = await orderWithItems(env.DB, o.id);
+          if (full && !full.guest_widget_msg_id && !full.guest_card_msg_id && (await sendFirstCard(env, { ...full, tg_user_id: userId }, await today(env), baseUrl))) return;
+        }
         await tg(env, 'sendMessage', {
           chat_id: userId,
           text: bt('linked', lang, { n: o.id }),
@@ -319,6 +440,7 @@ async function pickGuest(env: TgEnv, q: any, answer: (t: string, a?: boolean) =>
 async function onCallback(env: TgEnv, q: any, baseUrl: string) {
   const answer = (text: string, show_alert = false) => tg(env, 'answerCallbackQuery', { callback_query_id: q.id, text, show_alert });
   if (/^g:\d{1,15}$/.test(q.data || '')) return pickGuest(env, q, answer);
+  if (/^gp:\d{1,9}$/.test(q.data || '')) return onGuestPaid(env, q, baseUrl, answer);
   const tc = parseTableCallback(q.data);
   if (tc) return onTableCallback(env, q, tc, answer);
   const parsed = parseCallback(q.data);
