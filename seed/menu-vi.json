@@ -29,11 +29,11 @@
     "croissant-bacon": ["Bánh sừng bò thịt xông khói hoặc giăm bông và phô mai", "Với phô mai, chọn thịt xông khói hoặc giăm bông."],
     "kids-cutlets": ["Chả gà kèm khoai tây nghiền", "Chả gà mềm với khoai tây nghiền xốp."],
     "kids-mac": ["Nui phô mai", "Nui sốt phô mai béo mịn mà bé nào cũng thích."],
-    "kids-burger": ["Burger mini kèm khoai tây chiên", "Burger nhân chả gà, phô mai và rau củ tươi. Kèm khoai tây chiên."],
+    "kids-burger": ["Burger mini kèm khoai tây chiên", "Burger mini nhân chả phi lê gà, phô mai và rau củ tươi. Kèm khoai tây chiên."],
     "kids-pelmeni": ["Pelmeni nhỏ", "Sủi cảo nhà làm, ăn kèm kem chua."],
     "kids-nuggets": ["Gà viên chiên kèm khoai tây chiên", "Gà viên chiên giòn với khoai tây chiên và tương cà."],
     "kids-syrniki": ["Bánh syrniki cho bé", "Bánh phô mai tươi chiên mềm."],
-    "kids-veg": ["Rau củ que chấm sốt", "Rau củ tươi với sốt kem dịu nhẹ."],
+    "kids-veg": ["Rau củ que chấm sốt", "Rau củ tươi: dưa leo, cà rốt và ớt chuông. Ăn kèm sốt kem dịu nhẹ."],
     "kids-icecream": ["Kem", "Hai viên: dâu, vani hoặc sô-cô-la."],
     "espresso": ["Espresso", ""],
     "americano": ["Americano", ""],
@@ -68,7 +68,9 @@
     "margarita": ["Margarita", "Tequila, chanh, rượu mùi cam."],
     "shakshuka": ["Shakshuka", "Món cà chua và rau củ thơm lừng với hai quả trứng. Rắc phô mai feta lên trên."],
     "blinchiki-meat": ["Bánh crepe nhân thịt (2 cái)", "Ăn kèm kem chua."],
-    "blinchiki-tvorog": ["Bánh crepe nhân phô mai tươi (2 cái)", "Ăn kèm kem chua và mứt dâu."]
+    "blinchiki-tvorog": ["Bánh crepe nhân phô mai tươi (2 cái)", "Ăn kèm kem chua và mứt dâu."],
+    "kids-porridge": ["Cháo cho bé", "Tùy chọn: cháo yến mạch sữa với chuối và bơ đậu phộng, cháo gạo sữa với trái cây hoặc cháo kiều mạch sữa với bơ."],
+    "kids-puree": ["Khoai tây nghiền kèm xúc xích", "Khoai tây nghiền xốp với xúc xích thơm ngon."]
   },
   "groups": {
     "ol-fill": "Nhân",
@@ -84,7 +86,8 @@
     "th-kind": "Vị",
     "tf-kind": "Vị",
     "bl-top": "Sốt",
-    "cb-meat": "Thịt xông khói hay giăm bông"
+    "cb-meat": "Thịt xông khói hay giăm bông",
+    "kp-kind": "Chọn loại cháo"
   },
   "options": {
     "ol-chicken": "Với gà",
@@ -127,6 +130,9 @@
     "bl-choc": "Sốt sô-cô-la",
     "bl-car": "Caramen",
     "cb-bacon": "Với thịt xông khói",
-    "cb-ham": "Với giăm bông"
+    "cb-ham": "Với giăm bông",
+    "kp-oat": "Yến mạch với chuối và bơ đậu phộng",
+    "kp-rice": "Cháo gạo với trái cây",
+    "kp-buck": "Kiều mạch với bơ"
   }
 }
