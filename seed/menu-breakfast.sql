@@ -1,22 +1,24 @@
 -- Актуальный лист «Завтраки / Круассаны» (фото меню от 15.11.2026, заменяет лист от 11.11).
 -- Можно выполнять повторно: обновляет блюда и опции, заказы и стоп-лист не трогает.
 -- Вьетнамский текст здесь же; seed/menu-vi.json держим в том же виде (его выполняют последним).
--- Драники, оладьи из цукини и круассан с шоколадом в новом листе нет: они скрыты (active = 0), а не удалены,
+-- Круассана с шоколадом в новом листе нет: он скрыт (active = 0), а не удалён,
+-- (драники и оладьи из цукини переехали в закуски — seed/menu-starters.sql),
 -- потому что на них могут ссылаться прошлые заказы и выбор «Блюдо дня» в боте.
 
 INSERT INTO categories (id, sort, name) VALUES
- ('breakfast',  1, '{"ru":"Завтраки","en":"Breakfasts","vi":"Breakfasts"}'),
- ('croissants', 2, '{"ru":"Круассаны","en":"Croissants","vi":"Croissants"}'),
- ('soups',      3, '{"ru":"Супы","en":"Soups","vi":"Soups"}'),
- ('salads',     4, '{"ru":"Салаты","en":"Salads","vi":"Salads"}'),
- ('mains',      5, '{"ru":"Горячее","en":"Main dishes","vi":"Main dishes"}'),
- ('kids',       6, '{"ru":"Детское меню","en":"Kids menu","vi":"Kids menu"}'),
- ('desserts',   7, '{"ru":"Десерты","en":"Desserts","vi":"Desserts"}'),
- ('bar',        8, '{"ru":"Бар","en":"Bar","vi":"Bar"}')
+ ('breakfast',  1, '{"ru":"Завтраки","en":"Breakfasts","vi":"Bữa sáng"}'),
+ ('croissants', 2, '{"ru":"Круассаны","en":"Croissants","vi":"Bánh sừng bò"}'),
+ ('starters',   3, '{"ru":"Закуски","en":"Starters","vi":"Món khai vị"}'),
+ ('soups',      4, '{"ru":"Супы","en":"Soups","vi":"Súp"}'),
+ ('salads',     5, '{"ru":"Салаты","en":"Salads","vi":"Salad"}'),
+ ('mains',      6, '{"ru":"Горячее","en":"Main dishes","vi":"Món chính"}'),
+ ('kids',       7, '{"ru":"Детское меню","en":"Kids menu","vi":"Thực đơn trẻ em"}'),
+ ('desserts',   8, '{"ru":"Десерты","en":"Desserts","vi":"Tráng miệng"}'),
+ ('bar',        9, '{"ru":"Бар","en":"Bar","vi":"Quầy bar"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
-DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('big-breakfast','eggs-benedict','syrniki','omelette','avocado-toast','porridge','shakshuka','blinchiki','blinchiki-meat','blinchiki-tvorog','croissant-salmon','croissant-caesar','croissant-bacon','draniki','zucchini-fritters','croissant-choc'));
-DELETE FROM option_groups WHERE dish_id IN ('big-breakfast','eggs-benedict','syrniki','omelette','avocado-toast','porridge','shakshuka','blinchiki','blinchiki-meat','blinchiki-tvorog','croissant-salmon','croissant-caesar','croissant-bacon','draniki','zucchini-fritters','croissant-choc');
+DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('big-breakfast','eggs-benedict','syrniki','omelette','avocado-toast','porridge','shakshuka','blinchiki','blinchiki-meat','blinchiki-tvorog','croissant-salmon','croissant-caesar','croissant-bacon','croissant-choc'));
+DELETE FROM option_groups WHERE dish_id IN ('big-breakfast','eggs-benedict','syrniki','omelette','avocado-toast','porridge','shakshuka','blinchiki','blinchiki-meat','blinchiki-tvorog','croissant-salmon','croissant-caesar','croissant-bacon','croissant-choc');
 
 INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weight, is_kids, is_alcohol, active) VALUES
  ('big-breakfast', 'breakfast', 1, '{"ru": "Большой завтрак VIBE", "vi": "Bữa sáng lớn VIBE", "en": "Big Breakfast VIBE"}',
@@ -62,7 +64,7 @@ ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = exclude
  description = excluded.description, price = excluded.price, photo = excluded.photo, weight = excluded.weight,
  is_kids = excluded.is_kids, is_alcohol = excluded.is_alcohol, active = excluded.active;
 
-UPDATE dishes SET active = 0 WHERE id IN ('draniki','zucchini-fritters','croissant-choc');
+UPDATE dishes SET active = 0 WHERE id IN ('croissant-choc');
 
 INSERT INTO option_groups (id, dish_id, sort, name, min_select, max_select) VALUES
  ('bb-eggs', 'big-breakfast', 1, '{"ru": "Яйца", "vi": "Trứng", "en": "Eggs"}', 1, 1),

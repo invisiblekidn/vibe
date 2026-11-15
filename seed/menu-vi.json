@@ -3,6 +3,7 @@
   "categories": {
     "breakfast": "Bữa sáng",
     "croissants": "Bánh sừng bò",
+    "starters": "Món khai vị",
     "soups": "Súp",
     "salads": "Salad",
     "mains": "Món chính",
@@ -70,7 +71,18 @@
     "blinchiki-meat": ["Bánh crepe nhân thịt (2 cái)", "Ăn kèm kem chua."],
     "blinchiki-tvorog": ["Bánh crepe nhân phô mai tươi (2 cái)", "Ăn kèm kem chua và mứt dâu."],
     "kids-porridge": ["Cháo cho bé", "Tùy chọn: cháo yến mạch sữa với chuối và bơ đậu phộng, cháo gạo sữa với trái cây hoặc cháo kiều mạch sữa với bơ."],
-    "kids-puree": ["Khoai tây nghiền kèm xúc xích", "Khoai tây nghiền xốp với xúc xích thơm ngon."]
+    "kids-puree": ["Khoai tây nghiền kèm xúc xích", "Khoai tây nghiền xốp với xúc xích thơm ngon."],
+    "bruschetta-salmon": ["Bruschetta cá hồi", "Bánh mì baguette giòn, phô mai kem, cá hồi muối nhạt, rau thơm tươi."],
+    "bruschetta-tomato": ["Bruschetta cà chua", "Bánh mì baguette giòn, cà chua, tỏi, sốt, phô mai Parmesan, húng quế tươi."],
+    "shrimps-garlic": ["Tôm sốt bơ tỏi", "Sáu con tôm mọng nước xào bơ tỏi thơm với rau thơm tươi. Ăn kèm hai lát bánh mì baguette."],
+    "wings": ["Cánh gà VIBE", "Cánh gà giòn tẩm ướp theo công thức riêng, chiên vàng giòn. Sốt tùy chọn."],
+    "cheese-sticks": ["Phô mai que", "Món bán chạy! Năm que phô mai giòn với nhân phô mai kéo sợi, ăn kèm sốt tùy chọn."],
+    "potato-wedges": ["Khoai tây kiểu đồng quê VIBE", "Khoai tây vàng giòn với thảo mộc và tỏi, ăn kèm sốt tùy chọn."],
+    "croutons": ["Bánh mì đen Borodinsky nướng tỏi", "Năm lát bánh mì đen Borodinsky nướng với tỏi, rau thơm và phô mai Parmesan, ăn kèm sốt tùy chọn."],
+    "fries": ["Khoai tây chiên", "Khoai tây chiên giòn truyền thống, ăn kèm tương cà."],
+    "nuggets": ["Gà viên chiên", "Gà viên mọng nước trong lớp áo giòn, ăn kèm sốt tùy chọn."],
+    "draniki": ["Bánh khoai tây draniki", "Ba bánh khoai tây chiên vàng, ăn kèm xà lách, dưa leo, cà chua và kem chua."],
+    "zucchini-fritters": ["Bánh bí ngòi", "Ba bánh bí ngòi mềm, ăn kèm xà lách, dưa leo, cà chua và sốt tỏi."]
   },
   "groups": {
     "ol-fill": "Nhân",
@@ -87,7 +99,15 @@
     "tf-kind": "Vị",
     "bl-top": "Sốt",
     "cb-meat": "Thịt xông khói hay giăm bông",
-    "kp-kind": "Chọn loại cháo"
+    "kp-kind": "Chọn loại cháo",
+    "wings-add": "Thêm",
+    "cheese-sticks-add": "Thêm",
+    "potato-wedges-add": "Thêm",
+    "croutons-add": "Thêm",
+    "fries-add": "Thêm",
+    "nuggets-add": "Thêm",
+    "draniki-add": "Thêm",
+    "zucchini-fritters-add": "Thêm"
   },
   "options": {
     "ol-chicken": "Với gà",
@@ -133,6 +153,30 @@
     "cb-ham": "Với giăm bông",
     "kp-oat": "Yến mạch với chuối và bơ đậu phộng",
     "kp-rice": "Cháo gạo với trái cây",
-    "kp-buck": "Kiều mạch với bơ"
+    "kp-buck": "Kiều mạch với bơ",
+    "wings-sauce": "Thêm sốt",
+    "wings-bacon": "Thịt xông khói",
+    "wings-parm": "Phô mai Parmesan",
+    "cheese-sticks-sauce": "Thêm sốt",
+    "cheese-sticks-bacon": "Thịt xông khói",
+    "cheese-sticks-parm": "Phô mai Parmesan",
+    "potato-wedges-sauce": "Thêm sốt",
+    "potato-wedges-bacon": "Thịt xông khói",
+    "potato-wedges-parm": "Phô mai Parmesan",
+    "croutons-sauce": "Thêm sốt",
+    "croutons-bacon": "Thịt xông khói",
+    "croutons-parm": "Phô mai Parmesan",
+    "fries-sauce": "Thêm sốt",
+    "fries-bacon": "Thịt xông khói",
+    "fries-parm": "Phô mai Parmesan",
+    "nuggets-sauce": "Thêm sốt",
+    "nuggets-bacon": "Thịt xông khói",
+    "nuggets-parm": "Phô mai Parmesan",
+    "draniki-sauce": "Thêm sốt",
+    "draniki-bacon": "Thịt xông khói",
+    "draniki-parm": "Phô mai Parmesan",
+    "zucchini-fritters-sauce": "Thêm sốt",
+    "zucchini-fritters-bacon": "Thịt xông khói",
+    "zucchini-fritters-parm": "Phô mai Parmesan"
   }
 }

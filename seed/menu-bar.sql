@@ -3,7 +3,7 @@
 -- Алкоголь (шоты и коктейли) — только к визиту и в зале.
 
 INSERT INTO categories (id, sort, name) VALUES
- ('bar', 8, '{"ru": "Бар", "en": "Bar", "vi": "Bar"}')
+ ('bar', 9, '{"ru": "Бар", "en": "Bar", "vi": "Bar"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
 DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag','juice-orange','juice-pineapple','juice-watermelon','smoothie-berry','smoothie-mango','smoothie-avocado','cola','sprite','tonic','water','shot-tequila','shot-vodka','shot-rum','mojito','aperol','pina-colada','daiquiri','margarita'));
