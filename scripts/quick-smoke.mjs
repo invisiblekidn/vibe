@@ -75,12 +75,12 @@ try {
   // ---- 1. Вкладка «Бот» в панели ----
   ok((await staff('/api/staff/bot')).status === 401, 'без входа вкладка «Бот» закрыта');
   await staff('/api/staff/login', 'POST', { name: 'Шеф Минь', pin: vars.STAFF_PIN });
-  ok((await staff('/api/staff/bot', 'PUT', { day: null, quick: ['borsch', 'pelmeni', 'syrniki', 'draniki', 'caesar-chicken', 'kiev', 'carbonara', 'olivier'] })).data?.error === 'TOO_MANY', 'больше 7 позиций сохранить нельзя');
+  ok((await staff('/api/staff/bot', 'PUT', { day: null, quick: ['borsch', 'pelmeni', 'syrniki', 'shakshuka', 'caesar-chicken', 'kiev', 'carbonara', 'olivier'] })).data?.error === 'TOO_MANY', 'больше 7 позиций сохранить нельзя');
   ok((await staff('/api/staff/bot', 'PUT', { day: { dishId: 'no-such-dish' }, quick: [] })).data?.error === 'DISH_UNAVAILABLE', 'блюдо не из меню сохранить нельзя');
   let i = calls.length;
   const saved = await staff('/api/staff/bot', 'PUT', {
     day: { dishId: 'borsch', note: { ru: 'Варим с утра на говяжьей косточке', vi: '', en: '' } },
-    quick: ['borsch', 'syrniki', 'pelmeni', 'caesar-chicken', 'draniki', 'shot-tequila'],
+    quick: ['borsch', 'syrniki', 'pelmeni', 'caesar-chicken', 'shakshuka', 'shot-tequila'],
   });
   await settle();
   ok(saved.status === 200 && saved.data.changes.length === 2, 'шеф сохранил блюдо дня и 6 позиций быстрого заказа');
@@ -119,7 +119,7 @@ try {
   r = await tap('q:a:syrniki', cartMsg);
   r = await tap('q:o:sy-cond', cartMsg);
   screen = lastScreen(r);
-  ok(screen.body.text.includes('Сырники (Сгущённое молоко) ×2') && screen.body.text.includes('377 000 ₫'), 'корзина: Борщ ×1, Сырники ×2, итого 377 000 ₫');
+  ok(screen.body.text.includes('Мамины сырники (Сгущённое молоко) ×2') && screen.body.text.includes('377 000 ₫'), 'корзина: Борщ ×1, Сырники ×2, итого 377 000 ₫');
   ok(datas(screen).includes('q:go') && decodeURIComponent(buttons(screen).at(-1).web_app?.url || '').includes('cart=borsch*1,syrniki*2*sy-cond'), 'есть «Оформить», кнопка меню переносит корзину в окно меню');
 
   // ---- 5. Как получить и когда ----
@@ -146,7 +146,7 @@ try {
   ok(toGuest(afterPhone, 'sendMessage').some((c) => c.body.reply_markup?.remove_keyboard), 'номер сохранён, клавиатура убрана');
   ok(!afterPhone.some((c) => c.body.chat_id === GROUP), 'номер не ушёл администратору как переписка');
   const confirm = lastScreen(afterPhone);
-  ok(confirm.body.text.includes('Проверьте заказ') && confirm.body.text.includes('Сырники (Сгущённое молоко) ×2 — 238 000 ₫') && datas(confirm)[0] === 'q:ok', 'проверка заказа: позиции с ценами сервера и «Подтвердить»');
+  ok(confirm.body.text.includes('Проверьте заказ') && confirm.body.text.includes('Мамины сырники (Сгущённое молоко) ×2 — 238 000 ₫') && datas(confirm)[0] === 'q:ok', 'проверка заказа: позиции с ценами сервера и «Подтвердить»');
 
   // ---- 6. Подтверждение: двойное нажатие и повторная доставка события ----
   const before = Number(JSON.parse(sql(`SELECT COUNT(*) AS n FROM orders WHERE tg_user_id = ${GUEST}`).toString().replace(/^[^[]*/, ''))[0].results[0].n);
@@ -200,7 +200,7 @@ try {
   await hook(say('/repeat'));
   await settle();
   screen = lastScreen(since(i));
-  ok(screen.body.text.includes(`Ваш заказ №${o.id}`) && screen.body.text.includes('<s>Сырники ×2</s> <i>сегодня закончилось</i>') && screen.body.text.includes('139 000 ₫'), 'повтор: борщ по сегодняшней цене, сырники зачёркнуты — закончились');
+  ok(screen.body.text.includes(`Ваш заказ №${o.id}`) && screen.body.text.includes('<s>Мамины сырники ×2</s> <i>сегодня закончилось</i>') && screen.body.text.includes('139 000 ₫'), 'повтор: борщ по сегодняшней цене, сырники зачёркнуты — закончились');
   ok(datas(screen)[0] === 'q:go', 'повтор: можно сразу оформить');
 
   // ---- 9. Блюдо дня снято ----
