@@ -142,6 +142,8 @@ export interface OrderForText {
   guest_phone: string;
   comment?: string | null;
   channel: string;
+  /** 'chat' — оформлен быстрыми кнопками в чате бота. */
+  source?: string | null;
   items: { name: string; qty: number; options: { name: string }[] }[];
 }
 
@@ -169,7 +171,8 @@ export function orderTableTitle(o: { table_id?: string | null; table_zone?: stri
 
 export function staffOrderText(o: OrderForText, today?: string, lastActor?: string): string {
   const isTable = o.type === 'table';
-  const head = o.status === 'cancelled' ? `<s>Заказ №${o.id}</s> · отменён` : `<b>Заказ №${o.id}</b> · ${CHANNEL[o.channel] || o.channel}`;
+  const via = o.source === 'chat' ? ' · ⚡ из чата бота' : '';
+  const head = o.status === 'cancelled' ? `<s>Заказ №${o.id}</s> · отменён` : `<b>Заказ №${o.id}</b> · ${CHANNEL[o.channel] || o.channel}${via}`;
   const items = o.items
     .map((i) => `${escHtml(i.name)}${i.options.length ? ` (${escHtml(i.options.map((x) => x.name).join(', '))})` : ''} ×${i.qty}`)
     .join('\n');

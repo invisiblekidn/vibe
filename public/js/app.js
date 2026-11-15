@@ -58,6 +58,15 @@ async function init() {
   }
   const m = state.menu;
   for (const d of m.dishes) state.dishes.set(d.id, d);
+  // Пришли из чата бота («Изменить в меню»): корзина из быстрого заказа заменяет корзину окна меню.
+  const fromBot = !TABLE_CODE && new URLSearchParams(location.search).get('cart');
+  if (fromBot) {
+    state.cart = botCart(fromBot);
+    saveCart();
+    const u = new URL(location.href);
+    u.searchParams.delete('cart');
+    history.replaceState(null, '', u.pathname + u.search);
+  }
   state.cart = state.cart.filter((i) => state.dishes.has(i.dishId));
   const hh = (v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
   $('#f-hours').textContent = t('factHoursVal', { from: hh(m.location.open), to: hh(m.location.close) });
@@ -65,6 +74,25 @@ async function init() {
   renderMenu();
   renderCartbar();
   if (TABLE_CODE) tableInit();
+  else if (fromBot && state.cart.length) openCart();
+}
+
+/** «dish*2*opt1.opt2,dish2*1» → строки корзины. Неизвестные блюда и опции отбрасываем, цены — из меню. */
+function botCart(param) {
+  const out = [];
+  for (const part of String(param).split(',').slice(0, 40)) {
+    const [dishId, q, opts] = part.split('*');
+    const d = state.dishes.get(dishId);
+    if (!d) continue;
+    const valid = new Set(d.groups.flatMap((g) => g.options.map((o) => o.id)));
+    const optionIds = (opts ? opts.split('.') : []).filter((id) => valid.has(id));
+    const qty = Math.min(20, Math.max(1, parseInt(q, 10) || 1));
+    const key = dishId + '|' + [...optionIds].sort().join(',');
+    const same = out.find((i) => i.key === key);
+    if (same) same.qty = Math.min(20, same.qty + qty);
+    else out.push({ key, dishId, qty, optionIds });
+  }
+  return out;
 }
 
 function renderMenu() {

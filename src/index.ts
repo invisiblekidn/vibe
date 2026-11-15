@@ -6,8 +6,10 @@ import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from '
 import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
 import { verifyInitData } from './lib/telegram';
-import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, type TgEnv } from './bot';
-import { transition } from './orders';
+import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, tg, type TgEnv } from './bot';
+import { loadPicks, picksChangedText, savePicks, type PicksInput } from './quick';
+import { QUICK_MAX, QUICK_RECOMMENDED } from './lib/quick';
+import { ENABLED_TYPES, createOrder, transition } from './orders';
 import { DEVICE_RE, TABLE_CODE_RE, tableOpenNow, tableTitle, type BillAction } from './lib/tables';
 import { billAction, billTotal, closeCall, createCall, findBill, guestBillView, markBillRequested, openBillFor, staffTablesView, tableByCode } from './tables';
 
@@ -44,8 +46,6 @@ function background(c: any, job: Promise<unknown>) {
   }
 }
 
-// Этап 1: самовывоз и «к визиту». Доставка и стол подключаются на этапах 3 и 4.
-const ENABLED_TYPES: OrderType[] = ['pickup', 'visit'];
 
 app.onError((err, c) => {
   if (err instanceof OrderError) return c.json({ error: err.code, ...err.details }, 409);
@@ -127,7 +127,6 @@ app.post('/api/orders', async (c) => {
   const loc = await getLocation(db, c.env.LOCATION_ID);
   if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
   if (!loc.accepting_orders) throw new OrderError('NOT_ACCEPTING');
-  if (!ENABLED_TYPES.includes(body.type)) throw new OrderError('TYPE_NOT_AVAILABLE');
 
   const name = cleanText(body.guest?.name, 60);
   const phone = cleanText(body.guest?.phone, 30);
@@ -141,55 +140,21 @@ app.post('/api/orders', async (c) => {
     tgUserId = user.id;
   }
 
-  const slotErr = checkSlot(String(body.slot), nowMs(), loc, body.type);
-  if (slotErr) throw new OrderError(slotErr);
-
-  const lang = langOf(body.lang);
-  const menu = indexMenu(await loadMenu(db));
-  const soldOut = await soldOutOn(db, loc.id, body.slot.slice(0, 10));
-  const { lines, subtotal } = priceCart(body.items, menu, soldOut, { alcoholAllowed: body.type === 'visit', lang: 'ru' }); // названия в заказе — по-русски, для кухни
-
-  const token = crypto.randomUUID();
-  const now = iso();
-  const total = subtotal;
-
-  // Заказ, позиции и запись в журнал пишутся одним пакетом (одна транзакция).
-  // Заказ вставляется, только если в интервале ещё есть место: проверка и запись атомарны.
-  const insertOrder = db
-    .prepare(
-      `INSERT INTO orders (public_token, idempotency_key, location_id, channel, type, slot, status, payment_method, payment_status,
-         subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, tg_user_id)
-       SELECT ?, ?, ?, ?, ?, ?, 'new', 'qr', 'unpaid', ?, 0, ?, ?, ?, ?, ?, ?, ?, ?
-       WHERE (SELECT COUNT(*) FROM orders WHERE location_id = ? AND slot = ? AND status != 'cancelled') < ?`,
-    )
-    .bind(token, key, loc.id, tgUserId ? 'telegram' : 'site', body.type, body.slot, subtotal, total, name, phone, cleanText(body.comment, 300) || null, lang, now, now, tgUserId, loc.id, body.slot, loc.slot_capacity);
-  const insertItems = lines.map((l) =>
-    db
-      .prepare(
-        `INSERT INTO order_items (order_id, dish_id, name, qty, unit_price, options, line_total)
-         SELECT id, ?, ?, ?, ?, ?, ? FROM orders WHERE idempotency_key = ?`,
-      )
-      .bind(l.dishId, l.name, l.qty, l.unitPrice, JSON.stringify(l.options), l.lineTotal, key),
-  );
-  const insertEvent = db
-    .prepare(`INSERT INTO order_events (order_id, at, actor, kind) SELECT id, ?, 'guest', 'created' FROM orders WHERE idempotency_key = ?`)
-    .bind(now, key);
-
-  let inserted: number;
-  try {
-    const res = await db.batch([insertOrder, ...insertItems, insertEvent]);
-    inserted = res[0].meta.changes ?? 0;
-  } catch (e) {
-    // Два одинаковых запроса одновременно: второй упирается в уникальный ключ — отдаём первый заказ.
-    const again = await db.prepare('SELECT id, public_token, total FROM orders WHERE idempotency_key = ?').bind(key).first<any>();
-    if (again) return c.json({ number: again.id, token: again.public_token, total: again.total, duplicate: true });
-    throw e;
-  }
-  if (inserted === 0) throw new OrderError('SLOT_FULL', { slot: body.slot });
-
-  const row = await db.prepare('SELECT id FROM orders WHERE idempotency_key = ?').bind(key).first<{ id: number }>();
-  notifyLater(c, row!.id, 'created', 'guest');
-  return c.json({ number: row!.id, token, total }, 201);
+  const r = await createOrder(db, loc, {
+    key,
+    type: body.type,
+    slot: String(body.slot),
+    items: body.items,
+    name,
+    phone,
+    comment: cleanText(body.comment, 300) || null,
+    lang: langOf(body.lang),
+    tgUserId,
+    source: null,
+  });
+  if (r.duplicate) return c.json({ number: r.id, token: r.token, total: r.total, duplicate: true });
+  notifyLater(c, r.id, 'created', 'guest');
+  return c.json({ number: r.id, token: r.token, total: r.total }, 201);
 });
 
 // ---------- Страница заказа для гостя ----------
@@ -304,6 +269,7 @@ app.get('/api/staff/orders', async (c) => {
     orders: orders.results.map((o) => ({
       id: o.id,
       channel: o.channel,
+      source: o.source ?? null,
       type: o.type,
       slot: o.slot,
       table: o.table_id ? tableTitle({ id: o.table_id, zone: tableZones.get(o.table_id) || 'hall' }) : null,
@@ -338,6 +304,60 @@ app.post('/api/staff/orders/:id/action', async (c) => {
 app.get('/api/staff/orders/:id/events', async (c) => {
   const r = await c.env.DB.prepare('SELECT at, actor, kind FROM order_events WHERE order_id = ? ORDER BY id').bind(Number(c.req.param('id'))).all();
   return c.json({ events: r.results });
+});
+
+// ---------- Бот: блюдо дня и быстрый заказ (вкладка «Бот» в панели) ----------
+
+app.get('/api/staff/bot', async (c) => {
+  const db = c.env.DB;
+  const loc = await getLocation(db, c.env.LOCATION_ID);
+  if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
+  const today = toLocal(nowMs(), loc.tz_offset_min).day;
+  const [menu, picks, sold, log] = await Promise.all([
+    loadMenu(db),
+    loadPicks(db, loc.id),
+    soldOutOn(db, loc.id, today),
+    db.prepare('SELECT at, actor, change FROM bot_picks_log WHERE location_id = ? ORDER BY id DESC LIMIT 12').bind(loc.id).all<any>(),
+  ]);
+  const cats = new Map(menu.categories.map((x) => [x.id, x.name.ru || x.id]));
+  return c.json({
+    day: picks.day,
+    quick: picks.quick,
+    max: QUICK_MAX,
+    recommended: QUICK_RECOMMENDED,
+    dishes: menu.dishes.map((d) => ({
+      id: d.id,
+      name: d.name.ru || d.id,
+      price: d.price,
+      photo: d.photo,
+      category: cats.get(d.category_id) || '',
+      soldOut: sold.has(d.id),
+      alcohol: d.is_alcohol,
+      // Обязательный выбор (начинка, соус): в чате бот спросит его кнопками.
+      choice: menu.groups.some((g) => g.dish_id === d.id && g.min_select > 0),
+    })),
+    log: log.results.map((x) => ({ at: x.at, actor: String(x.actor).replace(/^staff:/, ''), change: x.change })),
+  });
+});
+
+app.put('/api/staff/bot', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as PicksInput | null;
+  if (!body) return c.json({ error: 'BAD_INPUT' }, 400);
+  const who = c.get('staff');
+  const r = await savePicks(c.env.DB, c.env.LOCATION_ID, body, `staff:${who}`);
+  if (!r.ok) return c.json({ error: r.error }, 400);
+  if (r.changes.length && c.env.TG_STAFF_CHAT_ID) {
+    background(
+      c,
+      (async () => {
+        const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
+        const [menu, picks, sold] = await Promise.all([loadMenu(c.env.DB), loadPicks(c.env.DB, c.env.LOCATION_ID), soldOutOn(c.env.DB, c.env.LOCATION_ID, toLocal(nowMs(), loc!.tz_offset_min).day)]);
+        const names = new Map(menu.dishes.map((d) => [d.id, d.name.ru || d.id]));
+        await tg(c.env, 'sendMessage', { chat_id: Number(c.env.TG_STAFF_CHAT_ID), text: picksChangedText(who, picks, names, sold), parse_mode: 'HTML' });
+      })(),
+    );
+  }
+  return c.json({ ok: true, changes: r.changes });
 });
 
 // ---------- Столы: для сотрудника ----------

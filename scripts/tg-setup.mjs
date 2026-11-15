@@ -24,7 +24,16 @@ const call = async (method, body) => {
   return d;
 };
 await call('setWebhook', { url: `${url}/tg/webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query', 'widget_query'] });
-await call('setMyCommands', { commands: [{ command: 'start', description: 'Меню и заказ' }, { command: 'orders', description: 'Мои заказы' }] });
+// Список команд у кнопки «/» в чате: те же быстрые действия, что и кнопки под приветствием. На языке Telegram гостя.
+const CMDS = {
+  ru: [['start', 'Меню и заказ'], ['day', 'Блюдо дня'], ['quick', 'Быстрый заказ'], ['repeat', 'Повторить прошлый заказ'], ['orders', 'Мои заказы']],
+  vi: [['start', 'Thực đơn và đặt món'], ['day', 'Món của ngày'], ['quick', 'Đặt nhanh'], ['repeat', 'Đặt lại đơn trước'], ['orders', 'Đơn của tôi']],
+  en: [['start', 'Menu and order'], ['day', 'Dish of the day'], ['quick', 'Quick order'], ['repeat', 'Repeat last order'], ['orders', 'My orders']],
+};
+const cmds = (l) => CMDS[l].map(([command, description]) => ({ command, description }));
+await call('setMyCommands', { scope: { type: 'all_private_chats' }, commands: cmds('ru') });
+await call('setMyCommands', { scope: { type: 'all_private_chats' }, language_code: 'vi', commands: cmds('vi') });
+await call('setMyCommands', { scope: { type: 'all_private_chats' }, language_code: 'en', commands: cmds('en') });
 const group = get('TG_STAFF_CHAT_ID');
 if (group) await call('setMyCommands', { scope: { type: 'chat', chat_id: Number(group) }, commands: [{ command: 'guests', description: 'Выбрать гостя и написать ему' }, { command: 'id', description: 'Показать id группы и ваш' }] });
 await call('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Меню', web_app: { url: `${url}/?tg=1` } } });

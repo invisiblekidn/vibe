@@ -27,6 +27,8 @@ import {
 import { orderWithItems, transition } from './orders';
 import { tableTitle } from './lib/tables';
 import { billAction, billTotal, closeCall } from './tables';
+import { onQuickCallback, onQuickPhone, quickEntry, welcomeRows } from './quick';
+import { parseQuickCallback } from './lib/quick';
 import { paidButtonText, statusCardText, widgetCaption, widgetHtml, widgetMode, widgetState } from './lib/widget';
 
 export interface TgEnv {
@@ -311,9 +313,15 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
         return;
       }
     }
-    await tg(env, 'sendMessage', { chat_id: userId, text: WELCOME_L[lang], reply_markup: kb(menuButton(baseUrl, lang)) });
+    await tg(env, 'sendMessage', { chat_id: userId, text: WELCOME_L[lang], reply_markup: kb([...menuButton(baseUrl, lang), ...(await welcomeRows(env, userId, lang))]) });
     return;
   }
+
+  // Быстрые кнопки в чате: блюдо дня, быстрый заказ, повтор прошлого заказа (те же действия — командами).
+  const cmd = /^\/(day|quick|repeat)(@\w+)?$/.exec(text);
+  if (cmd) return quickEntry(env, tg, userId, lang, cmd[1] === 'day' ? 'day' : cmd[1] === 'quick' ? 'new' : 'rep', baseUrl);
+  // Бот попросил номер для быстрого заказа — это ответ гостя, а не сообщение администратору.
+  if (await onQuickPhone(env, tg, m, baseUrl, lang)) return;
 
   if (text === '/orders' || text === '/my') {
     const r = await env.DB.prepare('SELECT id, public_token, slot, status, payment_status, total FROM orders WHERE tg_user_id = ? ORDER BY id DESC LIMIT 5').bind(userId).all<any>();
@@ -441,6 +449,8 @@ async function onCallback(env: TgEnv, q: any, baseUrl: string) {
   const answer = (text: string, show_alert = false) => tg(env, 'answerCallbackQuery', { callback_query_id: q.id, text, show_alert });
   if (/^g:\d{1,15}$/.test(q.data || '')) return pickGuest(env, q, answer);
   if (/^gp:\d{1,9}$/.test(q.data || '')) return onGuestPaid(env, q, baseUrl, answer);
+  const qc = parseQuickCallback(q.data);
+  if (qc) return onQuickCallback(env, tg, notifyOrderEvent, q, qc, baseUrl, botLang(q.from?.language_code), answer);
   const tc = parseTableCallback(q.data);
   if (tc) return onTableCallback(env, q, tc, answer);
   const parsed = parseCallback(q.data);
