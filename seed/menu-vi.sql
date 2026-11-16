@@ -81,6 +81,18 @@ UPDATE dishes SET name = json_set(name, '$.vi', 'Khoai tây chiên'), descriptio
 UPDATE dishes SET name = json_set(name, '$.vi', 'Gà viên chiên'), description = json_set(description, '$.vi', 'Gà viên mọng nước trong lớp áo giòn, ăn kèm sốt tùy chọn.') WHERE id = 'nuggets';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh khoai tây draniki'), description = json_set(description, '$.vi', 'Ba bánh khoai tây chiên vàng, ăn kèm xà lách, dưa leo, cà chua và kem chua.') WHERE id = 'draniki';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh bí ngòi'), description = json_set(description, '$.vi', 'Ba bánh bí ngòi mềm, ăn kèm xà lách, dưa leo, cà chua và sốt tỏi.') WHERE id = 'zucchini-fritters';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Nước táo'), description = json_set(description, '$.vi', 'Ép tươi.') WHERE id = 'juice-apple';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Nước cần tây'), description = json_set(description, '$.vi', 'Ép tươi.') WHERE id = 'juice-celery';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Nước thanh long'), description = json_set(description, '$.vi', 'Ép tươi.') WHERE id = 'juice-dragon';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Nước cà rốt'), description = json_set(description, '$.vi', 'Ép tươi.') WHERE id = 'juice-carrot';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Sữa lắc vani') WHERE id = 'shake-vanilla';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Sữa lắc sô-cô-la') WHERE id = 'shake-choc';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Sữa lắc dâu') WHERE id = 'shake-straw';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Coca-Cola Zero') WHERE id = 'cola-zero';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Fanta') WHERE id = 'fanta';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Tan'), description = json_set(description, '$.vi', 'Món mới! Thức uống sữa lên men mát lạnh, hơi mặn.') WHERE id = 'tan';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Kvass nhà làm'), description = json_set(description, '$.vi', 'Món mới! Kvass bánh mì theo công thức nhà làm.') WHERE id = 'kvass';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Dừa tươi ướp lạnh') WHERE id = 'coconut';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Nhân') WHERE id = 'ol-fill';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Trứng') WHERE id = 'bb-eggs';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Lựa chọn') WHERE id = 'eb-with';

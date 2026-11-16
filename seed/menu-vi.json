@@ -82,7 +82,19 @@
     "fries": ["Khoai tây chiên", "Khoai tây chiên giòn truyền thống, ăn kèm tương cà."],
     "nuggets": ["Gà viên chiên", "Gà viên mọng nước trong lớp áo giòn, ăn kèm sốt tùy chọn."],
     "draniki": ["Bánh khoai tây draniki", "Ba bánh khoai tây chiên vàng, ăn kèm xà lách, dưa leo, cà chua và kem chua."],
-    "zucchini-fritters": ["Bánh bí ngòi", "Ba bánh bí ngòi mềm, ăn kèm xà lách, dưa leo, cà chua và sốt tỏi."]
+    "zucchini-fritters": ["Bánh bí ngòi", "Ba bánh bí ngòi mềm, ăn kèm xà lách, dưa leo, cà chua và sốt tỏi."],
+    "juice-apple": ["Nước táo", "Ép tươi."],
+    "juice-celery": ["Nước cần tây", "Ép tươi."],
+    "juice-dragon": ["Nước thanh long", "Ép tươi."],
+    "juice-carrot": ["Nước cà rốt", "Ép tươi."],
+    "shake-vanilla": ["Sữa lắc vani", ""],
+    "shake-choc": ["Sữa lắc sô-cô-la", ""],
+    "shake-straw": ["Sữa lắc dâu", ""],
+    "cola-zero": ["Coca-Cola Zero", ""],
+    "fanta": ["Fanta", ""],
+    "tan": ["Tan", "Món mới! Thức uống sữa lên men mát lạnh, hơi mặn."],
+    "kvass": ["Kvass nhà làm", "Món mới! Kvass bánh mì theo công thức nhà làm."],
+    "coconut": ["Dừa tươi ướp lạnh", ""]
   },
   "groups": {
     "ol-fill": "Nhân",
