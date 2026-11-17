@@ -1,4 +1,4 @@
--- Актуальный лист «Детское меню» (фото меню от 15.11.2026, заменяет лист от 11.11).
+-- Актуальный лист «Детское меню» (фото меню от 17.11.2026; заменяет листы от 11.11 и 15.11).
 -- Можно выполнять повторно: обновляет блюда и опции, заказы и стоп-лист не трогает.
 -- Английский и вьетнамский перевод наш, на листе только русский. seed/menu-vi.json держим в том же виде.
 
@@ -18,7 +18,7 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
    59000, '/img/dishes/kids-mac.jpg', NULL, 1, 0, 1),
  ('kids-burger', 'kids', 3, '{"ru": "Мини-бургер с картофелем фри", "vi": "Burger mini kèm khoai tây chiên", "en": "Mini burger with French fries"}',
    '{"ru": "Мини-бургер с куриной котлетой (из куриного филе), сыром и свежими овощами. Подаётся с картофелем фри.", "vi": "Burger mini nhân chả phi lê gà, phô mai và rau củ tươi. Kèm khoai tây chiên.", "en": "Mini burger with a chicken fillet patty, cheese and fresh vegetables. Served with French fries."}',
-   109000, '/img/dishes/kids-burger.jpg', NULL, 1, 0, 1),
+   99000, '/img/dishes/kids-burger.jpg', NULL, 1, 0, 1),
  ('kids-pelmeni', 'kids', 4, '{"ru": "Пельмешки", "vi": "Pelmeni nhỏ", "en": "Little pelmeni"}',
    '{"ru": "Домашние пельмешки со сметаной.", "vi": "Sủi cảo nhà làm, ăn kèm kem chua.", "en": "Homemade dumplings with sour cream."}',
    89000, '/img/dishes/kids-pelmeni.jpg', NULL, 1, 0, 1),
@@ -26,8 +26,8 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
    '{"ru": "Хрустящие куриные наггетсы с картофелем фри и кетчупом.", "vi": "Gà viên chiên giòn với khoai tây chiên và tương cà.", "en": "Crispy chicken nuggets with French fries and ketchup."}',
    89000, '/img/dishes/kids-nuggets.jpg', NULL, 1, 0, 1),
  ('kids-syrniki', 'kids', 6, '{"ru": "Сырники детские", "vi": "Bánh syrniki cho bé", "en": "Kids syrniki"}',
-   '{"ru": "Нежные сырники из творога.", "vi": "Bánh phô mai tươi chiên mềm.", "en": "Soft cottage cheese pancakes."}',
-   49000, '/img/dishes/kids-syrniki.jpg', '2 шт.', 1, 0, 1),
+   '{"ru": "Нежные сырники со сгущёнкой.", "vi": "Bánh syrniki mềm ăn kèm sữa đặc.", "en": "Soft cottage cheese pancakes with condensed milk."}',
+   59000, '/img/dishes/kids-syrniki.jpg', '2 шт.', 1, 0, 1),
  ('kids-veg', 'kids', 7, '{"ru": "Овощные палочки с соусом", "vi": "Rau củ que chấm sốt", "en": "Veggie sticks with dip"}',
    '{"ru": "Свежие овощи: огурец, морковь и болгарский перец. Подаются с нежным сливочным соусом.", "vi": "Rau củ tươi: dưa leo, cà rốt và ớt chuông. Ăn kèm sốt kem dịu nhẹ.", "en": "Fresh cucumber, carrot and bell pepper sticks. Served with a mild creamy dip."}',
    39000, '/img/dishes/kids-veg.jpg', NULL, 1, 0, 1),
@@ -43,6 +43,9 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
 ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = excluded.sort, name = excluded.name,
  description = excluded.description, price = excluded.price, photo = excluded.photo, weight = excluded.weight,
  is_kids = excluded.is_kids, is_alcohol = excluded.is_alcohol, active = excluded.active;
+
+-- Всё, чего нет на актуальном листе (17.11), в детском меню скрываем (не удаляем: на блюда ссылаются прошлые заказы).
+UPDATE dishes SET active = 0 WHERE category_id = 'kids' AND id NOT IN ('kids-cutlets','kids-mac','kids-burger','kids-pelmeni','kids-nuggets','kids-syrniki','kids-veg','kids-porridge','kids-icecream','kids-puree');
 
 INSERT INTO option_groups (id, dish_id, sort, name, min_select, max_select) VALUES
  ('kp-kind', 'kids-porridge', 1, '{"ru": "Каша на выбор", "vi": "Chọn loại cháo", "en": "Your choice"}', 1, 1),

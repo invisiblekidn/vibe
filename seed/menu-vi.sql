@@ -31,7 +31,7 @@ UPDATE dishes SET name = json_set(name, '$.vi', 'Nui phô mai'), description = j
 UPDATE dishes SET name = json_set(name, '$.vi', 'Burger mini kèm khoai tây chiên'), description = json_set(description, '$.vi', 'Burger mini nhân chả phi lê gà, phô mai và rau củ tươi. Kèm khoai tây chiên.') WHERE id = 'kids-burger';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Pelmeni nhỏ'), description = json_set(description, '$.vi', 'Sủi cảo nhà làm, ăn kèm kem chua.') WHERE id = 'kids-pelmeni';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Gà viên chiên kèm khoai tây chiên'), description = json_set(description, '$.vi', 'Gà viên chiên giòn với khoai tây chiên và tương cà.') WHERE id = 'kids-nuggets';
-UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh syrniki cho bé'), description = json_set(description, '$.vi', 'Bánh phô mai tươi chiên mềm.') WHERE id = 'kids-syrniki';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh syrniki cho bé'), description = json_set(description, '$.vi', 'Bánh syrniki mềm ăn kèm sữa đặc.') WHERE id = 'kids-syrniki';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Rau củ que chấm sốt'), description = json_set(description, '$.vi', 'Rau củ tươi: dưa leo, cà rốt và ớt chuông. Ăn kèm sốt kem dịu nhẹ.') WHERE id = 'kids-veg';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Kem'), description = json_set(description, '$.vi', 'Hai viên: dâu, vani hoặc sô-cô-la.') WHERE id = 'kids-icecream';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Espresso') WHERE id = 'espresso';
