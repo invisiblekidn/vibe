@@ -1,5 +1,5 @@
 -- ТЕСТОВЫЕ ДАННЫЕ для разработки. Часть настоящего меню (ноябрь 2026), фото временные.
--- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql, бар — в seed/menu-bar.sql (выполнять после этого файла).
+-- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql, супы — в seed/menu-soups.sql, бар — в seed/menu-bar.sql (выполнять после этого файла).
 -- Вьетнамские названия пока совпадают с английскими: переведём на этапе 6.
 
 DELETE FROM order_events; DELETE FROM order_items; DELETE FROM orders;
@@ -20,9 +20,6 @@ INSERT INTO categories (id, sort, name) VALUES
  ('bar',       7, '{"ru":"Бар","en":"Bar","vi":"Bar"}');
 
 INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weight, is_kids, is_alcohol) VALUES
- ('borsch', 'soups', 1, '{"ru":"Борщ с говядиной","en":"Borscht with beef","vi":"Borscht with beef"}',
-   '{"ru":"Классический борщ с говядиной, сметаной и тёмным хлебом.","en":"Classic beet soup with beef, sour cream and dark bread."}',
-   139000, '/img/dishes/borsch.jpg', NULL, 0, 0),
  ('pelmeni', 'mains', 2, '{"ru":"Пельмени","en":"Pelmeni","vi":"Pelmeni"}',
    '{"ru":"Домашние пельмени с мясной начинкой и сметаной.","en":"Homemade meat dumplings with sour cream."}',
    149000, '/img/dishes/pelmeni.jpg', NULL, 0, 0),

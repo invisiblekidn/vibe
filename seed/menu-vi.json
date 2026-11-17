@@ -12,7 +12,7 @@
     "bar": "Quầy bar"
   },
   "dishes": {
-    "borsch": ["Súp borscht bò", "Súp củ dền truyền thống với thịt bò, kem chua và bánh mì đen."],
+    "borsch": ["Súp borscht bò", "Súp borscht đậm đà truyền thống với thịt bò, rau củ, kem chua và rau thơm. Có thể thêm mỡ heo muối (salo)."],
     "pelmeni": ["Pelmeni (sủi cảo Nga)", "Sủi cảo nhân thịt nhà làm, ăn kèm kem chua."],
     "caesar-chicken": ["Salad Caesar gà", "Ức gà nướng, xà lách romaine, sốt Caesar, phô mai Parmesan, bánh mì nướng giòn."],
     "olivier": ["Salad Olivier VIBE", "Salad Nga truyền thống, chọn nhân theo ý thích."],
@@ -94,7 +94,12 @@
     "fanta": ["Fanta", ""],
     "tan": ["Tan", "Món mới! Thức uống sữa lên men mát lạnh, hơi mặn."],
     "kvass": ["Kvass nhà làm", "Món mới! Kvass bánh mì theo công thức nhà làm."],
-    "coconut": ["Dừa tươi ướp lạnh", ""]
+    "coconut": ["Dừa tươi ướp lạnh", ""],
+    "borsch-premium": ["Súp borscht VIBE đặc biệt", "Súp borscht bò, ăn kèm mỡ heo muối (salo), tỏi, một ly vodka nhỏ và một lát bánh mì đen."],
+    "soup-meatballs": ["Súp gà thịt viên", "Súp gà thơm với 4 viên thịt mềm, rau củ và rau thơm tươi."],
+    "soup-noodles": ["Súp gà mì trứng", "Súp gà nhà làm thanh nhẹ với mì trứng, rau củ và rau thơm tươi."],
+    "solyanka": ["Súp solyanka thập cẩm", "Súp Nga đậm đà với nhiều loại thịt, dưa chuột muối, ô liu và chanh, ăn kèm kem chua."],
+    "okroshka": ["Súp lạnh okroshka với kvass", "Súp lạnh mát với kvass, rau củ tươi và rau thơm. Ăn kèm kem chua và mù tạt. Tùy chọn: với thịt gà hoặc xúc xích luộc."]
   },
   "groups": {
     "ol-fill": "Nhân",
@@ -132,7 +137,9 @@
     "nuggets-sauce": "Sốt tùy chọn",
     "nuggets-xs": "Thêm sốt (30 g)",
     "draniki-xs": "Thêm sốt (30 g)",
-    "zucchini-fritters-xs": "Thêm sốt (30 g)"
+    "zucchini-fritters-xs": "Thêm sốt (30 g)",
+    "bs-add": "Thêm",
+    "ok-kind": "Tùy chọn"
   },
   "options": {
     "ol-chicken": "Với gà",
@@ -272,6 +279,9 @@
     "zucchini-fritters-xs-garlic": "Sốt tỏi",
     "zucchini-fritters-xs-burger": "Sốt burger",
     "zucchini-fritters-xs-caesar": "Sốt Caesar",
-    "zucchini-fritters-xs-tartar": "Sốt tartar"
+    "zucchini-fritters-xs-tartar": "Sốt tartar",
+    "bs-salo": "Mỡ heo muối (salo)",
+    "ok-chicken": "Với thịt gà",
+    "ok-sausage": "Với xúc xích luộc"
   }
 }

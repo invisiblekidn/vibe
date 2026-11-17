@@ -103,10 +103,10 @@ try {
   await hook(say('/day'));
   await settle();
   const day = toGuest(since(i), 'sendPhoto')[0];
-  ok(!!day && day.body.caption.includes('Борщ с говядиной') && day.body.caption.includes('139 000 ₫') && day.body.caption.includes('Варим с утра'), 'блюдо дня: фото, название, цена из меню и комментарий шефа');
+  ok(!!day && day.body.caption.includes('Борщ с говядиной') && day.body.caption.includes('129 000 ₫') && day.body.caption.includes('Варим с утра'), 'блюдо дня: фото, название, цена из меню и комментарий шефа');
   let r = await tap('q:da:borsch', day.result.message_id, true);
   let screen = lastScreen(r);
-  ok(screen?.method === 'sendMessage' && buttons(screen)[0].text === '⭐ Борщ с говядиной · 139 000 ✓1', '«Добавить в заказ» → новое сообщение с корзиной, борщ ✓1');
+  ok(screen?.method === 'sendMessage' && buttons(screen)[0].text === '⭐ Борщ с говядиной · 129 000 ✓1', '«Добавить в заказ» → новое сообщение с корзиной, борщ ✓1');
   ok(toast(r).includes('Добавили'), 'всплывающая подсказка «Добавили»');
   const cartMsg = screen.result.message_id;
 
@@ -119,7 +119,7 @@ try {
   r = await tap('q:a:syrniki', cartMsg);
   r = await tap('q:o:sy-cond', cartMsg);
   screen = lastScreen(r);
-  ok(screen.body.text.includes('Мамины сырники (Сгущённое молоко) ×2') && screen.body.text.includes('377 000 ₫'), 'корзина: Борщ ×1, Сырники ×2, итого 377 000 ₫');
+  ok(screen.body.text.includes('Мамины сырники (Сгущённое молоко) ×2') && screen.body.text.includes('367 000 ₫'), 'корзина: Борщ ×1, Сырники ×2, итого 367 000 ₫');
   ok(datas(screen).includes('q:go') && decodeURIComponent(buttons(screen).at(-1).web_app?.url || '').includes('cart=borsch*1,syrniki*2*sy-cond'), 'есть «Оформить», кнопка меню переносит корзину в окно меню');
 
   // ---- 5. Как получить и когда ----
@@ -158,7 +158,7 @@ try {
   const after = JSON.parse(sql(`SELECT id, source, guest_phone, channel, total FROM orders WHERE tg_user_id = ${GUEST} ORDER BY id DESC`).toString().replace(/^[^[]*/, ''))[0].results;
   ok(after.length === before + 1, 'три нажатия «Подтвердить» (одно — повтор события) → один заказ');
   const o = after[0];
-  ok(o.source === 'chat' && o.channel === 'telegram' && o.guest_phone === '+84901234567' && o.total === 377000, `заказ №${o.id}: из чата бота, номер гостя, 377 000 ₫`);
+  ok(o.source === 'chat' && o.channel === 'telegram' && o.guest_phone === '+84901234567' && o.total === 367000, `заказ №${o.id}: из чата бота, номер гостя, 367 000 ₫`);
   // Карточка заказа (TG_GUEST_WIDGET=all) или прежнее сообщение «Заказ принят» (off) — в обоих случаях одна.
   const cards = toGuest(placed, 'sendMessage').filter((c) => c.body.text?.includes(`${o.id}`) && (datas(c).includes(`gp:${o.id}`) || buttons(c).some((b) => b.web_app?.url.includes('/order?'))));
   ok(cards.length === 1, 'гость получил одну карточку заказа (оплата по QR и «Я оплатил»)');
@@ -200,7 +200,7 @@ try {
   await hook(say('/repeat'));
   await settle();
   screen = lastScreen(since(i));
-  ok(screen.body.text.includes(`Ваш заказ №${o.id}`) && screen.body.text.includes('<s>Мамины сырники ×2</s> <i>сегодня закончилось</i>') && screen.body.text.includes('139 000 ₫'), 'повтор: борщ по сегодняшней цене, сырники зачёркнуты — закончились');
+  ok(screen.body.text.includes(`Ваш заказ №${o.id}`) && screen.body.text.includes('<s>Мамины сырники ×2</s> <i>сегодня закончилось</i>') && screen.body.text.includes('129 000 ₫'), 'повтор: борщ по сегодняшней цене, сырники зачёркнуты — закончились');
   ok(datas(screen)[0] === 'q:go', 'повтор: можно сразу оформить');
 
   // ---- 9. Блюдо дня снято ----
