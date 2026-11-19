@@ -26,6 +26,12 @@ export interface Env extends TgEnv {
 type Ctx = { Bindings: Env; Variables: { staff: string } };
 const app = new Hono<Ctx>();
 
+// Ответы API (меню, цены, статусы) не кэшируются ни браузером, ни окном Telegram: гость всегда видит актуальное.
+app.use('/api/*', async (c, next) => {
+  await next();
+  c.header('Cache-Control', 'no-store');
+});
+
 const LANGS = ['ru', 'vi', 'en'];
 const langOf = (v: unknown) => (typeof v === 'string' && LANGS.includes(v) ? v : 'ru');
 const nowMs = () => Date.now();

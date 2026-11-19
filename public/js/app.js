@@ -448,4 +448,14 @@ async function submit() {
 }
 
 $('#open-cart').onclick = () => (TABLE_CODE ? openTableCart() : openCart());
+// Telegram и браузер держат окно меню открытым в фоне. Если гость вернулся спустя 5+ минут
+// (или страница восстановлена из кэша), перезагружаем её, чтобы цены и стоп-лист были свежими.
+// Корзина хранится в браузере и не теряется; открытую карточку блюда или корзину не трогаем.
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000 && !document.querySelector('dialog[open]')) location.reload();
+});
+window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+
 init();
