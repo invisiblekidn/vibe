@@ -26,7 +26,7 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
    179000, '/img/dishes/mn-kiev.jpg', NULL, 0, 0, 1),
  ('stuffed-peppers', 'mains', 5, '{"ru": "Фаршированные перцы с картофельным пюре", "vi": "Ớt chuông nhồi thịt với khoai tây nghiền", "en": "Stuffed Peppers"}',
    '{"ru": "Сладкий перец, фаршированный мясом и рисом, в нежном сливочном соусе, подаётся с картофельным пюре. Гарнир можно заменить на гречку, рис или макароны.", "vi": "Ớt chuông nhồi thịt và cơm trong sốt kem, ăn kèm khoai tây nghiền. Có thể đổi món ăn kèm sang kiều mạch, cơm hoặc mì ống.", "en": "Bell peppers stuffed with meat and rice, in a creamy sauce, served with mashed potatoes. The side dish can be replaced with buckwheat, rice or pasta."}',
-   149000, '/img/dishes/mn-peppers.jpg', NULL, 0, 0, 1),
+   129000, '/img/dishes/mn-peppers.jpg', NULL, 0, 0, 1),
  ('pelmeni', 'mains', 6, '{"ru": "Пельмени", "vi": "Bánh pelmeni", "en": "Pelmeni"}',
    '{"ru": "Домашние пельмени с мясной начинкой, подаются со сметаной.", "vi": "Bánh pelmeni nhà làm nhân thịt, ăn kèm kem chua.", "en": "Homemade dumplings with meat filling, served with sour cream."}',
    139000, '/img/dishes/mn-pelmeni.jpg', NULL, 0, 0, 1),
