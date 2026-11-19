@@ -1,2 +1,5 @@
-/*
+# Главная и меню открыты для поиска. Личные страницы (заказ гостя) и панель сотрудника — нет.
+/staff*
+  X-Robots-Tag: noindex, nofollow
+/order*
   X-Robots-Tag: noindex, nofollow

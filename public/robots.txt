@@ -1,2 +1,7 @@
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /staff
+Disallow: /order
+Disallow: /api/
+Disallow: /tg/
+Disallow: /t/
