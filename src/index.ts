@@ -67,6 +67,13 @@ async function dishOfDayFor(db: D1Database, locationId: string, soldOut: Set<str
   return { dishId: pick.dishId, note: pick.note };
 }
 
+/** Хиты продаж: всё из быстрого заказа плюс главный хит — на сайте у них значок «⭐ Хит». */
+async function hitsFor(db: D1Database, locationId: string, menu: { dishes: { id: string; active: boolean }[] }) {
+  const p = await loadPicks(db, locationId);
+  const ids = new Set([...(p.day ? [p.day.dishId] : []), ...p.quick]);
+  return menu.dishes.filter((d) => d.active && ids.has(d.id)).map((d) => d.id);
+}
+
 app.get('/api/menu', async (c) => {
   const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
   if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
@@ -87,6 +94,7 @@ app.get('/api/menu', async (c) => {
     soldOutToday: [...soldOut],
     // Блюдо дня, которое выбрал сотрудник во вкладке «Бот». Закончилось или снято — не показываем.
     dishOfDay: await dishOfDayFor(c.env.DB, loc.id, soldOut, menu),
+    hits: await hitsFor(c.env.DB, loc.id, menu),
     categories: menu.categories,
     sections: menu.sections,
     dishes: menu.dishes.map((d) => ({

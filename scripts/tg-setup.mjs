@@ -26,9 +26,9 @@ const call = async (method, body) => {
 await call('setWebhook', { url: `${url}/tg/webhook`, secret_token: secret, allowed_updates: ['message', 'callback_query', 'widget_query'] });
 // Список команд у кнопки «/» в чате: те же быстрые действия, что и кнопки под приветствием. На языке Telegram гостя.
 const CMDS = {
-  ru: [['start', 'Меню и заказ'], ['day', 'Блюдо дня'], ['quick', 'Быстрый заказ'], ['repeat', 'Повторить прошлый заказ'], ['orders', 'Мои заказы']],
-  vi: [['start', 'Thực đơn và đặt món'], ['day', 'Món của ngày'], ['quick', 'Đặt nhanh'], ['repeat', 'Đặt lại đơn trước'], ['orders', 'Đơn của tôi']],
-  en: [['start', 'Menu and order'], ['day', 'Dish of the day'], ['quick', 'Quick order'], ['repeat', 'Repeat last order'], ['orders', 'My orders']],
+  ru: [['start', 'Меню и заказ'], ['hit', 'Хит продаж'], ['quick', 'Быстрый заказ'], ['repeat', 'Повторить прошлый заказ'], ['orders', 'Мои заказы']],
+  vi: [['start', 'Thực đơn và đặt món'], ['hit', 'Món bán chạy'], ['quick', 'Đặt nhanh'], ['repeat', 'Đặt lại đơn trước'], ['orders', 'Đơn của tôi']],
+  en: [['start', 'Menu and order'], ['hit', 'Best seller'], ['quick', 'Quick order'], ['repeat', 'Repeat last order'], ['orders', 'My orders']],
 };
 const cmds = (l) => CMDS[l].map(([command, description]) => ({ command, description }));
 await call('setMyCommands', { scope: { type: 'all_private_chats' }, commands: cmds('ru') });

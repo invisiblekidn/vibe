@@ -107,7 +107,7 @@ describe('экраны', () => {
     expect(empty.rows[0][0].text).toBe('⭐ Борщ с говядиной · 139 000');
     expect(allData(empty.rows)).not.toContain('q:go');
     const full = quickScreen('ru', dishes, [{ dishId: 'borsch', qty: 1, optionIds: [] }, { dishId: 'syrniki', qty: 2, optionIds: ['cond'] }], menu, menuBtn);
-    expect(full.rows[1][0].text).toBe('Сырники · 119 000 ✓2');
+    expect(full.rows[1][0].text).toBe('⭐ Сырники · 119 000 ✓2');
     expect(full.text).toContain('Борщ с говядиной ×1, Сырники (Сгущёнка) ×2');
     expect(full.text).toContain('377 000 ₫');
     expect(allData(full.rows)).toEqual(expect.arrayContaining(['q:undo', 'q:clr', 'q:go']));

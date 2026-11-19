@@ -98,16 +98,25 @@ try {
   ok(datas(greet).includes('q:day') && datas(greet).includes('q:new') && !datas(greet).includes('q:rep'), '«Старт»: кнопки «Блюдо дня» и «Быстрый заказ», «Повторить» скрыта без прошлых заказов');
   ok(!!buttons(greet)[0].web_app, 'первая кнопка по-прежнему открывает окно меню');
   const kbMsg = toGuest(since(i), 'sendMessage').find((c) => c.body.reply_markup?.keyboard);
-  ok(!!kbMsg && kbMsg.body.reply_markup.one_time_keyboard && !kbMsg.body.reply_markup.is_persistent && kbMsg.body.reply_markup.keyboard.flat().map((b) => b.text).join('|') === '⭐ Блюдо дня|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после «Старт» внизу чата кнопки (сворачиваются в значок ⌨): блюдо дня, быстрый заказ, повторить');
+  ok(!!kbMsg && kbMsg.body.reply_markup.one_time_keyboard && !kbMsg.body.reply_markup.is_persistent && kbMsg.body.reply_markup.keyboard.flat().map((b) => b.text).join('|') === '⭐ Хит продаж|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после «Старт» внизу чата кнопки (сворачиваются в значок ⌨): блюдо дня, быстрый заказ, повторить');
   i = calls.length;
   await hook(say('⚡ Быстрый заказ'));
   await settle();
   ok(datas(lastScreen(since(i))).includes('q:a:borsch'), 'нажатие кнопки «⚡ Быстрый заказ» внизу чата открывает быстрый заказ');
   i = calls.length;
-  await hook(say('⭐ Món của ngày'));
+  await hook(say('⭐ Món bán chạy'));
   await settle();
   ok(toGuest(since(i), 'sendPhoto').length === 1 && !since(i).some((c) => c.body.chat_id === GROUP), 'кнопка на вьетнамском тоже узнаётся и не уходит администратору');
+  i = calls.length;
+  await hook(say('⭐ Блюдо дня'));
+  await settle();
+  ok(toGuest(since(i), 'sendPhoto').length === 1, 'старая кнопка «⭐ Блюдо дня» у гостей тоже работает');
+  i = calls.length;
+  await hook(say('/hit'));
+  await settle();
+  ok(toGuest(since(i), 'sendPhoto')[0]?.body.caption.includes('Хит продаж'), 'команда /hit показывает хит продаж');
   const menuApi = await (await fetch(BASE + '/api/menu')).json();
+  ok(Array.isArray(menuApi.hits) && menuApi.hits.length === 6 && menuApi.hits.includes('borsch'), 'окно меню получает хиты продаж: все блюда быстрого заказа');
   ok(menuApi.dishOfDay?.dishId === 'borsch' && menuApi.dishOfDay.note.ru.includes('Варим'), 'окно меню получает блюдо дня с комментарием шефа');
 
   // ---- 3. Блюдо дня ----
@@ -178,7 +187,7 @@ try {
   ok(!!staffCard && staffCard.body.text.includes('⚡ из чата бота') && datas(staffCard).includes(`o:${o.id}:cp`), 'в группе сотрудников: карточка заказа с пометкой «из чата бота» и «Деньги пришли»');
   ok(toast(placed).includes(`№${o.id} уже оформлен`), 'лишнее нажатие: «Заказ уже оформлен»');
   const placedMsg = toGuest(placed, 'sendMessage').filter((c) => c.body.text?.includes(`Заказ №${o.id} оформлен`));
-  ok(placedMsg.length === 1 && placedMsg[0].body.reply_markup?.keyboard?.flat().map((b) => b.text).join('|') === '⭐ Блюдо дня|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после заказа: «Заказ оформлен» с кнопками быстрого заказа внизу чата (кнопки не пропадают)');
+  ok(placedMsg.length === 1 && placedMsg[0].body.reply_markup?.keyboard?.flat().map((b) => b.text).join('|') === '⭐ Хит продаж|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после заказа: «Заказ оформлен» с кнопками быстрого заказа внизу чата (кнопки не пропадают)');
   ok(placed.some((c) => c.method === 'deleteMessage' && c.body.chat_id === GUEST && c.body.message_id === confirm.result.message_id), 'сообщение корзины убрано, в чате одна запись о заказе');
   const lastKb = toGuest(placed, 'sendMessage').filter((c) => c.body.reply_markup && ('keyboard' in c.body.reply_markup || 'remove_keyboard' in c.body.reply_markup)).at(-1);
   ok(!!lastKb?.body.reply_markup.keyboard, 'после заказа ни одно сообщение не убирает кнопки');
@@ -225,7 +234,7 @@ try {
   i = calls.length;
   await hook(say('/day'));
   await settle();
-  ok(toGuest(since(i), 'sendMessage')[0]?.body.text.includes('ещё не выбрано'), 'блюдо дня снято — гость видит «ещё не выбрано» и кнопку быстрого заказа');
+  ok(toGuest(since(i), 'sendMessage')[0]?.body.text.includes('пока не выбран'), 'блюдо дня снято — гость видит «ещё не выбрано» и кнопку быстрого заказа');
   ok((await (await fetch(BASE + '/api/menu')).json()).dishOfDay === null, 'блюдо дня снято — карточка в окне меню пропала');
 } finally {
   sql(`DELETE FROM stop_list WHERE dish_id = 'syrniki'`);

@@ -563,8 +563,8 @@ export async function savePicks(db: D1Database, locationId: string, input: Picks
   const before = await loadPicks(db, locationId);
   const changes: string[] = [];
   const dayName = (id?: string) => (id ? names.get(id) || id : '');
-  if ((before.day?.dishId ?? null) !== (input.day?.dishId ?? null)) changes.push(input.day ? `блюдо дня → ${dayName(input.day.dishId)}` : 'блюдо дня снято');
-  else if (input.day && JSON.stringify(before.day?.note ?? {}) !== JSON.stringify(note)) changes.push('изменён комментарий к блюду дня');
+  if ((before.day?.dishId ?? null) !== (input.day?.dishId ?? null)) changes.push(input.day ? `главный хит → ${dayName(input.day.dishId)}` : 'главный хит снят');
+  else if (input.day && JSON.stringify(before.day?.note ?? {}) !== JSON.stringify(note)) changes.push('изменён комментарий к главному хиту');
   const added = quick.filter((id) => !before.quick.includes(id));
   const removed = before.quick.filter((id) => !quick.includes(id));
   if (added.length) changes.push(`быстрый заказ: добавлено ${added.map(dayName).join(', ')}`);
@@ -588,7 +588,7 @@ export async function savePicks(db: D1Database, locationId: string, input: Picks
 
 /** Сообщение в группу сотрудников: кто что поменял. */
 export function picksChangedText(who: string, picks: Picks, names: Map<string, string>, soldToday: Set<string>): string {
-  const day = picks.day ? `⭐ <b>${escHtml(who)}</b> обновил(а) бота. Блюдо дня: ${escHtml(names.get(picks.day.dishId) || picks.day.dishId)}.` : `⭐ <b>${escHtml(who)}</b> обновил(а) бота. Блюдо дня не выбрано.`;
+  const day = picks.day ? `⭐ <b>${escHtml(who)}</b> обновил(а) бота. Главный хит: ${escHtml(names.get(picks.day.dishId) || picks.day.dishId)}.` : `⭐ <b>${escHtml(who)}</b> обновил(а) бота. Главный хит не выбрано.`;
   const sold = picks.quick.filter((id) => soldToday.has(id)).map((id) => names.get(id) || id);
   const quick = `Быстрый заказ: ${picks.quick.length} поз.${sold.length ? ` (${escHtml(sold.join(', '))} сейчас в стоп-листе)` : ''}`;
   return `${day}\n${quick}`;

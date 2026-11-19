@@ -320,8 +320,8 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
   }
 
   // Быстрые кнопки в чате: блюдо дня, быстрый заказ, повтор прошлого заказа (те же действия — командами).
-  const cmd = /^\/(day|quick|repeat)(@\w+)?$/.exec(text);
-  if (cmd) return quickEntry(env, tg, userId, lang, cmd[1] === 'day' ? 'day' : cmd[1] === 'quick' ? 'new' : 'rep', baseUrl);
+  const cmd = /^\/(hit|day|quick|repeat)(@\w+)?$/.exec(text);
+  if (cmd) return quickEntry(env, tg, userId, lang, cmd[1] === 'day' || cmd[1] === 'hit' ? 'day' : cmd[1] === 'quick' ? 'new' : 'rep', baseUrl);
   const pressed = quickTextKind(text);
   if (pressed) return quickEntry(env, tg, userId, lang, pressed, baseUrl);
   // Бот попросил номер для быстрого заказа — это ответ гостя, а не сообщение администратору.

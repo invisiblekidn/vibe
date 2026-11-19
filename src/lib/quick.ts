@@ -172,11 +172,11 @@ const shortPrice = (v: number) => fmtVnd(v).replace(' ₫', '');
 type T = Record<string, string>;
 export const QT: Record<Lang, T> = {
   ru: {
-    btnDay: '⭐ Блюдо дня', btnQuick: '⚡ Быстрый заказ', btnRepeat: '🔁 Повторить прошлый заказ',
-    kbHint: '👇 Блюдо дня, быстрый заказ и повтор прошлого заказа — на кнопках внизу. Если они скрылись, нажмите значок ⌨ рядом с полем ввода.',
-    dayTitle: 'Блюдо дня', dayAdd: '➕ Добавить в заказ', dayMore: '⚡ Ещё из быстрого заказа', chef: 'шеф',
-    dayNone: 'Сегодня блюдо дня ещё не выбрано. Загляните в быстрый заказ или в меню.',
-    daySold: 'Сегодня блюдо дня закончилось. Загляните в быстрый заказ или в меню.',
+    btnDay: '⭐ Хит продаж', btnQuick: '⚡ Быстрый заказ', btnRepeat: '🔁 Повторить прошлый заказ',
+    kbHint: '👇 Хит продаж, быстрый заказ и повтор прошлого заказа — на кнопках внизу. Если они скрылись, нажмите значок ⌨ рядом с полем ввода.',
+    dayTitle: 'Хит продаж', dayAdd: '➕ Добавить в заказ', dayMore: '⚡ Ещё из быстрого заказа', chef: 'шеф',
+    dayNone: 'Хит продаж пока не выбран. Загляните в быстрый заказ или в меню.',
+    daySold: 'Хит продаж сегодня закончился. Загляните в быстрый заказ или в меню.',
     quickTitle: 'Быстрый заказ', quickHint: 'Нажмите на блюдо, чтобы добавить. Повторное нажатие добавит ещё одну порцию.',
     quickEmpty: 'Быстрый заказ пока не настроен. Всё меню открывается кнопкой ниже.',
     inCart: '🧺 В заказе', total: 'Итого', undo: '➖ Убрать последнее', clear: '🗑 Очистить', checkout: 'Оформить · {sum}',
@@ -205,11 +205,11 @@ export const QT: Record<Lang, T> = {
     err_OTHER: 'Не получилось оформить заказ. Попробуйте ещё раз или откройте меню.',
   },
   vi: {
-    btnDay: '⭐ Món của ngày', btnQuick: '⚡ Đặt nhanh', btnRepeat: '🔁 Đặt lại đơn trước',
-    kbHint: '👇 Món của ngày, đặt nhanh và đặt lại đơn trước — ở các nút bên dưới. Nếu nút bị ẩn, hãy bấm biểu tượng ⌨ cạnh ô nhập tin.',
-    dayTitle: 'Món của ngày', dayAdd: '➕ Thêm vào đơn', dayMore: '⚡ Thêm món đặt nhanh', chef: 'bếp trưởng',
-    dayNone: 'Hôm nay chưa chọn món của ngày. Mời bạn xem đặt nhanh hoặc thực đơn.',
-    daySold: 'Món của ngày hôm nay đã hết. Mời bạn xem đặt nhanh hoặc thực đơn.',
+    btnDay: '⭐ Món bán chạy', btnQuick: '⚡ Đặt nhanh', btnRepeat: '🔁 Đặt lại đơn trước',
+    kbHint: '👇 Món bán chạy, đặt nhanh và đặt lại đơn trước — ở các nút bên dưới. Nếu nút bị ẩn, hãy bấm biểu tượng ⌨ cạnh ô nhập tin.',
+    dayTitle: 'Món bán chạy', dayAdd: '➕ Thêm vào đơn', dayMore: '⚡ Thêm món đặt nhanh', chef: 'bếp trưởng',
+    dayNone: 'Chưa chọn món bán chạy. Mời bạn xem đặt nhanh hoặc thực đơn.',
+    daySold: 'Món bán chạy hôm nay đã hết. Mời bạn xem đặt nhanh hoặc thực đơn.',
     quickTitle: 'Đặt nhanh', quickHint: 'Bấm vào món để thêm. Bấm lần nữa để thêm một phần.',
     quickEmpty: 'Đặt nhanh chưa được thiết lập. Bấm nút bên dưới để xem toàn bộ thực đơn.',
     inCart: '🧺 Trong đơn', total: 'Tổng', undo: '➖ Bớt món cuối', clear: '🗑 Xóa hết', checkout: 'Đặt món · {sum}',
@@ -238,11 +238,11 @@ export const QT: Record<Lang, T> = {
     err_OTHER: 'Chưa đặt được đơn. Vui lòng thử lại hoặc mở thực đơn.',
   },
   en: {
-    btnDay: '⭐ Dish of the day', btnQuick: '⚡ Quick order', btnRepeat: '🔁 Repeat last order',
-    kbHint: '👇 Dish of the day, quick order and repeat last order are on the buttons below. If they are hidden, tap the ⌨ icon next to the message field.',
-    dayTitle: 'Dish of the day', dayAdd: '➕ Add to order', dayMore: '⚡ More from quick order', chef: 'chef',
-    dayNone: 'No dish of the day yet today. Have a look at the quick order or the menu.',
-    daySold: 'Today’s dish of the day is sold out. Have a look at the quick order or the menu.',
+    btnDay: '⭐ Best seller', btnQuick: '⚡ Quick order', btnRepeat: '🔁 Repeat last order',
+    kbHint: '👇 Best seller, quick order and repeat last order are on the buttons below. If they are hidden, tap the ⌨ icon next to the message field.',
+    dayTitle: 'Best seller', dayAdd: '➕ Add to order', dayMore: '⚡ More from quick order', chef: 'chef',
+    dayNone: 'No best seller picked yet. Have a look at the quick order or the menu.',
+    daySold: 'Today’s best seller is sold out. Have a look at the quick order or the menu.',
     quickTitle: 'Quick order', quickHint: 'Tap a dish to add it. Tap again to add one more portion.',
     quickEmpty: 'The quick order is not set up yet. The full menu opens with the button below.',
     inCart: '🧺 In your order', total: 'Total', undo: '➖ Remove last', clear: '🗑 Clear', checkout: 'Checkout · {sum}',
@@ -308,7 +308,7 @@ export function quickScreen(
   if (items.length) lines.push('', `${qt(lang, 'inCart')}: ${cartSummary(menu, items, lang)}`, `${qt(lang, 'total')} <b>${fmtVnd(sum)}</b>`);
   const rows: InlineButton[][] = dishes.map((d) => {
     const n = qtyOf(items, d.id);
-    return [cb(`${d.isDay ? '⭐ ' : ''}${d.name} · ${shortPrice(d.price)}${n ? ` ✓${n}` : ''}`.slice(0, 64), `q:a:${d.id}`)];
+    return [cb(`⭐ ${d.name} · ${shortPrice(d.price)}${n ? ` ✓${n}` : ''}`.slice(0, 64), `q:a:${d.id}`)];
   });
   if (items.length) {
     rows.push([cb(qt(lang, 'undo'), 'q:undo'), cb(qt(lang, 'clear'), 'q:clr')]);
@@ -448,9 +448,13 @@ export function quickKeyboard(lang: Lang) {
   };
 }
 
+const LEGACY_DAY = ['⭐ Блюдо дня', '⭐ Món của ngày', '⭐ Dish of the day'];
+
 /** Нажатие кнопки внизу чата приходит обычным текстом — узнаём его на любом из трёх языков. */
 export function quickTextKind(text: string): 'day' | 'new' | 'rep' | null {
   const t = text.trim();
+  // Старые надписи «⭐ Блюдо дня» остаются на клавиатуре у гостей, пока бот не пришлёт новую.
+  if (LEGACY_DAY.includes(t)) return 'day';
   for (const l of ['ru', 'vi', 'en'] as Lang[]) {
     if (t === QT[l].btnDay) return 'day';
     if (t === QT[l].btnQuick) return 'new';
