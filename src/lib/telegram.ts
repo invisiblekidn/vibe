@@ -1,5 +1,6 @@
 // Чистые функции для Telegram: проверка данных Mini App, тексты сообщений, кнопки.
 // Сетевые вызовы — в src/bot.ts.
+import { tableTitle } from './tables';
 
 const enc = new TextEncoder();
 
@@ -78,7 +79,8 @@ export const escHtml = (s: unknown) => String(s ?? '').replace(/[&<>]/g, (c) => 
 const TYPE = { pickup: 'Самовывоз', visit: 'К визиту', delivery: 'Доставка', table: 'В зале' } as Record<string, string>;
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
-export function slotText(slot: string, today?: string): string {
+export function slotText(slot: string | null, today?: string): string {
+  if (!slot) return 'сейчас';
   const [day, time] = slot.split(' ');
   const [, m, d] = day.split('-').map(Number);
   let prefix = `${d} ${MONTHS[m - 1]}`;
@@ -93,8 +95,10 @@ export function slotText(slot: string, today?: string): string {
 export interface OrderForText {
   id: number;
   type: string;
-  slot: string;
+  slot: string | null;
   status: string;
+  table_id?: string | null;
+  table_zone?: string | null;
   payment_status: string;
   payment_method: string;
   payment_reported_at?: string | null;
@@ -121,21 +125,29 @@ const KITCHEN_LINE: Record<string, string> = {
 };
 
 /** Сообщение о заказе в группе сотрудников (HTML-разметка Telegram). */
+const CHANNEL: Record<string, string> = { telegram: 'Telegram', site: 'Сайт', table: 'QR на столе' };
+
+/** «В зале, стол 3» для заказа со стола. */
+export function orderTableTitle(o: { table_id?: string | null; table_zone?: string | null }): string {
+  return tableTitle({ id: String(o.table_id ?? '?'), zone: o.table_zone || 'hall' });
+}
+
 export function staffOrderText(o: OrderForText, today?: string, lastActor?: string): string {
-  const head = o.status === 'cancelled' ? `<s>Заказ №${o.id}</s> · отменён` : `<b>Заказ №${o.id}</b> · ${o.channel === 'telegram' ? 'Telegram' : 'Сайт'}`;
+  const isTable = o.type === 'table';
+  const head = o.status === 'cancelled' ? `<s>Заказ №${o.id}</s> · отменён` : `<b>Заказ №${o.id}</b> · ${CHANNEL[o.channel] || o.channel}`;
   const items = o.items
     .map((i) => `${escHtml(i.name)}${i.options.length ? ` (${escHtml(i.options.map((x) => x.name).join(', '))})` : ''} ×${i.qty}`)
     .join('\n');
   return [
     head,
-    `${TYPE[o.type] || o.type} · ${slotText(o.slot, today)}`,
+    isTable ? `🍽 <b>${escHtml(orderTableTitle(o))}</b>` : `${TYPE[o.type] || o.type} · ${slotText(o.slot, today)}`,
     items,
-    `<b>${fmtVnd(o.total)}</b> · QR`,
-    `${escHtml(o.guest_name)} · ${escHtml(o.guest_phone)}`,
+    `<b>${fmtVnd(o.total)}</b> · ${isTable ? 'по счёту в конце' : 'QR'}`,
+    isTable ? '' : `${escHtml(o.guest_name)} · ${escHtml(o.guest_phone)}`,
     o.comment ? `«${escHtml(o.comment)}»` : '',
     '',
-    `Оплата: ${PAY_LINE[o.payment_status] || o.payment_status}`,
-    `Кухня: ${KITCHEN_LINE[o.status] || o.status}`,
+    isTable ? '' : `Оплата: ${PAY_LINE[o.payment_status] || o.payment_status}`,
+    `Кухня: ${isTable && o.status === 'new' ? '⏳ ждёт, когда администратор примет' : isTable && o.status === 'completed' ? '✔️ подан' : KITCHEN_LINE[o.status] || o.status}`,
     lastActor ? `<i>${escHtml(lastActor)}</i>` : '',
   ]
     .filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== ''))
@@ -155,15 +167,16 @@ export function parseCallback(data: string | undefined): { orderId: number; code
 }
 
 /** Кнопки под сообщением о заказе. Отмена — в два нажатия. */
-export function staffButtons(o: { id: number; status: string; payment_status: string; payment_method: string }, askCancel = false): InlineButton[][] {
+export function staffButtons(o: { id: number; type?: string; status: string; payment_status: string; payment_method: string }, askCancel = false): InlineButton[][] {
   if (o.status === 'completed' || o.status === 'cancelled') return [];
   const b = (text: string, code: string): InlineButton => ({ text, callback_data: `o:${o.id}:${code}` });
   if (askCancel) return [[b('Да, отменить заказ', 'cx'), b('Назад', 'back')]];
   const row: InlineButton[] = [];
   if (o.payment_method === 'qr' && o.payment_status !== 'confirmed') row.push(b('💳 Деньги пришли', 'cp'));
-  if (o.status === 'new' && (o.payment_method !== 'qr' || o.payment_status === 'confirmed')) row.push(b('👩‍🍳 Готовить', 'sc'));
+  const table = o.type === 'table';
+  if (o.status === 'new' && (o.payment_method !== 'qr' || o.payment_status === 'confirmed')) row.push(b(table ? '✅ Принять' : '👩‍🍳 Готовить', 'sc'));
   if (o.status === 'cooking') row.push(b('🍽 Готово', 'mr'));
-  if (o.status === 'ready') row.push(b('✔️ Выдан', 'cm'));
+  if (o.status === 'ready') row.push(b(table ? '✔️ Подано' : '✔️ Выдан', 'cm'));
   return [row, [b('Отменить', 'cx?')]].filter((r) => r.length);
 }
 
@@ -204,3 +217,56 @@ export const WELCOME =
   'Здесь можно заказать заранее: забрать самому или к своему приходу.\n\n' +
   'Работаем ежедневно 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
   'Если хотите что-то спросить, просто напишите сюда, ответит администратор.';
+
+// ---------- Столы: вызовы и счета ----------
+
+/** Кнопки по вызову со стола и по счёту (callback_data до 64 байт). */
+export function parseTableCallback(data: string | undefined): { kind: 'call'; id: number } | { kind: 'bill'; id: number; code: 'pq' | 'pc' | 'all' } | null {
+  const c = /^c:(\d{1,9})$/.exec(data || '');
+  if (c) return { kind: 'call', id: Number(c[1]) };
+  const b = /^b:(\d{1,9}):(pq|pc|all)$/.exec(data || '');
+  if (b) return { kind: 'bill', id: Number(b[1]), code: b[2] as 'pq' | 'pc' | 'all' };
+  return null;
+}
+
+export const BILL_CODES = { pq: 'paid_qr', pc: 'paid_cash', all: 'merge_all' } as const;
+
+export function waiterCallText(title: string, doneBy?: string | null): string {
+  return doneBy ? `🔔 <s>${escHtml(title)}: зовут официанта</s>\n<i>Идёт ${escHtml(doneBy)}</i>` : `🔔 <b>${escHtml(title)}: зовут официанта</b>`;
+}
+
+export interface BillForText {
+  id: number;
+  status: string;
+  payment_status: string;
+  payment_method?: string | null;
+  total: number;
+  shared?: boolean;
+}
+
+/** Сообщение «просит счёт» в группе сотрудников; обновляется при оплате. */
+export function billText(title: string, b: BillForText, lastActor?: string): string {
+  const head =
+    b.status === 'paid'
+      ? `✅ <b>${escHtml(title)}: счёт №${b.id} оплачен</b> · ${b.payment_method === 'cash' ? 'наличными' : 'по QR'}`
+      : `🧾 <b>${escHtml(title)}: просят счёт №${b.id}</b>${b.shared ? ' · весь стол' : ''}`;
+  const pay =
+    b.status !== 'paid' && b.payment_status === 'reported'
+      ? '⚠️ гость сообщил об оплате по QR, проверьте поступление'
+      : b.status !== 'paid'
+        ? 'Оплата по QR или наличными.'
+        : '';
+  return [head, `Сумма: <b>${fmtVnd(b.total)}</b>`, pay, lastActor ? `<i>${escHtml(lastActor)}</i>` : ''].filter(Boolean).join('\n');
+}
+
+export function billButtons(b: { id: number; status: string }, canMerge: boolean): InlineButton[][] {
+  if (b.status !== 'open') return [];
+  const rows: InlineButton[][] = [
+    [
+      { text: '💳 Деньги пришли (QR)', callback_data: `b:${b.id}:pq` },
+      { text: '💵 Наличными', callback_data: `b:${b.id}:pc` },
+    ],
+  ];
+  if (canMerge) rows.push([{ text: 'Весь стол одним счётом', callback_data: `b:${b.id}:all` }]);
+  return rows;
+}

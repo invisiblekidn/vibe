@@ -26,7 +26,7 @@ export async function transition(db: D1Database, o: any, action: Action, actor: 
 
 export async function orderWithItems(db: D1Database, id: number) {
   const [o, items] = await db.batch([
-    db.prepare('SELECT * FROM orders WHERE id = ?').bind(id),
+    db.prepare('SELECT o.*, t.zone AS table_zone FROM orders o LEFT JOIN dining_tables t ON t.id = o.table_id WHERE o.id = ?').bind(id),
     db.prepare('SELECT name, qty, options FROM order_items WHERE order_id = ? ORDER BY id').bind(id),
   ]);
   const order = (o.results as any[])[0];

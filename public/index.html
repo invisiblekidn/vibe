@@ -17,7 +17,15 @@
 </header>
 
 <main>
-  <section class="wrap hero">
+  <!-- Гость за столом (открыл QR): стол, вызов официанта, свой счёт. -->
+  <section class="wrap tablebar card" id="tablebar" hidden>
+    <div class="tb-title"><span class="muted">Вы за столом</span><b id="tb-name"></b></div>
+    <div class="tb-acts">
+      <button class="btn small ghost" type="button" id="tb-waiter">Позвать официанта</button>
+      <button class="btn small" type="button" id="tb-bill">Мой счёт</button>
+    </div>
+  </section>
+  <section class="wrap hero" id="hero">
     <div>
       <h1>Домашняя кухня для всей семьи</h1>
       <p>Завтраки весь день, супы как у бабушки, детское меню и игровая зона, пока взрослые спокойно обедают.</p>
@@ -25,7 +33,7 @@
     </div>
     <div class="photo"><img src="/img/dishes/breakfast.jpg" alt="Большой завтрак VIBE" width="800" height="600"></div>
   </section>
-  <section class="wrap">
+  <section class="wrap" id="facts">
     <div class="facts">
       <div><b>Часы</b><span id="f-hours">ежедневно 9:00–22:00</span></div>
       <div><b>Адрес</b><span id="f-addr">25 Đ. Nguyễn Đình Chiểu, Bắc Nha Trang</span></div>
@@ -46,8 +54,10 @@
 
 <dialog class="sheet" id="dish-sheet" aria-labelledby="dish-title"></dialog>
 <dialog class="sheet" id="cart-sheet" aria-labelledby="cart-title"></dialog>
+<dialog class="sheet" id="bill-sheet" aria-labelledby="bill-title"></dialog>
 
 <script src="/js/common.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/table.js"></script>
 </body>
 </html>
