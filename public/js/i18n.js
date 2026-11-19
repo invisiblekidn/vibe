@@ -42,7 +42,7 @@ document.documentElement.lang = LANG;
 
 const I18N = {
   // Общее
-  testBanner: { ru: 'Тестовая версия: заказы не настоящие, оплата не принимается', vi: 'Phiên bản thử nghiệm: đơn hàng không có thật, không nhận thanh toán', en: 'Test version: orders are not real, no payments accepted' },
+  testBanner: { ru: 'Тестовая версия: заказы не настоящие. QR оплаты настоящий — не переводите деньги за тестовые заказы', vi: 'Phiên bản thử nghiệm: đơn hàng không có thật. Mã QR là thật — đừng chuyển tiền cho đơn thử nghiệm', en: 'Test version: orders are not real. The payment QR is real — do not transfer money for test orders' },
   langLabel: { ru: 'Язык', vi: 'Ngôn ngữ', en: 'Language' },
   menu: { ru: 'Меню', vi: 'Thực đơn', en: 'Menu' },
   staffLink: { ru: 'Для сотрудников', vi: 'Dành cho nhân viên', en: 'Staff' },

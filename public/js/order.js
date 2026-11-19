@@ -30,7 +30,7 @@ function render() {
       ${o.qrUrl ? `<img class="qr" src="${esc(o.qrUrl)}" alt="${esc(t('qrAlt'))}" id="qr">` : `<p class="alert warn">${esc(t('qrMissing'))}</p>`}
       <p class="hint" style="margin:0">${t('transferNote', { n: o.number })}</p>
       <div class="btns2">
-        <a class="btn ghost small" href="${esc(o.qrUrl || '#')}" download="vibe-qr.svg">${esc(t('saveQr'))}</a>
+        <a class="btn ghost small" href="${esc(o.qrUrl || '#')}" download="vibe-qr-oplata.png">${esc(t('saveQr'))}</a>
         <button class="btn ghost small" type="button" id="copy">${esc(t('copyNo'))}</button>
       </div>
       <button class="btn block" type="button" id="paid">${esc(t('iPaid'))}</button>

@@ -8,7 +8,7 @@ DELETE FROM bot_picks; DELETE FROM bot_picks_log; DELETE FROM bot_carts;
 DELETE FROM options; DELETE FROM option_groups; DELETE FROM stop_list; DELETE FROM dishes; DELETE FROM menu_sections; DELETE FROM categories; DELETE FROM locations;
 
 INSERT INTO locations (id, name, address, payment_qr_url) VALUES
- ('nt1', 'VIBE Нячанг', '25 Đ. Nguyễn Đình Chiểu, Bắc Nha Trang, Khánh Hòa', '/img/test-qr.svg');
+ ('nt1', 'VIBE Нячанг', '25 Đ. Nguyễn Đình Chiểu, Bắc Nha Trang, Khánh Hòa', '/img/vibe-pay-qr.png');
 
 INSERT INTO categories (id, sort, name) VALUES
  ('breakfast', 1, '{"ru":"Завтраки","en":"Breakfasts","vi":"Breakfasts"}'),
