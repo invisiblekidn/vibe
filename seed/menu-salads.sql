@@ -46,7 +46,7 @@ UPDATE dishes SET active = 0 WHERE category_id = 'salads' AND id NOT IN ('caesar
 
 INSERT INTO option_groups (id, dish_id, sort, name, min_select, max_select) VALUES
  ('ol-fill', 'olivier', 1, '{"ru": "Начинка", "vi": "Nhân", "en": "Filling"}', 1, 1),
- ('vs-dress', 'veg-salad', 1, '{"ru": "Заправка", "vi": "Nước sốt", "en": "Dressing"}', 1, 1);
+ ('vs-dress', 'veg-salad', 1, '{"ru": "Заправка", "vi": "Sốt trộn", "en": "Dressing"}', 1, 1);
 
 INSERT INTO options (id, group_id, sort, name, price_delta) VALUES
  ('ol-chicken', 'ol-fill', 1, '{"ru": "С курицей", "vi": "Với thịt gà", "en": "With chicken"}', 0),

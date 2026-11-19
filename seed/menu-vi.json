@@ -9,7 +9,7 @@
     "mains": "Món chính",
     "kids": "Thực đơn trẻ em",
     "desserts": "Tráng miệng",
-    "bar": "Quầy bar"
+    "bar": "Đồ uống"
   },
   "dishes": {
     "borsch": ["Súp borscht bò", "Súp borscht đậm đà truyền thống với thịt bò, rau củ, kem chua và rau thơm. Có thể thêm mỡ heo muối (salo)."],
@@ -57,7 +57,7 @@
     "smoothie-avocado": ["Sinh tố bơ chuối", ""],
     "cola": ["Coca-Cola", ""],
     "sprite": ["Sprite", ""],
-    "tonic": ["Tonic", ""],
+    "tonic": ["Nước tonic", ""],
     "water": ["Nước suối (0,5 l)", ""],
     "shot-tequila": ["Tequila", "Ly shot."],
     "shot-vodka": ["Vodka", "Ly shot."],
@@ -92,7 +92,7 @@
     "shake-straw": ["Sữa lắc dâu", ""],
     "cola-zero": ["Coca-Cola Zero", ""],
     "fanta": ["Fanta", ""],
-    "tan": ["Tan", "Món mới! Thức uống sữa lên men mát lạnh, hơi mặn."],
+    "tan": ["Tan (sữa chua uống vị mặn)", "Món mới! Thức uống sữa lên men mát lạnh, hơi mặn."],
     "kvass": ["Kvass nhà làm", "Món mới! Kvass bánh mì theo công thức nhà làm."],
     "coconut": ["Dừa tươi ướp lạnh", ""],
     "borsch-premium": ["Súp borscht VIBE đặc biệt", "Súp borscht bò, ăn kèm mỡ heo muối (salo), tỏi, một ly vodka nhỏ và một lát bánh mì đen."],
@@ -109,7 +109,7 @@
     "pasta-shrimp": ["Mì Ý tôm", "Mì Ý sốt kem với tôm, tỏi và phô mai Parmesan."],
     "bolognese": ["Mì Ý Bolognese", "Mì Ý với sốt thịt Bolognese đậm đà, cà chua và phô mai Parmesan."],
     "pasta-salmon": ["Mì Ý cá hồi sốt kem", "Mì Ý với cá hồi sốt kem, rắc phô mai Parmesan và rau thơm tươi."],
-    "mac-cheese": ["Mì ống phô mai", "Mì ống yêu thích trong sốt phô mai béo ngậy."],
+    "mac-cheese": ["Nui phô mai", "Nui yêu thích trong sốt phô mai béo ngậy."],
     "caesar-salmon": ["Salad Caesar cá hồi", "Cá hồi cắt lát, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan."],
     "caesar-shrimp": ["Salad Caesar tôm", "Tôm áp chảo, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan."],
     "avocado-salmon": ["Salad bơ và cá hồi", "Bơ, cá hồi, táo xanh, xà lách và sốt kem."],
@@ -163,7 +163,7 @@
     "kiev-side": "Món ăn kèm",
     "stuffed-peppers-side": "Món ăn kèm",
     "burger-side": "Món ăn kèm",
-    "vs-dress": "Nước sốt"
+    "vs-dress": "Sốt trộn"
   },
   "options": {
     "ol-chicken": "Với thịt gà",

@@ -14,7 +14,7 @@ INSERT INTO categories (id, sort, name) VALUES
  ('mains',      6, '{"ru":"Горячее","en":"Main dishes","vi":"Món chính"}'),
  ('kids',       7, '{"ru":"Детское меню","en":"Kids menu","vi":"Thực đơn trẻ em"}'),
  ('desserts',   8, '{"ru":"Десерты","en":"Desserts","vi":"Tráng miệng"}'),
- ('bar',        9, '{"ru":"Бар","en":"Bar","vi":"Quầy bar"}')
+ ('bar',        9, '{"ru":"Бар","en":"Bar","vi":"Đồ uống"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
 DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('big-breakfast','eggs-benedict','syrniki','omelette','avocado-toast','porridge','shakshuka','blinchiki','blinchiki-meat','blinchiki-tvorog','croissant-salmon','croissant-caesar','croissant-bacon','croissant-choc'));
@@ -27,7 +27,7 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
  ('eggs-benedict', 'breakfast', 2, '{"ru": "Яйца Бенедикт", "vi": "Trứng Benedict", "en": "Eggs Benedict"}',
    '{"ru": "Чиабатта, яйцо пашот, голландский соус, свежая зелень. С лососем или с беконом.", "vi": "Bánh mì ciabatta, trứng chần, sốt hollandaise, rau thơm tươi. Kèm cá hồi hoặc thịt xông khói.", "en": "Ciabatta, poached egg, hollandaise sauce, fresh greens. With salmon or with bacon."}',
    129000, '/img/dishes/benedict.jpg', NULL, 0, 0, 1),
- ('syrniki', 'breakfast', 3, '{"ru": "Мамины сырники", "vi": "Bánh syrniki của mẹ", "en": "Moms Syrniki"}',
+ ('syrniki', 'breakfast', 3, '{"ru": "Мамины сырники", "vi": "Bánh syrniki của mẹ", "en": "Mom’s Syrniki"}',
    '{"ru": "Нежные домашние сырники (3 шт.). Подаются с двумя соусами на выбор: сгущённое молоко, клубничное варенье, шоколадный соус или карамель.", "vi": "Bánh phô mai tươi nhà làm mềm mịn (3 cái). Ăn kèm hai loại sốt tùy chọn: sữa đặc, mứt dâu, sốt sô-cô-la hoặc caramen.", "en": "Tender homemade cottage cheese pancakes (3 pcs.). Served with two sauces of your choice: condensed milk, strawberry jam, chocolate sauce or caramel."}',
    119000, '/img/dishes/syrniki.jpg', NULL, 0, 0, 1),
  ('omelette', 'breakfast', 4, '{"ru": "Омлет / Скрэмбл", "vi": "Trứng chiên / Trứng bác", "en": "Omelette / Scrambled Eggs"}',
@@ -51,13 +51,13 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
  ('blinchiki-tvorog', 'breakfast', 10, '{"ru": "Блинчики с творогом (2 шт.)", "vi": "Bánh crepe nhân phô mai tươi (2 cái)", "en": "Pancakes with Cottage Cheese (2 pcs.)"}',
    '{"ru": "Подаются со сметаной и клубничным вареньем.", "vi": "Ăn kèm kem chua và mứt dâu.", "en": "Served with sour cream and strawberry jam."}',
    119000, '/img/dishes/blinchiki-tvorog.jpg', NULL, 0, 0, 1),
- ('croissant-salmon', 'croissants', 1, '{"ru": "Круассан с лососем и крем-чизом", "vi": "Bánh sừng bò cá hồi và kem phô mai", "en": "Croissant with salmon & cream cheese"}',
+ ('croissant-salmon', 'croissants', 1, '{"ru": "Круассан с лососем и крем-чизом", "vi": "Bánh sừng bò cá hồi và kem phô mai", "en": "Croissant with Salmon & Cream Cheese"}',
    '{}',
    129000, '/img/dishes/croissant-salmon.jpg', NULL, 0, 0, 1),
- ('croissant-caesar', 'croissants', 2, '{"ru": "Цезарь круассан", "vi": "Bánh sừng bò gà kiểu Caesar", "en": "Caesar croissant with chicken"}',
+ ('croissant-caesar', 'croissants', 2, '{"ru": "Цезарь круассан", "vi": "Bánh sừng bò gà kiểu Caesar", "en": "Caesar Croissant with Chicken"}',
    '{"ru": "Круассан с курицей в стиле Цезарь.", "vi": "Bánh sừng bò nhân gà kiểu Caesar.", "en": "Croissant with chicken, Caesar style."}',
    119000, '/img/dishes/croissant-caesar.jpg', NULL, 0, 0, 1),
- ('croissant-bacon', 'croissants', 3, '{"ru": "Круассан с беконом или ветчиной и сыром", "vi": "Bánh sừng bò thịt xông khói hoặc giăm bông và phô mai", "en": "Croissant with bacon or ham & cheese"}',
+ ('croissant-bacon', 'croissants', 3, '{"ru": "Круассан с беконом или ветчиной и сыром", "vi": "Bánh sừng bò thịt xông khói hoặc giăm bông và phô mai", "en": "Croissant with Bacon or Ham & Cheese"}',
    '{"ru": "С сыром и беконом или ветчиной на выбор.", "vi": "Với phô mai, chọn thịt xông khói hoặc giăm bông.", "en": "With cheese and your choice of bacon or ham."}',
    109000, '/img/dishes/croissant-bacon.jpg', NULL, 0, 0, 1)
 ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = excluded.sort, name = excluded.name,
@@ -68,12 +68,12 @@ UPDATE dishes SET active = 0 WHERE id IN ('croissant-choc');
 
 INSERT INTO option_groups (id, dish_id, sort, name, min_select, max_select) VALUES
  ('bb-eggs', 'big-breakfast', 1, '{"ru": "Яйца", "vi": "Trứng", "en": "Eggs"}', 1, 1),
- ('eb-with', 'eggs-benedict', 1, '{"ru": "Вариант", "vi": "Lựa chọn", "en": "Choose"}', 1, 1),
+ ('eb-with', 'eggs-benedict', 1, '{"ru": "Вариант", "vi": "Lựa chọn", "en": "Your choice"}', 1, 1),
  ('sy-sauce', 'syrniki', 1, '{"ru": "Соусы (один или два)", "vi": "Sốt (một hoặc hai loại)", "en": "Sauces (one or two)"}', 1, 2),
- ('om-type', 'omelette', 1, '{"ru": "Омлет или скрэмбл", "vi": "Trứng chiên hay trứng bác", "en": "Omelette or scrambled"}', 1, 1),
- ('om-fill', 'omelette', 2, '{"ru": "Вариант", "vi": "Lựa chọn", "en": "Choose"}', 1, 1),
- ('om-add', 'omelette', 3, '{"ru": "Добавьте по вкусу", "vi": "Thêm theo ý thích", "en": "Add on"}', 0, 3),
- ('at-add', 'avocado-toast', 1, '{"ru": "Добавьте по вкусу", "vi": "Thêm theo ý thích", "en": "Add on"}', 0, 3),
+ ('om-type', 'omelette', 1, '{"ru": "Омлет или скрэмбл", "vi": "Trứng chiên hay trứng bác", "en": "Omelette or scrambled eggs"}', 1, 1),
+ ('om-fill', 'omelette', 2, '{"ru": "Вариант", "vi": "Lựa chọn", "en": "Your choice"}', 1, 1),
+ ('om-add', 'omelette', 3, '{"ru": "Добавьте по вкусу", "vi": "Thêm theo ý thích", "en": "Add-ons"}', 0, 3),
+ ('at-add', 'avocado-toast', 1, '{"ru": "Добавьте по вкусу", "vi": "Thêm theo ý thích", "en": "Add-ons"}', 0, 3),
  ('pr-kind', 'porridge', 1, '{"ru": "Каша на выбор", "vi": "Chọn loại cháo", "en": "Your choice"}', 1, 1),
  ('bl-top', 'blinchiki', 1, '{"ru": "Топпинг", "vi": "Sốt", "en": "Topping"}', 1, 1),
  ('cb-meat', 'croissant-bacon', 1, '{"ru": "Бекон или ветчина", "vi": "Thịt xông khói hay giăm bông", "en": "Bacon or ham"}', 1, 1);

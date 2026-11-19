@@ -48,8 +48,8 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
  ('pasta-salmon', 'mains', 12, '{"ru": "Паста с лососем в сливочном соусе", "vi": "Mì Ý cá hồi sốt kem", "en": "Pasta with Salmon"}',
    '{"ru": "Нежная паста с лососем в сливочном соусе, с пармезаном и свежей зеленью.", "vi": "Mì Ý với cá hồi sốt kem, rắc phô mai Parmesan và rau thơm tươi.", "en": "Pasta with salmon in a creamy sauce, topped with Parmesan and fresh herbs."}',
    149000, '/img/dishes/mn-pasta-salmon.jpg', NULL, 0, 0, 1),
- ('mac-cheese', 'mains', 13, '{"ru": "Макароны с сыром", "vi": "Mì ống phô mai", "en": "Mac and Cheese"}',
-   '{"ru": "Любимые макароны в нежном сырном соусе.", "vi": "Mì ống yêu thích trong sốt phô mai béo ngậy.", "en": "Favorite macaroni in a creamy cheese sauce."}',
+ ('mac-cheese', 'mains', 13, '{"ru": "Макароны с сыром", "vi": "Nui phô mai", "en": "Mac and Cheese"}',
+   '{"ru": "Любимые макароны в нежном сырном соусе.", "vi": "Nui yêu thích trong sốt phô mai béo ngậy.", "en": "Favourite macaroni in a creamy cheese sauce."}',
    79000, '/img/dishes/mn-mac.jpg', NULL, 0, 0, 1)
 ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = excluded.sort, name = excluded.name,
  description = excluded.description, price = excluded.price, photo = excluded.photo, weight = excluded.weight,
