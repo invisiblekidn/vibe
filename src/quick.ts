@@ -499,7 +499,10 @@ async function placeOrder(env: TgEnv, tg: Tg, notify: Notify, x: Ctx, c: Cart, q
     await saveCart(env.DB, c);
     if (r.duplicate) return void (await answer(qt(lang, 'already', { n: r.id })));
     await answer('✅');
-    await show(env, tg, chatId, here, { text: qt(lang, 'placed', { n: r.id }), rows: [] });
+    // Подтверждение — новым сообщением с кнопками внизу чата: так они гарантированно на месте после заказа.
+    // Старое сообщение корзины убираем, чтобы в чате не осталось двух записей об одном заказе.
+    if (here) await tg(env, 'deleteMessage', { chat_id: chatId, message_id: here });
+    await tg(env, 'sendMessage', { chat_id: chatId, text: qt(lang, 'placed', { n: r.id }), reply_markup: quickKeyboard(lang) });
     await notify(env, r.id, 'created', 'guest', x.base);
   } catch (e) {
     if (!(e instanceof OrderError)) throw e;
