@@ -65,6 +65,7 @@ function botRender() {
       <div class="bot-col">
         <section class="card bot-sec">
           <h3>Блюдо дня</h3>
+          <p class="muted" style="margin:0;font-size:13.5px">Гость видит его по кнопке «⭐ Блюдо дня» в боте и карточкой вверху окна меню.</p>
           ${day ? `<div class="bot-day">
               ${day.photo ? `<img src="${esc(day.photo)}" alt="" width="64" height="64">` : '<span class="ph"></span>'}
               <div class="t"><b>${esc(day.name)}</b><div><span class="price">${fmt(day.price)}</span> <span class="muted">${esc(day.category)} · ${day.soldOut ? 'в стоп-листе сегодня' : 'в наличии'}</span></div></div>

@@ -28,7 +28,7 @@ import { orderWithItems, transition } from './orders';
 import { tableTitle } from './lib/tables';
 import { billAction, billTotal, closeCall } from './tables';
 import { onQuickCallback, onQuickPhone, quickEntry, welcomeRows } from './quick';
-import { parseQuickCallback } from './lib/quick';
+import { parseQuickCallback, qt, quickKeyboard, quickTextKind } from './lib/quick';
 import { paidButtonText, statusCardText, widgetCaption, widgetHtml, widgetMode, widgetState } from './lib/widget';
 
 export interface TgEnv {
@@ -314,12 +314,16 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
       }
     }
     await tg(env, 'sendMessage', { chat_id: userId, text: WELCOME_L[lang], reply_markup: kb([...menuButton(baseUrl, lang), ...(await welcomeRows(env, userId, lang))]) });
+    // Постоянные кнопки внизу чата: блюдо дня, быстрый заказ, повтор — не теряются, когда приветствие уходит вверх.
+    await tg(env, 'sendMessage', { chat_id: userId, text: qt(lang, 'kbHint'), reply_markup: quickKeyboard(lang) });
     return;
   }
 
   // Быстрые кнопки в чате: блюдо дня, быстрый заказ, повтор прошлого заказа (те же действия — командами).
   const cmd = /^\/(day|quick|repeat)(@\w+)?$/.exec(text);
   if (cmd) return quickEntry(env, tg, userId, lang, cmd[1] === 'day' ? 'day' : cmd[1] === 'quick' ? 'new' : 'rep', baseUrl);
+  const pressed = quickTextKind(text);
+  if (pressed) return quickEntry(env, tg, userId, lang, pressed, baseUrl);
   // Бот попросил номер для быстрого заказа — это ответ гостя, а не сообщение администратору.
   if (await onQuickPhone(env, tg, m, baseUrl, lang)) return;
 

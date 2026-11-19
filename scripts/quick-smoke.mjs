@@ -97,6 +97,18 @@ try {
   const greet = toGuest(since(i), 'sendMessage')[0];
   ok(datas(greet).includes('q:day') && datas(greet).includes('q:new') && !datas(greet).includes('q:rep'), '«Старт»: кнопки «Блюдо дня» и «Быстрый заказ», «Повторить» скрыта без прошлых заказов');
   ok(!!buttons(greet)[0].web_app, 'первая кнопка по-прежнему открывает окно меню');
+  const kbMsg = toGuest(since(i), 'sendMessage').find((c) => c.body.reply_markup?.keyboard);
+  ok(!!kbMsg && kbMsg.body.reply_markup.is_persistent && kbMsg.body.reply_markup.keyboard.flat().map((b) => b.text).join('|') === '⭐ Блюдо дня|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после «Старт» внизу чата постоянные кнопки: блюдо дня, быстрый заказ, повторить');
+  i = calls.length;
+  await hook(say('⚡ Быстрый заказ'));
+  await settle();
+  ok(datas(lastScreen(since(i))).includes('q:a:borsch'), 'нажатие кнопки «⚡ Быстрый заказ» внизу чата открывает быстрый заказ');
+  i = calls.length;
+  await hook(say('⭐ Món của ngày'));
+  await settle();
+  ok(toGuest(since(i), 'sendPhoto').length === 1 && !since(i).some((c) => c.body.chat_id === GROUP), 'кнопка на вьетнамском тоже узнаётся и не уходит администратору');
+  const menuApi = await (await fetch(BASE + '/api/menu')).json();
+  ok(menuApi.dishOfDay?.dishId === 'borsch' && menuApi.dishOfDay.note.ru.includes('Варим'), 'окно меню получает блюдо дня с комментарием шефа');
 
   // ---- 3. Блюдо дня ----
   i = calls.length;
@@ -143,7 +155,7 @@ try {
   await hook(say(undefined, { text: undefined, contact: { phone_number: '84901234567', user_id: GUEST, first_name: 'Мария' } }));
   await settle();
   const afterPhone = since(i);
-  ok(toGuest(afterPhone, 'sendMessage').some((c) => c.body.reply_markup?.remove_keyboard), 'номер сохранён, клавиатура убрана');
+  ok(toGuest(afterPhone, 'sendMessage').some((c) => c.body.reply_markup?.is_persistent), 'номер сохранён, внизу снова постоянные кнопки');
   ok(!afterPhone.some((c) => c.body.chat_id === GROUP), 'номер не ушёл администратору как переписка');
   const confirm = lastScreen(afterPhone);
   ok(confirm.body.text.includes('Проверьте заказ') && confirm.body.text.includes('Сырники (Сгущённое молоко) ×2 — 238 000 ₫') && datas(confirm)[0] === 'q:ok', 'проверка заказа: позиции с ценами сервера и «Подтвердить»');
@@ -209,6 +221,7 @@ try {
   await hook(say('/day'));
   await settle();
   ok(toGuest(since(i), 'sendMessage')[0]?.body.text.includes('ещё не выбрано'), 'блюдо дня снято — гость видит «ещё не выбрано» и кнопку быстрого заказа');
+  ok((await (await fetch(BASE + '/api/menu')).json()).dishOfDay === null, 'блюдо дня снято — карточка в окне меню пропала');
 } finally {
   sql(`DELETE FROM stop_list WHERE dish_id = 'syrniki'`);
   fake.close();
