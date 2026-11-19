@@ -5,6 +5,15 @@ const tr = (n) => (n && (n[LANG] || n.ru || n.en)) || '';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const $ = (sel, root = document) => root.querySelector(sel);
 
+// Подписи статичной вёрстки на трёх языках (полный перевод сайта — этап 3).
+const UI_TEXT = {
+  staffLink: { ru: 'Для сотрудников', vi: 'Dành cho nhân viên', en: 'Staff' },
+};
+document.querySelectorAll('[data-i18n]').forEach((el) => {
+  const t = UI_TEXT[el.dataset.i18n];
+  if (t) el.textContent = tr(t);
+});
+
 async function api(path, opts = {}) {
   let res;
   try {
