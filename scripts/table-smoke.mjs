@@ -59,7 +59,7 @@ try {
   // 2. Заказ телефона A: без входа, без времени; алкоголь за столом можно
   const body = { idempotencyKey: crypto.randomUUID(), device: phoneA, items: [{ dishId: 'borsch', qty: 1 }, { dishId: 'mojito', qty: 1, price: 1 }], comment: 'без лука', lang: 'ru' };
   const a1 = await call(`/api/table/${TABLE3}/orders`, body);
-  ok(a1.status === 201 && a1.data.total === 139000 + 129000, `заказ со стола принят, сумма из меню ${a1.data?.total}, мохито можно`);
+  ok(a1.status === 201 && a1.data.total === 129000 + 129000, `заказ со стола принят, сумма из меню ${a1.data?.total}, мохито можно`);
   const [r1, r2] = await Promise.all([call(`/api/table/${TABLE3}/orders`, body), call(`/api/table/${TABLE3}/orders`, body)]);
   ok(r1.data.number === a1.data.number && r2.data.number === a1.data.number, 'повторное нажатие «Отправить» не создаёт второй заказ');
   await settle();
@@ -83,7 +83,7 @@ try {
   ok(a2.data.billId === a1.data.billId, 'второй заказ телефона A — в тот же счёт');
   ok(b1.data.billId !== a1.data.billId, 'телефон B за тем же столом — отдельный счёт');
   va = await view(TABLE3, phoneA);
-  ok(va.bill.total === 139000 + 129000 + 130000 && va.others.count === 1 && va.others.total === 149000, `счёт A ${va.bill.total}, за столом ещё 1 счёт на ${va.others.total}`);
+  ok(va.bill.total === 129000 + 129000 + 100000 && va.others.count === 1 && va.others.total === 139000, `счёт A ${va.bill.total}, за столом ещё 1 счёт на ${va.others.total}`);
 
   // 5. Блюдо закончилось
   sql(`INSERT OR IGNORE INTO stop_list (location_id, dish_id, day) VALUES ('nt1', 'kiev', '${(await call('/api/menu')).data.today}')`);
@@ -113,7 +113,7 @@ try {
   ok((await call(`/api/table/${TABLE3}/bill/merge`, { device: phoneA })).data.ok, 'гость A нажал «Оплатить весь стол»');
   const vb = await view(TABLE3, phoneB);
   ok(vb.bill.id === a1.data.billId && vb.bill.shared && vb.bill.orders.length === 3 && vb.others.count === 0, 'телефон B видит общий счёт стола, его отдельный счёт закрыт');
-  const whole = 139000 + 129000 + 130000 + 149000;
+  const whole = 129000 + 129000 + 100000 + 139000;
   ok(vb.bill.total === whole, `общий счёт: ${vb.bill.total}`);
   const b2 = await order(TABLE3, phoneB, [{ dishId: 'syrniki', qty: 1, optionIds: ['sy-jam'] }]);
   ok(b2.data.billId === a1.data.billId, 'новый заказ телефона B после объединения идёт в общий счёт');

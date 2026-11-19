@@ -58,6 +58,15 @@ async function init() {
   }
   const m = state.menu;
   for (const d of m.dishes) state.dishes.set(d.id, d);
+  // Пришли из чата бота («Изменить в меню»): корзина из быстрого заказа заменяет корзину окна меню.
+  const fromBot = !TABLE_CODE && new URLSearchParams(location.search).get('cart');
+  if (fromBot) {
+    state.cart = botCart(fromBot);
+    saveCart();
+    const u = new URL(location.href);
+    u.searchParams.delete('cart');
+    history.replaceState(null, '', u.pathname + u.search);
+  }
   state.cart = state.cart.filter((i) => state.dishes.has(i.dishId));
   const hh = (v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
   $('#f-hours').textContent = t('factHoursVal', { from: hh(m.location.open), to: hh(m.location.close) });
@@ -65,6 +74,25 @@ async function init() {
   renderMenu();
   renderCartbar();
   if (TABLE_CODE) tableInit();
+  else if (fromBot && state.cart.length) openCart();
+}
+
+/** «dish*2*opt1.opt2,dish2*1» → строки корзины. Неизвестные блюда и опции отбрасываем, цены — из меню. */
+function botCart(param) {
+  const out = [];
+  for (const part of String(param).split(',').slice(0, 40)) {
+    const [dishId, q, opts] = part.split('*');
+    const d = state.dishes.get(dishId);
+    if (!d) continue;
+    const valid = new Set(d.groups.flatMap((g) => g.options.map((o) => o.id)));
+    const optionIds = (opts ? opts.split('.') : []).filter((id) => valid.has(id));
+    const qty = Math.min(20, Math.max(1, parseInt(q, 10) || 1));
+    const key = dishId + '|' + [...optionIds].sort().join(',');
+    const same = out.find((i) => i.key === key);
+    if (same) same.qty = Math.min(20, same.qty + qty);
+    else out.push({ key, dishId, qty, optionIds });
+  }
+  return out;
 }
 
 function renderMenu() {
@@ -72,10 +100,11 @@ function renderMenu() {
   const soldOut = new Set(m.soldOutToday);
   const sections = m.sections || [];
   const cats = m.categories.filter((c) => m.dishes.some((d) => d.category_id === c.id));
+  const hits = new Set(m.hits || []);
   const dishCard = (d) => {
     const out = soldOut.has(d.id);
     return `<button type="button" class="card dish${out ? ' out' : ''}" data-dish="${d.id}">
-      <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${out ? `<span class="tag-out">${esc(t('soldOutToday'))}</span>` : ''}</div>
+      <div class="ph">${d.photo ? `<img src="${esc(d.photo)}" alt="" loading="lazy" width="92" height="92">` : ''}${hits.has(d.id) ? `<span class="tag-hit">★ ${esc(t('hitTag'))}</span>` : ''}${out ? `<span class="tag-out">${esc(t('soldOutToday'))}</span>` : ''}</div>
       <div class="body">
         <div><h3>${esc(tr(d.name))}${d.is_kids ? `<span class="tag-kids">${esc(t('kidsTag'))}</span>` : ''}</h3>
         ${tr(d.description) ? `<p>${esc(tr(d.description))}</p>` : ''}</div>
@@ -84,7 +113,29 @@ function renderMenu() {
       </div>
     </button>`;
   };
-  $('#tabs').innerHTML = cats.map((c) => `<a class="chip" href="#cat-${c.id}">${esc(tr(c.name))}</a>`).join('');
+  // «Хиты продаж» вверху меню: главный хит крупной карточкой, дальше все блюда из быстрого заказа.
+  const dod = m.dishOfDay && state.dishes.get(m.dishOfDay.dishId);
+  const hitList = [...hits].filter((id) => id !== dod?.id).map((id) => state.dishes.get(id)).filter(Boolean);
+  const dodCard = dod
+    ? `<button type="button" class="card dod" data-dish="${dod.id}">
+        <span class="dod-ph">${dod.photo ? `<img src="${esc(dod.photo)}" alt="" width="112" height="112">` : ''}</span>
+        <span class="dod-body">
+          <span class="dod-tag">★ ${esc(t('topHit'))}</span>
+          <b>${esc(tr(dod.name))}</b>
+          ${tr(m.dishOfDay.note) ? `<span class="dod-note">«${esc(tr(m.dishOfDay.note))}» — ${esc(t('chef'))}</span>` : tr(dod.description) ? `<span class="dod-note">${esc(tr(dod.description))}</span>` : ''}
+          <span class="row"><span class="price">${fmt(dod.price)}</span><span class="btn small">${esc(t('dodAdd'))}</span></span>
+        </span>
+      </button>`
+    : '';
+  const hasHits = !!dod || hitList.length > 0;
+  $('#dish-of-day').innerHTML = hasHits
+    ? `<section class="cat hits" id="cat-hits">
+        <h2 class="brush">★ ${esc(t('hitsTitle'))}</h2>
+        ${dodCard}
+        ${hitList.length ? `<div class="dishes">${hitList.map(dishCard).join('')}</div>` : ''}
+      </section>`
+    : '';
+  $('#tabs').innerHTML = (hasHits ? `<a class="chip chip-hit" href="#cat-hits">★ ${esc(t('hitsTitle'))}</a>` : '') + cats.map((c) => `<a class="chip" href="#cat-${c.id}">${esc(tr(c.name))}</a>`).join('');
   $('#cats').innerHTML = cats
     .map((c) => {
       const items = m.dishes.filter((d) => d.category_id === c.id);
@@ -129,6 +180,10 @@ function renderMenu() {
       </section>`;
     })
     .join('');
+  $('#dish-of-day').onclick = (e) => {
+    const b = e.target.closest('[data-dish]');
+    if (b) openDish(b.dataset.dish);
+  };
   $('#cats').addEventListener('click', (e) => {
     const b = e.target.closest('[data-dish]');
     if (b) openDish(b.dataset.dish);
@@ -420,4 +475,14 @@ async function submit() {
 }
 
 $('#open-cart').onclick = () => (TABLE_CODE ? openTableCart() : openCart());
+// Telegram и браузер держат окно меню открытым в фоне. Если гость вернулся спустя 5+ минут
+// (или страница восстановлена из кэша), перезагружаем её, чтобы цены и стоп-лист были свежими.
+// Корзина хранится в браузере и не теряется; открытую карточку блюда или корзину не трогаем.
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000 && !document.querySelector('dialog[open]')) location.reload();
+});
+window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+
 init();

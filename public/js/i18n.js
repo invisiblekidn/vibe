@@ -42,7 +42,6 @@ document.documentElement.lang = LANG;
 
 const I18N = {
   // Общее
-  testBanner: { ru: 'Тестовая версия: заказы не настоящие, оплата не принимается', vi: 'Phiên bản thử nghiệm: đơn hàng không có thật, không nhận thanh toán', en: 'Test version: orders are not real, no payments accepted' },
   langLabel: { ru: 'Язык', vi: 'Ngôn ngữ', en: 'Language' },
   menu: { ru: 'Меню', vi: 'Thực đơn', en: 'Menu' },
   staffLink: { ru: 'Для сотрудников', vi: 'Dành cho nhân viên', en: 'Staff' },
@@ -84,9 +83,15 @@ const I18N = {
   menuLoading: { ru: 'Загружаем меню…', vi: 'Đang tải thực đơn…', en: 'Loading the menu…' },
   menuFailed: { ru: 'Не удалось загрузить меню. Обновите страницу.', vi: 'Không tải được thực đơn. Vui lòng tải lại trang.', en: 'Could not load the menu. Please refresh the page.' },
   soldOutToday: { ru: 'Сегодня закончилось', vi: 'Hôm nay đã hết', en: 'Sold out today' },
+  topHit: { ru: 'Главный хит', vi: 'Bán chạy nhất', en: 'Top hit' },
+  hitsTitle: { ru: 'Хиты продаж', vi: 'Món bán chạy', en: 'Best sellers' },
+  hitTag: { ru: 'Хит', vi: 'Bán chạy', en: 'Hit' },
   kidsTag: { ru: 'детское', vi: 'trẻ em', en: 'kids' },
   secAll: { ru: 'Все группы', vi: 'Tất cả nhóm', en: 'All groups' },
   priceFrom: { ru: 'от {p}', vi: 'từ {p}', en: 'from {p}' },
+  dishOfDay: { ru: 'Хит продаж', vi: 'Món bán chạy', en: 'Best seller' },
+  dodAdd: { ru: 'Добавить', vi: 'Thêm', en: 'Add' },
+  chef: { ru: 'шеф', vi: 'bếp trưởng', en: 'chef' },
   visitOnly: { ru: 'только к визиту', vi: 'chỉ khi đến quán', en: 'for your visit only' },
   cartBar: { ru: 'Корзина · {n} · {sum}', vi: 'Giỏ hàng · {n} · {sum}', en: 'Cart · {n} · {sum}' },
 

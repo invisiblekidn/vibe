@@ -90,12 +90,17 @@ function render(flash = '') {
       <button class="chip" data-f="kitchen" aria-pressed="${filter === 'kitchen'}">Кухня · ${orders.filter((o) => o.status === 'cooking').length}</button>
       <button class="chip" data-f="check" aria-pressed="${filter === 'check'}">Проверить оплату · ${nCheck}</button>
       <button class="chip" data-f="all" aria-pressed="${filter === 'all'}">Все</button>
+      <button class="chip" data-f="bot" aria-pressed="${filter === 'bot'}">Бот</button>
     </div>
     ${flash ? `<p class="alert warn" style="margin:0">${esc(flash)}</p>` : ''}
-    ${filter === 'tables' ? renderTables() : `
+    ${filter === 'bot' ? botTab() : filter === 'tables' ? renderTables() : `
     ${list.length ? '' : '<p class="muted">Заказов нет.</p>'}
     ${list.map((o) => orderCard(o)).join('')}`}
   </div>`;
+  if (filter === 'bot') {
+    if (bot.data && botDirty()) botRender();
+    else botLoad();
+  }
 }
 
 function orderCard(o, compact = false) {
@@ -105,7 +110,7 @@ function orderCard(o, compact = false) {
   const kitchenOnly = filter === 'kitchen';
   return `<article class="card ord${(!isTable && o.paymentStatus === 'reported') || (isTable && o.status === 'new') ? ' attn' : ''}">
     <div class="top"><span class="no">№ ${o.id}</span><span>${isTable ? `<b>${esc(o.table || 'Стол')}</b> · ${minutesSince(o.createdAt)} мин назад` : `${typeLabel(o.type)} · <b>${esc(slotLabel(o.slot, today))}</b>`}</span></div>
-    ${compact ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill ${isTable && o.status === 'new' ? 'warn' : 'mute'}">${(isTable ? TABLE_KITCHEN : KITCHEN)[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : o.channel === 'table' ? 'QR на столе' : esc(o.channel)}</span></div>`}
+    ${compact ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill ${isTable && o.status === 'new' ? 'warn' : 'mute'}">${(isTable ? TABLE_KITCHEN : KITCHEN)[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : o.channel === 'table' ? 'QR на столе' : esc(o.channel)}</span>${o.source === 'chat' ? '<span class="pill mute">⚡ из чата бота</span>' : ''}</div>`}
     ${!isTable && o.paymentStatus === 'reported' ? `<p class="hint" style="margin:0">Гость нажал «Я оплатил» ${waited} мин назад. Подтверждайте, только когда увидите <b>${fmt(o.total)}</b> в банке (в комментарии должен быть № ${o.id}).${waited >= 30 ? ' <b>Прошло 30 минут: свяжитесь с гостем.</b>' : ''}</p>` : ''}
     <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
     ${kitchenOnly || compact ? '' : `<div class="line tot" style="margin:0"><span>Сумма</span><span>${fmt(o.total)}</span></div>`}
@@ -208,7 +213,7 @@ async function load(flash = '') {
 function start() {
   load();
   clearTimeout(timer);
-  const tick = () => { timer = setTimeout(async () => { if (!document.querySelector('[data-sure]')) await load(); tick(); }, 15000); };
+  const tick = () => { timer = setTimeout(async () => { if (!document.querySelector('[data-sure]') && filter !== 'bot') await load(); tick(); }, 15000); };
   tick();
 }
 
