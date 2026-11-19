@@ -1,5 +1,5 @@
 -- ТЕСТОВЫЕ ДАННЫЕ для разработки. Часть настоящего меню (ноябрь 2026), фото временные.
--- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql, супы — в seed/menu-soups.sql, горячее — в seed/menu-mains.sql, бар — в seed/menu-bar.sql (выполнять после этого файла).
+-- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql, супы — в seed/menu-soups.sql, горячее — в seed/menu-mains.sql, салаты — в seed/menu-salads.sql, бар — в seed/menu-bar.sql (выполнять после этого файла).
 -- Вьетнамские названия пока совпадают с английскими: переведём на этапе 6.
 
 DELETE FROM order_events; DELETE FROM order_items; DELETE FROM orders;
@@ -19,18 +19,4 @@ INSERT INTO categories (id, sort, name) VALUES
  ('desserts',  6, '{"ru":"Десерты","en":"Desserts","vi":"Desserts"}'),
  ('bar',       7, '{"ru":"Бар","en":"Bar","vi":"Bar"}');
 
-INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weight, is_kids, is_alcohol) VALUES
- ('caesar-chicken', 'salads', 1, '{"ru":"Цезарь с курицей","en":"Caesar with chicken","vi":"Caesar with chicken"}',
-   '{"ru":"Куриное филе на гриле, романо, соус Цезарь, пармезан, гренки.","en":"Grilled chicken, romaine, Caesar sauce, Parmesan, croutons."}',
-   149000, '/img/dishes/caesar.jpg', NULL, 0, 0),
- ('olivier', 'salads', 2, '{"ru":"Оливье VIBE","en":"Olivier Salad VIBE","vi":"Olivier Salad VIBE"}',
-   '{"ru":"Классический салат, начинка на выбор.","en":"Classic salad, your choice of filling."}',
-   139000, '/img/dishes/olivier.jpg', NULL, 0, 0);
-
-INSERT INTO option_groups (id, dish_id, sort, name, min_select, max_select) VALUES
- ('ol-fill', 'olivier', 1, '{"ru":"Начинка","en":"Filling","vi":"Filling"}', 1, 1);
-
-INSERT INTO options (id, group_id, sort, name, price_delta) VALUES
- ('ol-chicken', 'ol-fill', 1, '{"ru":"С курицей","en":"With chicken","vi":"With chicken"}', 0),
- ('ol-sausage', 'ol-fill', 2, '{"ru":"С докторской колбасой","en":"With doctor''s sausage","vi":"With doctor''s sausage"}', 0),
- ('ol-salmon', 'ol-fill', 3, '{"ru":"Со слабосолёным лососем","en":"With lightly salted salmon","vi":"With lightly salted salmon"}', 0);
+-- Блюда всех разделов — в файлах seed/menu-*.sql.

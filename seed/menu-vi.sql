@@ -12,8 +12,8 @@ UPDATE categories SET name = json_set(name, '$.vi', 'Tráng miệng') WHERE id =
 UPDATE categories SET name = json_set(name, '$.vi', 'Quầy bar') WHERE id = 'bar';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Súp borscht bò'), description = json_set(description, '$.vi', 'Súp borscht đậm đà truyền thống với thịt bò, rau củ, kem chua và rau thơm. Có thể thêm mỡ heo muối (salo).') WHERE id = 'borsch';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh pelmeni'), description = json_set(description, '$.vi', 'Bánh pelmeni nhà làm nhân thịt, ăn kèm kem chua.') WHERE id = 'pelmeni';
-UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Caesar gà'), description = json_set(description, '$.vi', 'Ức gà nướng, xà lách romaine, sốt Caesar, phô mai Parmesan, bánh mì nướng giòn.') WHERE id = 'caesar-chicken';
-UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Olivier VIBE'), description = json_set(description, '$.vi', 'Salad Nga truyền thống, chọn nhân theo ý thích.') WHERE id = 'olivier';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Caesar gà'), description = json_set(description, '$.vi', 'Phi lê gà nướng mọng nước, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan.') WHERE id = 'caesar-chicken';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Olivier VIBE'), description = json_set(description, '$.vi', 'Salad Nga truyền thống, tùy chọn: với thịt gà, xúc xích luộc hoặc cá hồi muối nhạt.') WHERE id = 'olivier';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Gà cuộn bơ kiểu Kiev với khoai tây nghiền'), description = json_set(description, '$.vi', 'Phi lê gà cuộn bơ thơm và rau thơm trong lớp vỏ giòn, ăn kèm khoai tây nghiền. Có thể đổi món ăn kèm sang kiều mạch, cơm hoặc mì ống.') WHERE id = 'kiev';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Mì Ý Carbonara'), description = json_set(description, '$.vi', 'Mì Ý truyền thống với thịt xông khói sốt kem, rắc phô mai Parmesan.') WHERE id = 'carbonara';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Bữa sáng lớn VIBE'), description = json_set(description, '$.vi', 'Trứng tùy chọn (ốp la, trứng bác hoặc trứng chiên), thịt xông khói, hai xúc xích, khoai tây kiểu đồng quê với rau thơm, rau củ tươi, hai lát bánh mì baguette và tương cà.') WHERE id = 'big-breakfast';
@@ -108,6 +108,13 @@ UPDATE dishes SET name = json_set(name, '$.vi', 'Mì Ý tôm'), description = js
 UPDATE dishes SET name = json_set(name, '$.vi', 'Mì Ý Bolognese'), description = json_set(description, '$.vi', 'Mì Ý với sốt thịt Bolognese đậm đà, cà chua và phô mai Parmesan.') WHERE id = 'bolognese';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Mì Ý cá hồi sốt kem'), description = json_set(description, '$.vi', 'Mì Ý với cá hồi sốt kem, rắc phô mai Parmesan và rau thơm tươi.') WHERE id = 'pasta-salmon';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Mì ống phô mai'), description = json_set(description, '$.vi', 'Mì ống yêu thích trong sốt phô mai béo ngậy.') WHERE id = 'mac-cheese';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Caesar cá hồi'), description = json_set(description, '$.vi', 'Cá hồi cắt lát, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan.') WHERE id = 'caesar-salmon';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Caesar tôm'), description = json_set(description, '$.vi', 'Tôm áp chảo, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan.') WHERE id = 'caesar-shrimp';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad bơ và cá hồi'), description = json_set(description, '$.vi', 'Bơ, cá hồi, táo xanh, xà lách và sốt kem.') WHERE id = 'avocado-salmon';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad thanh cua'), description = json_set(description, '$.vi', 'Thanh cua, trứng, bắp, dưa leo tươi và sốt mayonnaise béo.') WHERE id = 'crab-salad';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Hy Lạp'), description = json_set(description, '$.vi', 'Rau củ tươi, phô mai feta, ô liu, hành tím và sốt dầu ô liu thơm.') WHERE id = 'greek-salad';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad rau củ tươi'), description = json_set(description, '$.vi', 'Cà chua, dưa leo, ớt chuông, hành tím, xà lách và rau thơm. Nước sốt tùy chọn: dầu ô liu hoặc kem chua.') WHERE id = 'veg-salad';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Salad củ dền Vinaigrette'), description = json_set(description, '$.vi', 'Salad củ dền truyền thống với khoai tây, cà rốt, dưa chuột muối, đậu Hà Lan và hành tây, trộn dầu ô liu.') WHERE id = 'vinaigrette';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Nhân') WHERE id = 'ol-fill';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Trứng') WHERE id = 'bb-eggs';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Lựa chọn') WHERE id = 'eb-with';
@@ -152,8 +159,9 @@ UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id = 'kiev-side';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id = 'stuffed-peppers-side';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id = 'burger-side';
-UPDATE options SET name = json_set(name, '$.vi', 'Với gà') WHERE id = 'ol-chicken';
-UPDATE options SET name = json_set(name, '$.vi', 'Với xúc xích Nga') WHERE id = 'ol-sausage';
+UPDATE option_groups SET name = json_set(name, '$.vi', 'Nước sốt') WHERE id = 'vs-dress';
+UPDATE options SET name = json_set(name, '$.vi', 'Với thịt gà') WHERE id = 'ol-chicken';
+UPDATE options SET name = json_set(name, '$.vi', 'Với xúc xích luộc') WHERE id = 'ol-sausage';
 UPDATE options SET name = json_set(name, '$.vi', 'Với cá hồi muối nhạt') WHERE id = 'ol-salmon';
 UPDATE options SET name = json_set(name, '$.vi', 'Trứng ốp la') WHERE id = 'bb-fried';
 UPDATE options SET name = json_set(name, '$.vi', 'Trứng bác') WHERE id = 'bb-scr';
@@ -317,3 +325,5 @@ UPDATE options SET name = json_set(name, '$.vi', 'Khoai tây chiên') WHERE id =
 UPDATE options SET name = json_set(name, '$.vi', 'Kiều mạch') WHERE id = 'burger-side-buckwheat';
 UPDATE options SET name = json_set(name, '$.vi', 'Cơm') WHERE id = 'burger-side-rice';
 UPDATE options SET name = json_set(name, '$.vi', 'Mì ống') WHERE id = 'burger-side-pasta';
+UPDATE options SET name = json_set(name, '$.vi', 'Dầu ô liu') WHERE id = 'vs-oil';
+UPDATE options SET name = json_set(name, '$.vi', 'Kem chua') WHERE id = 'vs-sour';
