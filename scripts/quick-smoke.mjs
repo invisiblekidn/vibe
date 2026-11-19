@@ -98,7 +98,7 @@ try {
   ok(datas(greet).includes('q:day') && datas(greet).includes('q:new') && !datas(greet).includes('q:rep'), '«Старт»: кнопки «Блюдо дня» и «Быстрый заказ», «Повторить» скрыта без прошлых заказов');
   ok(!!buttons(greet)[0].web_app, 'первая кнопка по-прежнему открывает окно меню');
   const kbMsg = toGuest(since(i), 'sendMessage').find((c) => c.body.reply_markup?.keyboard);
-  ok(!!kbMsg && kbMsg.body.reply_markup.is_persistent && kbMsg.body.reply_markup.keyboard.flat().map((b) => b.text).join('|') === '⭐ Блюдо дня|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после «Старт» внизу чата постоянные кнопки: блюдо дня, быстрый заказ, повторить');
+  ok(!!kbMsg && kbMsg.body.reply_markup.one_time_keyboard && !kbMsg.body.reply_markup.is_persistent && kbMsg.body.reply_markup.keyboard.flat().map((b) => b.text).join('|') === '⭐ Блюдо дня|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после «Старт» внизу чата кнопки (сворачиваются в значок ⌨): блюдо дня, быстрый заказ, повторить');
   i = calls.length;
   await hook(say('⚡ Быстрый заказ'));
   await settle();
@@ -155,7 +155,7 @@ try {
   await hook(say(undefined, { text: undefined, contact: { phone_number: '84901234567', user_id: GUEST, first_name: 'Мария' } }));
   await settle();
   const afterPhone = since(i);
-  ok(toGuest(afterPhone, 'sendMessage').some((c) => c.body.reply_markup?.is_persistent), 'номер сохранён, внизу снова постоянные кнопки');
+  ok(toGuest(afterPhone, 'sendMessage').some((c) => c.body.reply_markup?.keyboard?.flat().some((b) => b.text === '⚡ Быстрый заказ')), 'номер сохранён, внизу снова кнопки быстрого заказа');
   ok(!afterPhone.some((c) => c.body.chat_id === GROUP), 'номер не ушёл администратору как переписка');
   const confirm = lastScreen(afterPhone);
   ok(confirm.body.text.includes('Проверьте заказ') && confirm.body.text.includes('Мамины сырники (Сгущённое молоко) ×2 — 238 000 ₫') && datas(confirm)[0] === 'q:ok', 'проверка заказа: позиции с ценами сервера и «Подтвердить»');
@@ -177,6 +177,11 @@ try {
   const staffCard = placed.find((c) => c.method === 'sendMessage' && c.body.chat_id === GROUP && c.body.text.includes(`Заказ №${o.id}`));
   ok(!!staffCard && staffCard.body.text.includes('⚡ из чата бота') && datas(staffCard).includes(`o:${o.id}:cp`), 'в группе сотрудников: карточка заказа с пометкой «из чата бота» и «Деньги пришли»');
   ok(toast(placed).includes(`№${o.id} уже оформлен`), 'лишнее нажатие: «Заказ уже оформлен»');
+  const placedMsg = toGuest(placed, 'sendMessage').filter((c) => c.body.text?.includes(`Заказ №${o.id} оформлен`));
+  ok(placedMsg.length === 1 && placedMsg[0].body.reply_markup?.keyboard?.flat().map((b) => b.text).join('|') === '⭐ Блюдо дня|⚡ Быстрый заказ|🔁 Повторить прошлый заказ', 'после заказа: «Заказ оформлен» с кнопками быстрого заказа внизу чата (кнопки не пропадают)');
+  ok(placed.some((c) => c.method === 'deleteMessage' && c.body.chat_id === GUEST && c.body.message_id === confirm.result.message_id), 'сообщение корзины убрано, в чате одна запись о заказе');
+  const lastKb = toGuest(placed, 'sendMessage').filter((c) => c.body.reply_markup && ('keyboard' in c.body.reply_markup || 'remove_keyboard' in c.body.reply_markup)).at(-1);
+  ok(!!lastKb?.body.reply_markup.keyboard, 'после заказа ни одно сообщение не убирает кнопки');
 
   // «Я оплатил» → только «оплата проверяется», кухня ждёт
   if (datas(cards[0]).includes(`gp:${o.id}`)) r = await tap(`gp:${o.id}`, cards[0].result.message_id);

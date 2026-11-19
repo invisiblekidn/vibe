@@ -173,7 +173,7 @@ type T = Record<string, string>;
 export const QT: Record<Lang, T> = {
   ru: {
     btnDay: '⭐ Блюдо дня', btnQuick: '⚡ Быстрый заказ', btnRepeat: '🔁 Повторить прошлый заказ',
-    kbHint: '👇 Блюдо дня, быстрый заказ и повтор прошлого заказа — всегда на кнопках внизу.',
+    kbHint: '👇 Блюдо дня, быстрый заказ и повтор прошлого заказа — на кнопках внизу. Если они скрылись, нажмите значок ⌨ рядом с полем ввода.',
     dayTitle: 'Блюдо дня', dayAdd: '➕ Добавить в заказ', dayMore: '⚡ Ещё из быстрого заказа', chef: 'шеф',
     dayNone: 'Сегодня блюдо дня ещё не выбрано. Загляните в быстрый заказ или в меню.',
     daySold: 'Сегодня блюдо дня закончилось. Загляните в быстрый заказ или в меню.',
@@ -206,7 +206,7 @@ export const QT: Record<Lang, T> = {
   },
   vi: {
     btnDay: '⭐ Món của ngày', btnQuick: '⚡ Đặt nhanh', btnRepeat: '🔁 Đặt lại đơn trước',
-    kbHint: '👇 Món của ngày, đặt nhanh và đặt lại đơn trước — luôn ở các nút bên dưới.',
+    kbHint: '👇 Món của ngày, đặt nhanh và đặt lại đơn trước — ở các nút bên dưới. Nếu nút bị ẩn, hãy bấm biểu tượng ⌨ cạnh ô nhập tin.',
     dayTitle: 'Món của ngày', dayAdd: '➕ Thêm vào đơn', dayMore: '⚡ Thêm món đặt nhanh', chef: 'bếp trưởng',
     dayNone: 'Hôm nay chưa chọn món của ngày. Mời bạn xem đặt nhanh hoặc thực đơn.',
     daySold: 'Món của ngày hôm nay đã hết. Mời bạn xem đặt nhanh hoặc thực đơn.',
@@ -239,7 +239,7 @@ export const QT: Record<Lang, T> = {
   },
   en: {
     btnDay: '⭐ Dish of the day', btnQuick: '⚡ Quick order', btnRepeat: '🔁 Repeat last order',
-    kbHint: '👇 Dish of the day, quick order and repeat last order are always on the buttons below.',
+    kbHint: '👇 Dish of the day, quick order and repeat last order are on the buttons below. If they are hidden, tap the ⌨ icon next to the message field.',
     dayTitle: 'Dish of the day', dayAdd: '➕ Add to order', dayMore: '⚡ More from quick order', chef: 'chef',
     dayNone: 'No dish of the day yet today. Have a look at the quick order or the menu.',
     daySold: 'Today’s dish of the day is sold out. Have a look at the quick order or the menu.',
@@ -434,12 +434,17 @@ export function repeatScreen(
 
 // ---------- Постоянные кнопки внизу чата ----------
 
-/** Клавиатура под полем ввода: видна всегда, не теряется в переписке. */
+/**
+ * Кнопки под полем ввода. После нажатия сворачиваются в значок ⌨ рядом с полем ввода
+ * и остаются там: гость открывает их одним касанием, ничего не вводя.
+ * Бот заново присылает их после каждого заказа, так что они не теряются.
+ */
 export function quickKeyboard(lang: Lang) {
   return {
     keyboard: [[{ text: qt(lang, 'btnDay') }, { text: qt(lang, 'btnQuick') }], [{ text: qt(lang, 'btnRepeat') }]],
     resize_keyboard: true,
-    is_persistent: true,
+    one_time_keyboard: true,
+    is_persistent: false,
   };
 }
 
