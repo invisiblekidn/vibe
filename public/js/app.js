@@ -112,6 +112,18 @@ function renderMenu() {
       </div>
     </button>`;
   };
+  const dod = m.dishOfDay && state.dishes.get(m.dishOfDay.dishId);
+  $('#dish-of-day').innerHTML = dod
+    ? `<button type="button" class="card dod" data-dish="${dod.id}">
+        <span class="dod-ph">${dod.photo ? `<img src="${esc(dod.photo)}" alt="" width="112" height="112">` : ''}</span>
+        <span class="dod-body">
+          <span class="dod-tag">⭐ ${esc(t('dishOfDay'))}</span>
+          <b>${esc(tr(dod.name))}</b>
+          ${tr(m.dishOfDay.note) ? `<span class="dod-note">«${esc(tr(m.dishOfDay.note))}» — ${esc(t('chef'))}</span>` : tr(dod.description) ? `<span class="dod-note">${esc(tr(dod.description))}</span>` : ''}
+          <span class="row"><span class="price">${fmt(dod.price)}</span><span class="btn small">${esc(t('dodAdd'))}</span></span>
+        </span>
+      </button>`
+    : '';
   $('#tabs').innerHTML = cats.map((c) => `<a class="chip" href="#cat-${c.id}">${esc(tr(c.name))}</a>`).join('');
   $('#cats').innerHTML = cats
     .map((c) => {
@@ -157,6 +169,10 @@ function renderMenu() {
       </section>`;
     })
     .join('');
+  $('#dish-of-day').onclick = (e) => {
+    const b = e.target.closest('[data-dish]');
+    if (b) openDish(b.dataset.dish);
+  };
   $('#cats').addEventListener('click', (e) => {
     const b = e.target.closest('[data-dish]');
     if (b) openDish(b.dataset.dish);

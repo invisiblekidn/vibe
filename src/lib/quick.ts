@@ -173,6 +173,7 @@ type T = Record<string, string>;
 export const QT: Record<Lang, T> = {
   ru: {
     btnDay: '⭐ Блюдо дня', btnQuick: '⚡ Быстрый заказ', btnRepeat: '🔁 Повторить прошлый заказ',
+    kbHint: '👇 Блюдо дня, быстрый заказ и повтор прошлого заказа — всегда на кнопках внизу.',
     dayTitle: 'Блюдо дня', dayAdd: '➕ Добавить в заказ', dayMore: '⚡ Ещё из быстрого заказа', chef: 'шеф',
     dayNone: 'Сегодня блюдо дня ещё не выбрано. Загляните в быстрый заказ или в меню.',
     daySold: 'Сегодня блюдо дня закончилось. Загляните в быстрый заказ или в меню.',
@@ -205,6 +206,7 @@ export const QT: Record<Lang, T> = {
   },
   vi: {
     btnDay: '⭐ Món của ngày', btnQuick: '⚡ Đặt nhanh', btnRepeat: '🔁 Đặt lại đơn trước',
+    kbHint: '👇 Món của ngày, đặt nhanh và đặt lại đơn trước — luôn ở các nút bên dưới.',
     dayTitle: 'Món của ngày', dayAdd: '➕ Thêm vào đơn', dayMore: '⚡ Thêm món đặt nhanh', chef: 'bếp trưởng',
     dayNone: 'Hôm nay chưa chọn món của ngày. Mời bạn xem đặt nhanh hoặc thực đơn.',
     daySold: 'Món của ngày hôm nay đã hết. Mời bạn xem đặt nhanh hoặc thực đơn.',
@@ -237,6 +239,7 @@ export const QT: Record<Lang, T> = {
   },
   en: {
     btnDay: '⭐ Dish of the day', btnQuick: '⚡ Quick order', btnRepeat: '🔁 Repeat last order',
+    kbHint: '👇 Dish of the day, quick order and repeat last order are always on the buttons below.',
     dayTitle: 'Dish of the day', dayAdd: '➕ Add to order', dayMore: '⚡ More from quick order', chef: 'chef',
     dayNone: 'No dish of the day yet today. Have a look at the quick order or the menu.',
     daySold: 'Today’s dish of the day is sold out. Have a look at the quick order or the menu.',
@@ -427,4 +430,26 @@ export function repeatScreen(
   if (items.length) rows.push([cb(qt(lang, 'checkout', { sum: fmtVnd(sum) }), 'q:go')]);
   rows.push([cb(qt(lang, 'addQuick'), 'q:l'), { ...menuButton, text: qt(lang, 'inMenu') }]);
   return { text: out.join('\n'), rows };
+}
+
+// ---------- Постоянные кнопки внизу чата ----------
+
+/** Клавиатура под полем ввода: видна всегда, не теряется в переписке. */
+export function quickKeyboard(lang: Lang) {
+  return {
+    keyboard: [[{ text: qt(lang, 'btnDay') }, { text: qt(lang, 'btnQuick') }], [{ text: qt(lang, 'btnRepeat') }]],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
+/** Нажатие кнопки внизу чата приходит обычным текстом — узнаём его на любом из трёх языков. */
+export function quickTextKind(text: string): 'day' | 'new' | 'rep' | null {
+  const t = text.trim();
+  for (const l of ['ru', 'vi', 'en'] as Lang[]) {
+    if (t === QT[l].btnDay) return 'day';
+    if (t === QT[l].btnQuick) return 'new';
+    if (t === QT[l].btnRepeat) return 'rep';
+  }
+  return null;
 }

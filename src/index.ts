@@ -61,6 +61,12 @@ app.onError((err, c) => {
 
 // ---------- Меню и время ----------
 
+async function dishOfDayFor(db: D1Database, locationId: string, soldOut: Set<string>, menu: { dishes: { id: string; active: boolean }[] }) {
+  const pick = (await loadPicks(db, locationId)).day;
+  if (!pick || soldOut.has(pick.dishId) || !menu.dishes.some((d) => d.id === pick.dishId && d.active)) return null;
+  return { dishId: pick.dishId, note: pick.note };
+}
+
 app.get('/api/menu', async (c) => {
   const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
   if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
@@ -79,6 +85,8 @@ app.get('/api/menu', async (c) => {
     },
     today,
     soldOutToday: [...soldOut],
+    // Блюдо дня, которое выбрал сотрудник во вкладке «Бот». Закончилось или снято — не показываем.
+    dishOfDay: await dishOfDayFor(c.env.DB, loc.id, soldOut, menu),
     categories: menu.categories,
     sections: menu.sections,
     dishes: menu.dishes.map((d) => ({

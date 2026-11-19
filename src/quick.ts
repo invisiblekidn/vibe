@@ -7,6 +7,7 @@ import { checkSlot, orderableDays, slotsForDay, toLocal } from './lib/time';
 import { escHtml, fmtVnd, type InlineButton, type Lang } from './lib/telegram';
 import {
   QT,
+  quickKeyboard,
   QUICK_MAX,
   addToCart,
   cartParam,
@@ -522,7 +523,8 @@ export async function onQuickPhone(env: TgEnv, tg: Tg, m: any, base: string, lan
   c.phone = phone.slice(0, 30);
   c.pending = null;
   await saveCart(env.DB, c);
-  await tg(env, 'sendMessage', { chat_id: userId, text: qt(lang, 'phoneSaved'), reply_markup: { remove_keyboard: true } });
+  // Вместо кнопки «Отправить номер» снова постоянные кнопки внизу чата.
+  await tg(env, 'sendMessage', { chat_id: userId, text: qt(lang, 'phoneSaved'), reply_markup: quickKeyboard(lang) });
   const x = await context(env, base);
   if (!x) return true;
   const screen = c.items.length && c.type && c.slot ? confirmView(x, c, lang, await soldOutOn(env.DB, x.loc.id, c.slot.slice(0, 10))) : quickView(x, lang, c);

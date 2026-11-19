@@ -87,6 +87,9 @@ const I18N = {
   kidsTag: { ru: 'детское', vi: 'trẻ em', en: 'kids' },
   secAll: { ru: 'Все группы', vi: 'Tất cả nhóm', en: 'All groups' },
   priceFrom: { ru: 'от {p}', vi: 'từ {p}', en: 'from {p}' },
+  dishOfDay: { ru: 'Блюдо дня', vi: 'Món của ngày', en: 'Dish of the day' },
+  dodAdd: { ru: 'Добавить', vi: 'Thêm', en: 'Add' },
+  chef: { ru: 'шеф', vi: 'bếp trưởng', en: 'chef' },
   visitOnly: { ru: 'только к визиту', vi: 'chỉ khi đến quán', en: 'for your visit only' },
   cartBar: { ru: 'Корзина · {n} · {sum}', vi: 'Giỏ hàng · {n} · {sum}', en: 'Cart · {n} · {sum}' },
 
