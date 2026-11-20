@@ -74,6 +74,19 @@
   .stop-sw input:checked + i::after { transform: translateX(20px); }
   .stop-sw input:focus-visible + i { outline: 2px solid var(--v-brush); outline-offset: 2px; }
   .stop-sw input:disabled + i { opacity: .6; }
+  /* Вкладка «Доставка» */
+  .dset { padding: 14px; display: grid; gap: 10px; }
+  .dset-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; }
+  .dset summary { cursor: pointer; padding: 4px 0; }
+  .dset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 10px; align-items: start; }
+  .dset-f label { min-height: 2.6em; display: flex; align-items: flex-end; }
+  .dset-sw input:checked + i { background: var(--ok); }
+  .dset-f { margin: 0; }
+  .dset-in { display: flex; align-items: center; gap: 6px; }
+  .dset-in input { width: 100%; min-width: 0; }
+  .dset-in span { color: var(--v-soft); font-weight: 700; min-width: 18px; }
+  .dlv-box { display: grid; gap: 6px; background: var(--v-chip); border-radius: 12px; padding: 10px 12px; }
+  .dlv-box .btn { justify-self: start; }
   .bot-log { margin: 0; padding-left: 18px; font-size: 13.5px; display: grid; gap: 4px; }
 </style>
 </head>
@@ -88,5 +101,6 @@
 <script src="/js/staff.js"></script>
 <script src="/js/staff-bot.js"></script>
 <script src="/js/staff-stop.js"></script>
+<script src="/js/staff-delivery.js"></script>
 </body>
 </html>

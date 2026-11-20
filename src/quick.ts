@@ -28,7 +28,7 @@ import {
   type QuickCb,
   type QuickDish,
 } from './lib/quick';
-import { ENABLED_TYPES, createOrder } from './orders';
+import { enabledTypes, createOrder } from './orders';
 import type { TgEnv } from './bot';
 
 type Tg = (env: TgEnv, method: string, payload: Record<string, unknown>) => Promise<any>;
@@ -138,7 +138,9 @@ async function context(env: TgEnv, base: string): Promise<Ctx | null> {
 
 function menuButton(x: Ctx, lang: Lang, items: BotCartItem[], key = 'openMenu'): InlineButton {
   const cart = items.length ? `&cart=${encodeURIComponent(cartParam(items))}` : '';
-  return { text: qt(lang, key), web_app: { url: `${x.base}/?tg=1${cart}` } };
+  // Доставка из чата: окно меню сразу открывает корзину с выбранной доставкой (адрес и карта — там).
+  const type = key === 'delivery' ? '&type=delivery' : '';
+  return { text: qt(lang, key), web_app: { url: `${x.base}/?tg=1${cart}${type}` } };
 }
 
 function quickDishes(x: Ctx, lang: Lang): QuickDish[] {
@@ -414,7 +416,7 @@ export async function onQuickCallback(
         break;
       }
       c.pending = null;
-      screen = typeScreen(lang, hasAlcohol(x, c), ENABLED_TYPES.includes('delivery') ? menuButton(x, lang, c.items, 'delivery') : null);
+      screen = typeScreen(lang, hasAlcohol(x, c), enabledTypes(x.loc).includes('delivery') ? menuButton(x, lang, c.items, 'delivery') : null);
       break;
     case 't':
       if (!c.items.length) {

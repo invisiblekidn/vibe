@@ -1,6 +1,7 @@
 // Чистые функции для Telegram: проверка данных Mini App, тексты сообщений, кнопки.
 // Сетевые вызовы — в src/bot.ts.
 import { tableTitle } from './tables';
+import { mapLink } from './delivery';
 
 const enc = new TextEncoder();
 
@@ -144,6 +145,12 @@ export interface OrderForText {
   channel: string;
   /** 'chat' — оформлен быстрыми кнопками в чате бота. */
   source?: string | null;
+  subtotal?: number;
+  delivery_fee?: number;
+  delivery_address?: string | null;
+  delivery_lat?: number | null;
+  delivery_lng?: number | null;
+  delivery_km?: number | null;
   items: { name: string; qty: number; options: { name: string }[] }[];
 }
 
@@ -169,6 +176,16 @@ export function orderTableTitle(o: { table_id?: string | null; table_zone?: stri
   return tableTitle({ id: String(o.table_id ?? '?'), zone: o.table_zone || 'hall' });
 }
 
+/** Адрес для курьера: текст гостя, ссылка на точку, расстояние и цена доставки. */
+function deliveryLines(o: OrderForText): string[] {
+  const point = o.delivery_lat != null && o.delivery_lng != null ? { lat: o.delivery_lat, lng: o.delivery_lng } : null;
+  const fee = o.delivery_fee ? fmtVnd(o.delivery_fee) : 'бесплатно';
+  return [
+    `🛵 ${o.delivery_address ? `<b>${escHtml(o.delivery_address)}</b>` : '<i>адрес не написан, только точка на карте</i>'}`,
+    point ? `📍 <a href="${mapLink(point)}">Точка на карте</a>${o.delivery_km != null ? ` · ${String(o.delivery_km).replace('.', ',')} км` : ''} · доставка ${fee}` : `Доставка ${fee}`,
+  ];
+}
+
 export function staffOrderText(o: OrderForText, today?: string, lastActor?: string): string {
   const isTable = o.type === 'table';
   const via = o.source === 'chat' ? ' · ⚡ из чата бота' : '';
@@ -180,6 +197,7 @@ export function staffOrderText(o: OrderForText, today?: string, lastActor?: stri
     head,
     isTable ? `🍽 <b>${escHtml(orderTableTitle(o))}</b>` : `${TYPE[o.type] || o.type} · ${slotText(o.slot, today)}`,
     items,
+    ...(o.type === 'delivery' ? deliveryLines(o) : []),
     `<b>${fmtVnd(o.total)}</b> · ${isTable ? 'по счёту в конце' : 'QR'}`,
     isTable ? '' : `${escHtml(o.guest_name)} · ${escHtml(o.guest_phone)}`,
     o.comment ? `«${escHtml(o.comment)}»` : '',
@@ -213,8 +231,9 @@ export function staffButtons(o: { id: number; type?: string; status: string; pay
   if (o.payment_method === 'qr' && o.payment_status !== 'confirmed') row.push(b('💳 Деньги пришли', 'cp'));
   const table = o.type === 'table';
   if (o.status === 'new' && (o.payment_method !== 'qr' || o.payment_status === 'confirmed')) row.push(b(table ? '✅ Принять' : '👩‍🍳 Готовить', 'sc'));
-  if (o.status === 'cooking') row.push(b('🍽 Готово', 'mr'));
-  if (o.status === 'ready') row.push(b(table ? '✔️ Подано' : '✔️ Выдан', 'cm'));
+  const delivery = o.type === 'delivery';
+  if (o.status === 'cooking') row.push(b(delivery ? '🛵 Отдать курьеру' : '🍽 Готово', 'mr'));
+  if (o.status === 'ready') row.push(b(table ? '✔️ Подано' : delivery ? '✔️ Доставлен' : '✔️ Выдан', 'cm'));
   return [row, [b('Отменить', 'cx?')]].filter((r) => r.length);
 }
 
@@ -231,6 +250,8 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
       cooking_started: `👩‍🍳 Заказ №${id} готовим.`,
       ready_visit: `🍽 <b>Заказ №${id} готов</b>\nЖдём вас, стол готов. Назовите номер ${id}.`,
       ready: `🍽 <b>Заказ №${id} готов</b>\nМожно забирать на кассе. Назовите номер ${id}.`,
+      ready_delivery: `🛵 <b>Заказ №${id} в пути</b>\nКурьер везёт заказ по вашему адресу. Если что-то изменилось, напишите сюда.`,
+      completed_delivery: `Заказ №${id} доставлен. Приятного аппетита!\nБудем рады видеть вас и в ресторане, у нас есть детская зона.`,
       completed: `Заказ №${id} выдан. Приятного аппетита!\nБудем рады видеть вас снова, у нас есть детская зона.`,
       cancelled: `Заказ №${id} отменён. Если это ошибка, напишите сюда, мы ответим.`,
     },
@@ -241,6 +262,8 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
       cooking_started: `👩‍🍳 Đơn số ${id} đang được nấu.`,
       ready_visit: `🍽 <b>Đơn số ${id} đã sẵn sàng</b>\nBàn của bạn đã sẵn sàng, chúng tôi đang chờ bạn. Hãy đọc số ${id}.`,
       ready: `🍽 <b>Đơn số ${id} đã sẵn sàng</b>\nBạn có thể nhận tại quầy. Hãy đọc số ${id}.`,
+      ready_delivery: `🛵 <b>Đơn số ${id} đang được giao</b>\nShipper đang mang đơn đến địa chỉ của bạn. Nếu có thay đổi, hãy nhắn vào đây.`,
+      completed_delivery: `Đơn số ${id} đã giao xong. Chúc bạn ngon miệng!\nRất mong được đón bạn tại nhà hàng, chúng tôi có khu vui chơi cho trẻ em.`,
       completed: `Đơn số ${id} đã được giao. Chúc bạn ngon miệng!\nRất mong được đón bạn lần sau, chúng tôi có khu vui chơi cho trẻ em.`,
       cancelled: `Đơn số ${id} đã bị hủy. Nếu có nhầm lẫn, hãy nhắn vào đây, chúng tôi sẽ trả lời.`,
     },
@@ -251,11 +274,18 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
       cooking_started: `👩‍🍳 We are cooking order #${id}.`,
       ready_visit: `🍽 <b>Order #${id} is ready</b>\nYour table is ready and waiting. Just say number ${id}.`,
       ready: `🍽 <b>Order #${id} is ready</b>\nYou can pick it up at the counter. Just say number ${id}.`,
+      ready_delivery: `🛵 <b>Order #${id} is on the way</b>\nThe courier is bringing it to your address. If anything changed, write here.`,
+      completed_delivery: `Order #${id} delivered. Enjoy your meal!\nWe hope to see you at the restaurant too, we have a play area for kids.`,
       completed: `Order #${id} handed over. Enjoy your meal!\nWe hope to see you again, we have a play area for kids.`,
       cancelled: `Order #${id} was cancelled. If this is a mistake, write here and we will reply.`,
     },
   };
-  const key = event === 'ready' && o.type === 'visit' ? 'ready_visit' : event;
+  const key =
+    event === 'ready' && o.type === 'visit'
+      ? 'ready_visit'
+      : (event === 'ready' || event === 'completed') && o.type === 'delivery'
+        ? `${event}_delivery`
+        : event;
   return T[lang][key] ?? null;
 }
 
@@ -268,17 +298,17 @@ export function staffAlertText(event: string, o: OrderForText): string | null {
 export const WELCOME_L: Record<Lang, string> = {
   ru:
     'Здравствуйте! Это семейный ресторан VIBE в Нячанге 🌿\n\n' +
-    'Здесь можно заказать заранее: забрать самому или к своему приходу.\n\n' +
+    'Здесь можно заказать заранее: забрать самому, к своему приходу или с доставкой.\n\n' +
     'Работаем ежедневно 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
     'Если хотите что-то спросить, просто напишите сюда, ответит администратор.',
   vi:
     'Xin chào! Đây là nhà hàng gia đình VIBE ở Nha Trang 🌿\n\n' +
-    'Bạn có thể đặt món trước: tự đến lấy hoặc chuẩn bị sẵn khi bạn đến.\n\n' +
+    'Bạn có thể đặt món trước: tự đến lấy, chuẩn bị sẵn khi bạn đến hoặc giao hàng.\n\n' +
     'Mở cửa hằng ngày 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
     'Nếu bạn có câu hỏi, cứ nhắn vào đây, quản lý sẽ trả lời.',
   en:
     'Hello! This is VIBE, a family restaurant in Nha Trang 🌿\n\n' +
-    'Order ahead here: pick it up yourself or have it ready for your visit.\n\n' +
+    'Order ahead here: pick it up yourself, have it ready for your visit or get it delivered.\n\n' +
     'Open daily 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
     'If you have a question, just write here and the manager will reply.',
 };

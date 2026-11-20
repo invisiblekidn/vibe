@@ -127,8 +127,11 @@ async function init() {
   $('#f-addr').textContent = m.location.address;
   renderMenu();
   renderCartbar();
+  // Из чата бота «🛵 Доставка»: сразу корзина с выбранной доставкой.
+  const wantType = !TABLE_CODE && new URLSearchParams(location.search).get('type');
+  if (wantType && m.location.orderTypes.includes(wantType)) state.type = wantType;
   if (TABLE_CODE) tableInit();
-  else if (fromBot && state.cart.length) openCart();
+  else if ((fromBot || wantType) && state.cart.length) openCart();
 }
 
 /** «dish*2*opt1.opt2,dish2*1» → строки корзины. Неизвестные блюда и опции отбрасываем, цены — из меню. */
@@ -453,6 +456,10 @@ function renderCart() {
   if (hasAlcohol && state.type !== 'visit') problems.push(t('alcoholProblem'));
   const stop = stopProblem();
   if (stop) problems.unshift(stop);
+  const delivery = state.type === 'delivery' && !!state.menu.location.delivery;
+  const subtotal = cartTotal();
+  const dProblem = delivery ? dlvProblem(subtotal) : null;
+  if (dProblem) problems.push(dProblem);
   const optProblem = optionProblem();
   if (optProblem) problems.unshift(optProblem);
 
@@ -460,17 +467,20 @@ function renderCart() {
     <div class="card">${state.cart
       .map((i, idx) => cartLineHtml(i, idx))
       .join('')}</div>
-    <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
+    ${delivery ? dlvTotalsHtml(subtotal) : `<div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(subtotal)}</span></div>`}
 
     <h3 style="font-size:16px">${esc(t('howGet'))}</h3>
     <div class="seg">${types.map((t) => `<button type="button" data-type="${t}" aria-pressed="${state.type === t}">${esc(typeLabel(t))}</button>`).join('')}</div>
     <p class="muted" style="margin:0;font-size:13.5px">${
       state.type === 'visit'
         ? esc(t('visitHint'))
-        : esc(t('pickupHint'))
+        : state.type === 'delivery'
+          ? esc(t('deliveryHint', { m: state.menu.location.delivery?.leadMin ?? 40 }))
+          : esc(t('pickupHint'))
     }</p>
+    ${delivery ? dlvHtml(subtotal) : ''}
 
-    <h3 style="font-size:16px">${esc(t('when'))}</h3>
+    <h3 style="font-size:16px">${esc(t(delivery ? 'whenDelivery' : 'when'))}</h3>
     <div class="days" id="days">${(state.slotsData?.days || [])
       .map((d) => {
         const l = dayLabel(d, today);
@@ -500,6 +510,7 @@ function renderCart() {
   const sub = $('#submit', dlg);
   sub.textContent = state.slot ? t('submitFor', { when: slotLabel(state.slot, today) }) : t('chooseTime');
   sub.disabled = !state.slot || state.cart.length === 0;
+  if (delivery) dlvMount(renderCart);
 
   body.onclick = (e) => {
     const ed = e.target.closest('[data-edit]');
@@ -562,6 +573,10 @@ async function submit() {
   const phone = state.guest.phone.trim();
   if (!name) return showErr(t('needName'));
   if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr(t('badPhone'));
+  if (state.type === 'delivery') {
+    const p = dlvProblem(cartTotal());
+    if (p) return showErr(p);
+  }
   save('vibe_guest', { name, phone });
 
   // Один ключ на одну попытку оформления: повторное нажатие или повтор после обрыва связи вернёт тот же заказ.
@@ -584,6 +599,7 @@ async function submit() {
         comment: state.comment,
         lang: LANG,
         tgInitData: TGW ? TGW.initData : undefined,
+        delivery: state.type === 'delivery' ? dlvPayload() : undefined,
       },
     });
     state.cart = [];
@@ -599,7 +615,12 @@ async function submit() {
       await refreshMenuData();
       renderCart();
     }
-    showErr(errText(e.code, e.data) || t('genericErr'));
+    if (e.code === 'DELIVERY_OFF') { await refreshMenuData(); state.type = 'pickup'; state.slot = null; await loadSlots(); }
+    const data = { ...e.data };
+    if (typeof data.min === 'number') data.min = fmt(data.min);
+    if (typeof data.km === 'number') data.km = kmText(data.km);
+    if (typeof data.radius === 'number') data.radius = kmText(data.radius);
+    showErr(errText(e.code, data) || t('genericErr'));
     if (e.code === 'SLOT_FULL' || e.code === 'SLOT_TOO_SOON' || e.code === 'DISH_SOLD_OUT') {
       state.slot = e.code === 'DISH_SOLD_OUT' ? state.slot : null;
       await loadSlots();

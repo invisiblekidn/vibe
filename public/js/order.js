@@ -14,12 +14,14 @@ function render() {
   const o = order;
   const idx = STEPS.findIndex((s) => s.id === o.status);
   const unpaid = o.paymentStatus === 'unpaid' && o.status !== 'cancelled';
-  const readyText = o.type === 'visit' ? t('readyVisit') : t('readyPickup');
+  const readyText = o.type === 'visit' ? t('readyVisit') : o.type === 'delivery' ? t('readyDelivery') : t('readyPickup');
+  const stepTitle = (s) => (o.type === 'delivery' && I18N['step_' + s.id + '_delivery'] ? t('step_' + s.id + '_delivery') : s.title);
   root.innerHTML = `
     <div class="card" style="padding:16px;display:grid;gap:4px">
       <span class="muted">${esc(t('order'))}</span>
       <span class="ordno">${LANG === 'ru' ? '№' : '#'} ${o.number}</span>
       <span>${esc(typeLabel(o.type))} · ${esc(slotLabel(o.slot))}</span>
+      ${o.type === 'delivery' ? `<span class="muted" style="font-size:14px">🛵 ${esc(o.deliveryAddress || t('addrPinOnly'))}</span>` : ''}
     </div>
 
     ${o.status === 'cancelled' ? `<p class="alert" style="margin:0">${esc(t('cancelledOrder'))}</p>` : ''}
@@ -38,16 +40,17 @@ function render() {
     </div>` : ''}
 
     ${o.status === 'payment_checking' ? `<p class="alert warn" style="margin:0">${esc(t('reported', { sum: fmt(o.total) }))}</p>` : ''}
-    ${o.status === 'ready' ? `<p class="alert ok" style="margin:0">${esc(t('sayNumber', { x: readyText, n: o.number }))}</p>` : ''}
+    ${o.status === 'ready' ? `<p class="alert ok" style="margin:0">${esc(o.type === 'delivery' ? readyText + '.' : t('sayNumber', { x: readyText, n: o.number }))}</p>` : ''}
 
     ${o.status !== 'cancelled' ? `<div class="card steps">${STEPS.map((s, i) => {
       const cls = i < idx ? 'done' : i === idx ? 'now' : 'next';
       const sub = s.id === 'ready' ? readyText : s.sub;
-      return `<div class="st ${o.status === 'completed' && i === idx ? 'done' : cls}"><i></i><div>${s.title}${i === idx && sub ? `<small>${esc(sub)}</small>` : ''}</div></div>`;
+      return `<div class="st ${o.status === 'completed' && i === idx ? 'done' : cls}"><i></i><div>${stepTitle(s)}${i === idx && sub ? `<small>${esc(sub)}</small>` : ''}</div></div>`;
     }).join('')}</div>` : ''}
 
     <div class="card" style="padding:12px 14px">
       ${o.items.map((i) => `<div class="line"><span>${i.qty} × ${esc(i.name)}${i.options.length ? `<small class="muted" style="display:block">${esc(i.options.map((x) => x.name).join(', '))}</small>` : ''}</span><span>${fmt(i.lineTotal)}</span></div>`).join('')}
+      ${o.type === 'delivery' ? `<div class="line"><span>${esc(t('deliveryFee'))}${o.deliveryKm != null ? ` <small class="muted">· ${esc(t('dist', { km: LANG === 'en' ? o.deliveryKm : String(o.deliveryKm).replace('.', ',') }))}</small>` : ''}</span><span>${o.deliveryFee ? fmt(o.deliveryFee) : esc(t('deliveryFree'))}</span></div>` : ''}
       <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(o.total)}</span></div>
       ${o.comment ? `<p class="muted" style="margin:8px 0 0;font-size:14px">${esc(t('commentIs', { x: o.comment }))}</p>` : ''}
     </div>

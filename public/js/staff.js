@@ -35,7 +35,22 @@ const ERR = {
 // Заказ со стола: «Принять» (кухня готовит сразу), «Готово», «Подано». Оплата — по счёту стола.
 const TABLE_ACTION_LABEL = { start_cooking: 'Принять', mark_ready: 'Готово', complete: 'Подано', cancel: 'Отменить' };
 const TABLE_KITCHEN = { new: 'Ждёт, примите', cooking: 'Готовится', ready: 'Готово, отнести', completed: 'Подано', cancelled: 'Отменён' };
-const actionLabel = (o, a) => (o.type === 'table' ? TABLE_ACTION_LABEL[a] : ACTION_LABEL[a]);
+// Доставка: «Готово» = отдали курьеру (гость видит «Курьер в пути»), «Выдан» = доставлен.
+const DELIVERY_ACTION_LABEL = { ...ACTION_LABEL, mark_ready: '🛵 Отдать курьеру', complete: '✔️ Доставлен' };
+const DELIVERY_KITCHEN = { ...KITCHEN, ready: 'У курьера, в пути', completed: 'Доставлен' };
+const actionLabel = (o, a) => (o.type === 'table' ? TABLE_ACTION_LABEL[a] : o.type === 'delivery' ? DELIVERY_ACTION_LABEL[a] : ACTION_LABEL[a]);
+const kitchenLabel = (o) => (o.type === 'table' ? TABLE_KITCHEN : o.type === 'delivery' ? DELIVERY_KITCHEN : KITCHEN)[o.status];
+const kmStr = (km) => String(km).replace('.', ',');
+
+/** Блок для курьера: адрес, ссылка на карту, расстояние и цена доставки. */
+function deliveryBlock(o) {
+  if (o.type !== 'delivery') return '';
+  return `<div class="dlv-box">
+    <div>🛵 <b>${o.deliveryAddress ? esc(o.deliveryAddress) : '<i>Адрес не написан, только точка на карте</i>'}</b></div>
+    <div class="muted" style="font-size:14px">${o.deliveryKm != null ? `${kmStr(o.deliveryKm)} км · ` : ''}доставка ${o.deliveryFee ? fmt(o.deliveryFee) : 'бесплатно'}</div>
+    ${o.deliveryMap ? `<a class="btn small ghost" href="${esc(o.deliveryMap)}" target="_blank" rel="noopener">📍 Открыть точку на карте</a>` : ''}
+  </div>`;
+}
 
 function actionsFor(o) {
   if (o.status === 'completed' || o.status === 'cancelled') return [];
@@ -80,6 +95,7 @@ function render(flash = '') {
   const list = orders.filter((o) =>
     filter === 'active' ? isActive(o) : filter === 'check' ? o.paymentStatus === 'reported' && isActive(o) && o.type !== 'table' : filter === 'kitchen' ? o.status === 'cooking' : true,
   );
+  const nDelivery = orders.filter((o) => o.type === 'delivery' && isActive(o)).length;
   const nCheck = orders.filter((o) => o.paymentStatus === 'reported' && isActive(o) && o.type !== 'table').length;
   const nCalls = tables.reduce((s, t) => s + t.calls.length, 0);
   const nBillCheck = tables.reduce((s, t) => s + t.bills.filter((b) => b.paymentStatus === 'reported').length, 0);
@@ -91,10 +107,11 @@ function render(flash = '') {
       <button class="chip" data-f="check" aria-pressed="${filter === 'check'}">Проверить оплату · ${nCheck}</button>
       <button class="chip" data-f="all" aria-pressed="${filter === 'all'}">Все</button>
       <button class="chip" data-f="bot" aria-pressed="${filter === 'bot'}">Бот</button>
+      <button class="chip" data-f="delivery" aria-pressed="${filter === 'delivery'}">Доставка${nDelivery ? ` · ${nDelivery}` : ''}</button>
       <button class="chip" data-f="stop" aria-pressed="${filter === 'stop'}">Стоп-лист</button>
     </div>
     ${flash ? `<p class="alert warn" style="margin:0">${esc(flash)}</p>` : ''}
-    ${filter === 'bot' ? botTab() : filter === 'stop' ? stopTab() : filter === 'tables' ? renderTables() : `
+    ${filter === 'bot' ? botTab() : filter === 'stop' ? stopTab() : filter === 'delivery' ? deliveryTab(orders.filter((o) => o.type === 'delivery' && isActive(o))) : filter === 'tables' ? renderTables() : `
     ${list.length ? '' : '<p class="muted">Заказов нет.</p>'}
     ${list.map((o) => orderCard(o)).join('')}`}
   </div>`;
@@ -106,6 +123,7 @@ function render(flash = '') {
     if (stop.data) stopRender();
     stopLoad();
   }
+  if (filter === 'delivery') deliveryMount();
 }
 
 function orderCard(o, compact = false) {
@@ -115,8 +133,9 @@ function orderCard(o, compact = false) {
   const kitchenOnly = filter === 'kitchen';
   return `<article class="card ord${(!isTable && o.paymentStatus === 'reported') || (isTable && o.status === 'new') ? ' attn' : ''}">
     <div class="top"><span class="no">№ ${o.id}</span><span>${isTable ? `<b>${esc(o.table || 'Стол')}</b> · ${minutesSince(o.createdAt)} мин назад` : `${typeLabel(o.type)} · <b>${esc(slotLabel(o.slot, today))}</b>`}</span></div>
-    ${compact ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill ${isTable && o.status === 'new' ? 'warn' : 'mute'}">${(isTable ? TABLE_KITCHEN : KITCHEN)[o.status]}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : o.channel === 'table' ? 'QR на столе' : esc(o.channel)}</span>${o.source === 'chat' ? '<span class="pill mute">⚡ из чата бота</span>' : ''}</div>`}
+    ${compact ? '' : `<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill ${pc}">${pt}</span><span class="pill ${isTable && o.status === 'new' ? 'warn' : 'mute'}">${kitchenLabel(o)}</span><span class="pill mute">${o.channel === 'site' ? 'Сайт' : o.channel === 'telegram' ? 'Telegram' : o.channel === 'table' ? 'QR на столе' : esc(o.channel)}</span>${o.source === 'chat' ? '<span class="pill mute">⚡ из чата бота</span>' : ''}</div>`}
     ${!isTable && o.paymentStatus === 'reported' ? `<p class="hint" style="margin:0">Гость нажал «Я оплатил» ${waited} мин назад. Подтверждайте, только когда увидите <b>${fmt(o.total)}</b> в банке (в комментарии должен быть № ${o.id}).${waited >= 30 ? ' <b>Прошло 30 минут: свяжитесь с гостем.</b>' : ''}</p>` : ''}
+    ${kitchenOnly ? '' : deliveryBlock(o)}
     <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
     ${kitchenOnly || compact ? '' : `<div class="line tot" style="margin:0"><span>Сумма</span><span>${fmt(o.total)}</span></div>`}
     ${isTable ? (o.comment ? `<div class="muted" style="font-size:14px">«${esc(o.comment)}»</div>` : '') : `<div class="muted" style="font-size:14px">${esc(o.guestName)} · <a href="tel:${esc(o.guestPhone)}">${esc(o.guestPhone)}</a>${o.comment ? `<br>«${esc(o.comment)}»` : ''}</div>`}
@@ -218,7 +237,7 @@ async function load(flash = '') {
 function start() {
   load();
   clearTimeout(timer);
-  const tick = () => { timer = setTimeout(async () => { if (!document.querySelector('[data-sure]') && filter !== 'bot' && filter !== 'stop') await load(); tick(); }, 15000); };
+  const tick = () => { timer = setTimeout(async () => { if (!document.querySelector('[data-sure]') && filter !== 'bot' && filter !== 'stop' && !(filter === 'delivery' && dset.dirty)) await load(); tick(); }, 15000); };
   tick();
 }
 
