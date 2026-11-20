@@ -281,3 +281,11 @@ body.at-table .tabs { top: 64px; }
 .dod-note { font-size: 13.5px; color: var(--v-soft); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .dod .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 @media (max-width: 380px) { .dod { grid-template-columns: 84px minmax(0, 1fr); } .dod-ph { width: 84px; height: 84px; } }
+
+/* Доставка: адрес и карта в корзине */
+.dlv-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.dlv-map { height: 240px; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--v-line); background: var(--v-chip); position: relative; z-index: 0; }
+.dlv-map .leaflet-control-attribution { font-size: 10px; }
+.dlv-note { margin: 0; font-size: 13.5px; }
+.dlv-dist { margin: 0; font-weight: 700; color: var(--v-brush); }
+.dlv-home span { display: block; background: var(--v-brush); color: var(--v-brush-fg); font: 800 11px/24px var(--body); text-align: center; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,.3); letter-spacing: .05em; }

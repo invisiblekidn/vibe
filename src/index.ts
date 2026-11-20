@@ -1,15 +1,16 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { getLocation, indexMenu, loadMenu, localizeItems, setStop, soldOutOn, stopEntries, takenSlots } from './db';
+import { deliverySettings, getLocation, indexMenu, loadMenu, localizeItems, setStop, soldOutOn, stopEntries, takenSlots } from './db';
 import { OrderError, priceCart, type CartItemInput } from './lib/pricing';
 import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from './lib/time';
 import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
-import { escHtml, verifyInitData } from './lib/telegram';
+import { escHtml, fmtVnd as fmtVndPlain, verifyInitData } from './lib/telegram';
 import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, tg, type TgEnv } from './bot';
 import { loadPicks, picksChangedText, savePicks, type PicksInput } from './quick';
 import { QUICK_MAX, QUICK_RECOMMENDED } from './lib/quick';
-import { ENABLED_TYPES, createOrder, transition } from './orders';
+import { enabledTypes, createOrder, transition } from './orders';
+import { cleanSettings, mapLink, validPoint } from './lib/delivery';
 import { DEVICE_RE, TABLE_CODE_RE, tableOpenNow, tableTitle, type BillAction } from './lib/tables';
 import { billAction, billTotal, closeCall, createCall, findBill, guestBillView, markBillRequested, openBillFor, staffTablesView, tableByCode } from './tables';
 
@@ -75,6 +76,21 @@ async function hitsFor(db: D1Database, locationId: string, menu: { dishes: { id:
   return menu.dishes.filter((d) => d.active && ids.has(d.id)).map((d) => d.id);
 }
 
+function publicDelivery(loc: NonNullable<Awaited<ReturnType<typeof getLocation>>>) {
+  const d = deliverySettings(loc);
+  return {
+    lat: d.lat,
+    lng: d.lng,
+    radiusKm: d.radius_km,
+    baseFee: d.base_fee,
+    baseKm: d.base_km,
+    perKm: d.per_km,
+    freeFrom: d.free_from,
+    minOrder: d.min_order,
+    leadMin: loc.lead_delivery_min,
+  };
+}
+
 app.get('/api/menu', async (c) => {
   const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
   if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
@@ -89,7 +105,9 @@ app.get('/api/menu', async (c) => {
       open: loc.open_min,
       close: loc.close_min,
       acceptingOrders: !!loc.accepting_orders,
-      orderTypes: ENABLED_TYPES,
+      orderTypes: enabledTypes(loc),
+      // Тариф доставки: сайт заранее показывает цену, сервер при оформлении считает её сам по тем же правилам.
+      delivery: enabledTypes(loc).includes('delivery') ? publicDelivery(loc) : null,
     },
     today,
     soldOutToday: [...soldOut],
@@ -111,7 +129,7 @@ app.get('/api/slots', async (c) => {
   const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
   if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
   const type = (c.req.query('type') ?? 'pickup') as OrderType;
-  if (!ENABLED_TYPES.includes(type)) return c.json({ error: 'TYPE_NOT_AVAILABLE' }, 400);
+  if (!enabledTypes(loc).includes(type)) return c.json({ error: type === 'delivery' ? 'DELIVERY_OFF' : 'TYPE_NOT_AVAILABLE' }, 400);
   const days = orderableDays(nowMs(), loc);
   const day = c.req.query('day') ?? days[0];
   if (!days.includes(day)) return c.json({ error: 'SLOT_OUT_OF_RANGE' }, 400);
@@ -132,6 +150,8 @@ interface CreateOrderBody {
   lang?: string;
   /** initData из Telegram Mini App: заказ привязывается к гостю в Telegram. */
   tgInitData?: string;
+  /** Доставка: адрес текстом и точка на карте. */
+  delivery?: { address?: string; lat?: number; lng?: number };
 }
 
 const cleanText = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -174,6 +194,13 @@ app.post('/api/orders', async (c) => {
     lang: langOf(body.lang),
     tgUserId,
     source: null,
+    delivery:
+      body.type === 'delivery'
+        ? {
+            address: cleanText(body.delivery?.address, 200),
+            point: validPoint({ lat: body.delivery?.lat, lng: body.delivery?.lng }) ? { lat: body.delivery!.lat!, lng: body.delivery!.lng! } : null,
+          }
+        : null,
   });
   if (r.duplicate) return c.json({ number: r.id, token: r.token, total: r.total, duplicate: true });
   notifyLater(c, r.id, 'created', 'guest');
@@ -200,6 +227,9 @@ function publicOrder(o: any, items: any[], qrUrl: string | null, botUsername?: s
     paymentReportedAt: o.payment_reported_at,
     subtotal: o.subtotal,
     deliveryFee: o.delivery_fee,
+    deliveryAddress: o.delivery_address,
+    deliveryKm: o.delivery_km,
+    deliveryPoint: o.delivery_lat != null ? { lat: o.delivery_lat, lng: o.delivery_lng } : null,
     total: o.total,
     guestName: o.guest_name,
     comment: o.comment,
@@ -302,6 +332,11 @@ app.get('/api/staff/orders', async (c) => {
       paymentStatus: o.payment_status,
       paymentReportedAt: o.payment_reported_at,
       guestStatus: guestStatus(o),
+      subtotal: o.subtotal,
+      deliveryFee: o.delivery_fee,
+      deliveryAddress: o.delivery_address,
+      deliveryKm: o.delivery_km,
+      deliveryMap: o.delivery_lat != null ? mapLink({ lat: o.delivery_lat, lng: o.delivery_lng }) : null,
       total: o.total,
       guestName: o.guest_name,
       guestPhone: o.guest_phone,
@@ -431,6 +466,51 @@ app.post('/api/staff/stop', async (c) => {
     background(c, tg(c.env, 'sendMessage', { chat_id: Number(c.env.TG_STAFF_CHAT_ID), text, parse_mode: 'HTML', disable_notification: true }));
   }
   return c.json({ ok: true, changed, stopped: body.stopped });
+});
+
+// ---------- Доставка (вкладка «Доставка» в панели) ----------
+// Сотрудник включает и выключает доставку и меняет тариф. Изменения сразу видят сайт, окно меню и бот.
+
+const deliveryView = (loc: NonNullable<Awaited<ReturnType<typeof getLocation>>>) => ({
+  enabled: !!loc.delivery_enabled,
+  ...deliverySettings(loc),
+  lead_min: loc.lead_delivery_min,
+  changedBy: loc.delivery_changed_by ? String(loc.delivery_changed_by) : null,
+  changedAt: loc.delivery_changed_at,
+});
+
+app.get('/api/staff/delivery', async (c) => {
+  const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
+  if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
+  return c.json(deliveryView(loc));
+});
+
+app.put('/api/staff/delivery', async (c) => {
+  const v = cleanSettings(await c.req.json().catch(() => null));
+  if (!v) return c.json({ error: 'BAD_INPUT' }, 400);
+  const db = c.env.DB;
+  const before = await getLocation(db, c.env.LOCATION_ID);
+  if (!before) return c.json({ error: 'NO_LOCATION' }, 500);
+  const who = c.get('staff');
+  await db
+    .prepare(
+      `UPDATE locations SET delivery_enabled = ?, lat = ?, lng = ?, delivery_radius_km = ?, delivery_base_fee = ?, delivery_base_km = ?,
+         delivery_per_km = ?, delivery_free_from = ?, delivery_min_order = ?, delivery_changed_by = ?, delivery_changed_at = ? WHERE id = ?`,
+    )
+    .bind(v.enabled ? 1 : 0, v.lat, v.lng, v.radius_km, v.base_fee, v.base_km, v.per_km, v.free_from, v.min_order, who, iso(), before.id)
+    .run();
+  const loc = (await getLocation(db, c.env.LOCATION_ID))!;
+  if (c.env.TG_STAFF_CHAT_ID) {
+    const onOff = !!before.delivery_enabled !== v.enabled ? (v.enabled ? '🛵 Доставка включена' : '⛔️ Доставка выключена') : '🛵 Изменены настройки доставки';
+    const sum = (x: number) => fmtVndPlain(x);
+    const text = [
+      `${onOff} · ${escHtml(who)}`,
+      `${sum(v.base_fee)} до ${v.base_km} км, +${sum(v.per_km)} за км, радиус ${v.radius_km} км`,
+      `${v.free_from ? `Бесплатно от ${sum(v.free_from)}` : 'Бесплатной доставки нет'} · ${v.min_order ? `минимум ${sum(v.min_order)}` : 'без минимальной суммы'}`,
+    ].join('\n');
+    background(c, tg(c.env, 'sendMessage', { chat_id: Number(c.env.TG_STAFF_CHAT_ID), text, parse_mode: 'HTML', disable_notification: true }));
+  }
+  return c.json(deliveryView(loc));
 });
 
 // ---------- Столы: для сотрудника ----------

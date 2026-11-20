@@ -1,6 +1,7 @@
 // Чтение меню и настроек из D1.
 import type { Dish, MenuIndex, Option, OptionGroup, I18n } from './lib/pricing';
 import type { ScheduleSettings } from './lib/time';
+import type { DeliverySettings } from './lib/delivery';
 
 export interface Location extends ScheduleSettings {
   id: string;
@@ -9,6 +10,30 @@ export interface Location extends ScheduleSettings {
   accepting_orders: number;
   delivery_enabled: number;
   payment_qr_url: string | null;
+  lat: number | null;
+  lng: number | null;
+  delivery_radius_km: number;
+  delivery_base_fee: number;
+  delivery_base_km: number;
+  delivery_per_km: number;
+  delivery_free_from: number;
+  delivery_min_order: number;
+  delivery_changed_by: string | null;
+  delivery_changed_at: string | null;
+}
+
+/** Тариф доставки точки в виде, который понимает src/lib/delivery.ts. */
+export function deliverySettings(loc: Location): DeliverySettings {
+  return {
+    lat: loc.lat,
+    lng: loc.lng,
+    radius_km: loc.delivery_radius_km,
+    base_fee: loc.delivery_base_fee,
+    base_km: loc.delivery_base_km,
+    per_km: loc.delivery_per_km,
+    free_from: loc.delivery_free_from,
+    min_order: loc.delivery_min_order,
+  };
 }
 
 const parse = (s: string | null | undefined): I18n => {

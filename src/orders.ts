@@ -1,6 +1,7 @@
 // Смена статуса заказа — общая для сайта, панели сотрудника и кнопок в Telegram.
 import { applyAction, type Action, type OrderState } from './lib/status';
-import { indexMenu, loadMenu, soldOutOn, type Location } from './db';
+import { deliverySettings, indexMenu, loadMenu, soldOutOn, type Location } from './db';
+import { quoteDelivery, validPoint, type Point } from './lib/delivery';
 import { OrderError, priceCart, type CartItemInput } from './lib/pricing';
 import { checkSlot, type OrderType } from './lib/time';
 
@@ -39,8 +40,17 @@ export async function orderWithItems(db: D1Database, id: number) {
 
 // ---------- Оформление предзаказа: общее для сайта, окна меню в Telegram и быстрых кнопок в чате бота ----------
 
-// Самовывоз и «к визиту». Доставка подключается на этапе 3.
-export const ENABLED_TYPES: OrderType[] = ['pickup', 'visit'];
+/** Виды предзаказа, которые сейчас можно выбрать. Доставку сотрудник включает и выключает во вкладке «Доставка». */
+export function enabledTypes(loc: Pick<Location, 'delivery_enabled' | 'lat' | 'lng'>): OrderType[] {
+  return loc.delivery_enabled && loc.lat != null && loc.lng != null ? ['pickup', 'visit', 'delivery'] : ['pickup', 'visit'];
+}
+
+export interface DeliveryInput {
+  /** Адрес текстом (улица, дом, отель, квартира). Может быть пустым, если гость поставил точку на карте. */
+  address: string;
+  /** Точка на карте: по ней считаем расстояние и цену. */
+  point: Point | null;
+}
 
 export interface NewOrder {
   /** Ключ заказа: повторное оформление с тем же ключом возвращает уже созданный заказ. */
@@ -55,6 +65,8 @@ export interface NewOrder {
   tgUserId: number | null;
   /** NULL — сайт или окно меню; 'chat' — быстрые кнопки в чате бота. */
   source: string | null;
+  /** Только для доставки. */
+  delivery?: DeliveryInput | null;
 }
 
 export type CreatedOrder = { id: number; token: string; total: number; duplicate: boolean };
@@ -72,7 +84,8 @@ export async function createOrder(db: D1Database, loc: Location, n: NewOrder, no
   const existing = await byKey(db, n.key);
   if (existing) return existing;
   if (!loc.accepting_orders) throw new OrderError('NOT_ACCEPTING');
-  if (!ENABLED_TYPES.includes(n.type)) throw new OrderError('TYPE_NOT_AVAILABLE');
+  if (!enabledTypes(loc).includes(n.type)) throw new OrderError(n.type === 'delivery' ? 'DELIVERY_OFF' : 'TYPE_NOT_AVAILABLE');
+  if (n.type === 'delivery' && (!n.delivery || !validPoint(n.delivery.point))) throw new OrderError('DELIVERY_NO_POINT');
   const slotErr = checkSlot(n.slot, nowMs, loc, n.type);
   if (slotErr) throw new OrderError(slotErr);
 
@@ -83,7 +96,11 @@ export async function createOrder(db: D1Database, loc: Location, n: NewOrder, no
 
   const token = crypto.randomUUID();
   const now = new Date(nowMs).toISOString();
-  const total = subtotal;
+  // Доставка: расстояние, радиус, минимальная сумма и цена — только по настройкам точки.
+  const q = n.type === 'delivery' ? quoteDelivery(deliverySettings(loc), n.delivery!.point, subtotal) : null;
+  const fee = q ? q.fee : 0;
+  const total = subtotal + fee;
+  const d = n.type === 'delivery' ? n.delivery! : null;
   const channel = n.tgUserId ? 'telegram' : 'site';
 
   // Заказ, позиции и запись в журнал пишутся одним пакетом (одна транзакция).
@@ -91,11 +108,16 @@ export async function createOrder(db: D1Database, loc: Location, n: NewOrder, no
   const insertOrder = db
     .prepare(
       `INSERT INTO orders (public_token, idempotency_key, location_id, channel, type, slot, status, payment_method, payment_status,
-         subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, tg_user_id, source)
-       SELECT ?, ?, ?, ?, ?, ?, 'new', 'qr', 'unpaid', ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         subtotal, delivery_fee, total, guest_name, guest_phone, comment, lang, created_at, updated_at, tg_user_id, source,
+         delivery_address, delivery_lat, delivery_lng, delivery_km)
+       SELECT ?, ?, ?, ?, ?, ?, 'new', 'qr', 'unpaid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
        WHERE (SELECT COUNT(*) FROM orders WHERE location_id = ? AND slot = ? AND status != 'cancelled') < ?`,
     )
-    .bind(token, n.key, loc.id, channel, n.type, n.slot, subtotal, total, n.name, n.phone, n.comment, n.lang, now, now, n.tgUserId, n.source, loc.id, n.slot, loc.slot_capacity);
+    .bind(
+      token, n.key, loc.id, channel, n.type, n.slot, subtotal, fee, total, n.name, n.phone, n.comment, n.lang, now, now, n.tgUserId, n.source,
+      d ? d.address || null : null, d?.point?.lat ?? null, d?.point?.lng ?? null, q?.km ?? null,
+      loc.id, n.slot, loc.slot_capacity,
+    );
   const insertItems = lines.map((l) =>
     db
       .prepare(
