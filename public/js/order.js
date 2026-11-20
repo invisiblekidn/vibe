@@ -3,6 +3,7 @@ const token = new URLSearchParams(location.search).get('t') || '';
 const root = $('#order');
 let order = null;
 let timer = null;
+let photoState = new URLSearchParams(location.search).get('photo') === 'fail' ? 'fail' : ''; // fail | busy | sent | bad
 
 const STEPS = ['awaiting_payment', 'payment_checking', 'confirmed', 'cooking', 'ready', 'completed'].map((id) => ({
   id,
@@ -25,6 +26,8 @@ function render() {
     </div>
 
     ${o.status === 'cancelled' ? `<p class="alert" style="margin:0">${esc(t('cancelledOrder'))}</p>` : ''}
+
+    ${photoBlock(o)}
 
     ${unpaid ? `<div class="card payblock">
       <span class="muted">${esc(t('toPay'))}</span>
@@ -59,10 +62,45 @@ function render() {
 
   const paid = $('#paid');
   if (paid) paid.onclick = reportPaid;
+  const ph = $('#o-photo');
+  if (ph) ph.onchange = () => sendPhoto(ph.files && ph.files[0]);
   const copy = $('#copy');
   if (copy) copy.onclick = async () => {
     try { await navigator.clipboard.writeText(String(o.number)); copy.textContent = t('copied'); } catch { copy.textContent = (LANG === 'ru' ? '№ ' : '#') + o.number; }
   };
+}
+
+/** Фото места для курьера: показать, добавить или заменить, пока заказ в работе. */
+function photoBlock(o) {
+  if (o.type !== 'delivery') return '';
+  const open = !['completed', 'cancelled'].includes(o.status);
+  if (!open && !o.deliveryPhotoAt) return '';
+  const msg = photoState === 'fail' ? `<p class="alert warn" style="margin:0">${esc(t('photoFailed'))}</p>`
+    : photoState === 'bad' ? `<p class="alert warn" style="margin:0">${esc(t('photoBad'))}</p>`
+    : photoState === 'sent' || o.deliveryPhotoAt ? `<span class="muted" style="font-size:13px">${esc(t('photoSent'))}</span>`
+    : `<span class="muted" style="font-size:13px">${esc(t('photoHint'))}</span>`;
+  return `<div class="card dlv-photo" style="border-style:dashed">
+    <b style="font-size:15px">${esc(t('photoTitle'))}</b>
+    ${o.deliveryPhotoAt ? `<img class="dlv-photo-img" src="/api/orders/${encodeURIComponent(token)}/photo?v=${encodeURIComponent(o.deliveryPhotoAt)}" alt="${esc(t('photoTitle'))}">` : ''}
+    ${msg}
+    ${open ? `<label class="btn small ghost dlv-photo-btn"${photoState === 'busy' ? ' aria-disabled="true"' : ''}>${esc(photoState === 'busy' ? t('photoSending') : o.deliveryPhotoAt ? t('photoReplace') : t('photoAdd'))}
+      <input type="file" accept="image/*" id="o-photo" hidden></label>` : ''}
+  </div>`;
+}
+
+async function sendPhoto(file) {
+  if (!file) return;
+  photoState = 'busy';
+  render();
+  try {
+    const blob = await shrinkPhoto(file);
+    const r = await uploadPlacePhoto(token, blob);
+    order.deliveryPhotoAt = r.photoAt;
+    photoState = 'sent';
+  } catch (e) {
+    photoState = e.message === 'PHOTO_TYPE' ? 'bad' : 'fail';
+  }
+  render();
 }
 
 async function reportPaid() {

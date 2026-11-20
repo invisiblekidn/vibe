@@ -19,6 +19,40 @@ function tableName(tb) {
   return t(tb.zone === 'outdoor' ? 'tableOut' : 'tableHall', { n: tb.id });
 }
 
+/** Фото с телефона → JPEG до 1280 px (обычно 100–400 КБ), чтобы быстро ушло по мобильному интернету. */
+async function shrinkPhoto(file, max = 1280, quality = 0.78) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('PHOTO_TYPE'));
+      i.src = url;
+    });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.naturalWidth * k);
+    cv.height = Math.round(img.naturalHeight * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const blob = await new Promise((resolve) => cv.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) throw new Error('PHOTO_TYPE');
+    return blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Отправить фото места к заказу доставки. */
+async function uploadPlacePhoto(token, blob) {
+  const r = await fetch(`/api/orders/${encodeURIComponent(token)}/photo`, { method: 'POST', headers: { 'content-type': blob.type || 'image/jpeg' }, body: blob });
+  if (!r.ok) {
+    let code = 'NETWORK';
+    try { code = (await r.json()).error || code; } catch { /* пусто */ }
+    throw Object.assign(new Error(code), { code });
+  }
+  return r.json();
+}
+
 async function api(path, opts = {}) {
   let res;
   try {

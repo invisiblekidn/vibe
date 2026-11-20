@@ -607,7 +607,12 @@ async function submit() {
     sessionStorage.removeItem('vibe_idem');
     const mine = load('vibe_orders', []);
     if (!mine.includes(r.token)) save('vibe_orders', [r.token, ...mine].slice(0, 10));
-    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '');
+    let photoFail = false;
+    if (state.type === 'delivery' && dlv.photo) {
+      btn.textContent = t('photoSending');
+      photoFail = !(await dlvSendPhoto(r.token));
+    }
+    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '') + (photoFail ? '&photo=fail' : '');
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
