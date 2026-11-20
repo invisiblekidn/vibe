@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { getLocation, indexMenu, loadMenu, localizeItems, soldOutOn, takenSlots } from './db';
+import { getLocation, indexMenu, loadMenu, localizeItems, setStop, soldOutOn, stopEntries, takenSlots } from './db';
 import { OrderError, priceCart, type CartItemInput } from './lib/pricing';
 import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from './lib/time';
 import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
-import { verifyInitData } from './lib/telegram';
+import { escHtml, verifyInitData } from './lib/telegram';
 import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, tg, type TgEnv } from './bot';
 import { loadPicks, picksChangedText, savePicks, type PicksInput } from './quick';
 import { QUICK_MAX, QUICK_RECOMMENDED } from './lib/quick';
@@ -63,8 +63,9 @@ app.onError((err, c) => {
 
 async function dishOfDayFor(db: D1Database, locationId: string, soldOut: Set<string>, menu: { dishes: { id: string; active: boolean }[] }) {
   const pick = (await loadPicks(db, locationId)).day;
-  if (!pick || soldOut.has(pick.dishId) || !menu.dishes.some((d) => d.id === pick.dishId && d.active)) return null;
-  return { dishId: pick.dishId, note: pick.note };
+  if (!pick || !menu.dishes.some((d) => d.id === pick.dishId && d.active)) return null;
+  // На стопе — гость видит карточку хита с пометкой «на стопе», но добавить его не может.
+  return { dishId: pick.dishId, note: pick.note, stopped: soldOut.has(pick.dishId) };
 }
 
 /** Хиты продаж: всё из быстрого заказа плюс главный хит — на сайте у них значок «⭐ Хит». */
@@ -92,7 +93,7 @@ app.get('/api/menu', async (c) => {
     },
     today,
     soldOutToday: [...soldOut],
-    // Блюдо дня, которое выбрал сотрудник во вкладке «Бот». Закончилось или снято — не показываем.
+    // Главный хит, который выбрал сотрудник во вкладке «Бот». Снят — не показываем, на стопе — с пометкой.
     dishOfDay: await dishOfDayFor(c.env.DB, loc.id, soldOut, menu),
     hits: await hitsFor(c.env.DB, loc.id, menu),
     categories: menu.categories,
@@ -380,6 +381,56 @@ app.put('/api/staff/bot', async (c) => {
     );
   }
   return c.json({ ok: true, changes: r.changes });
+});
+
+// ---------- Стоп-лист (вкладка «Стоп-лист» в панели) ----------
+// Блюдо на стопе остаётся в меню: гость видит его с пометкой «на стопе», но заказать не может
+// (сайт, окно меню в Telegram, хиты, быстрый заказ в боте, заказ со стола). Сервер тоже не примет такое блюдо.
+
+app.get('/api/staff/stop', async (c) => {
+  const db = c.env.DB;
+  const loc = await getLocation(db, c.env.LOCATION_ID);
+  if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
+  const today = toLocal(nowMs(), loc.tz_offset_min).day;
+  const [menu, stops] = await Promise.all([loadMenu(db), stopEntries(db, loc.id, today)]);
+  return c.json({
+    categories: menu.categories.map((x) => ({ id: x.id, name: x.name.ru || x.id })),
+    sections: menu.sections.map((x) => ({ id: x.id, category_id: x.category_id, name: x.name.ru || x.id })),
+    dishes: menu.dishes.map((d) => {
+      const s = stops.get(d.id);
+      return {
+        id: d.id,
+        category_id: d.category_id,
+        section_id: d.section_id,
+        name: d.name.ru || d.id,
+        price: d.price,
+        photo: d.photo,
+        stopped: !!s,
+        by: s?.by_name ? String(s.by_name).replace(/^staff:/, '') : null,
+        at: s?.at ?? null,
+      };
+    }),
+  });
+});
+
+app.post('/api/staff/stop', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as { dishId?: string; stopped?: boolean } | null;
+  if (!body || typeof body.dishId !== 'string' || typeof body.stopped !== 'boolean') return c.json({ error: 'BAD_INPUT' }, 400);
+  const db = c.env.DB;
+  const loc = await getLocation(db, c.env.LOCATION_ID);
+  if (!loc) return c.json({ error: 'NO_LOCATION' }, 500);
+  const dish = await db.prepare('SELECT id, name FROM dishes WHERE id = ? AND active = 1').bind(body.dishId).first<{ id: string; name: string }>();
+  if (!dish) return c.json({ error: 'DISH_UNAVAILABLE' }, 404);
+  const who = c.get('staff');
+  const today = toLocal(nowMs(), loc.tz_offset_min).day;
+  const changed = await setStop(db, loc.id, dish.id, body.stopped, who, iso(), today);
+  if (changed && c.env.TG_STAFF_CHAT_ID) {
+    let name = dish.id;
+    try { name = JSON.parse(dish.name).ru || dish.id; } catch { /* имя без перевода */ }
+    const text = body.stopped ? `🚫 На стопе: <b>${escHtml(name)}</b> · ${escHtml(who)}` : `✅ Снова можно заказать: <b>${escHtml(name)}</b> · ${escHtml(who)}`;
+    background(c, tg(c.env, 'sendMessage', { chat_id: Number(c.env.TG_STAFF_CHAT_ID), text, parse_mode: 'HTML', disable_notification: true }));
+  }
+  return c.json({ ok: true, changed, stopped: body.stopped });
 });
 
 // ---------- Столы: для сотрудника ----------

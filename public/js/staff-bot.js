@@ -1,5 +1,5 @@
 // Панель сотрудника, вкладка «Бот»: хит продаж и 5–7 позиций быстрого заказа для чата бота.
-// Блюда выбираются из общего меню. Цена всегда из меню; блюдо из стоп-листа гость в боте не увидит.
+// Блюда выбираются из общего меню. Цена всегда из меню; блюдо на стопе гость видит с пометкой, но заказать не может.
 // Изменения сохраняются кнопкой «Сохранить»; кто и что поменял — в журнале и в группе сотрудников.
 
 const bot = { data: null, draft: null, saved: '', search: { day: '', quick: '' }, picking: false, msg: '' };
@@ -27,7 +27,7 @@ const dishById = (id) => bot.data.dishes.find((d) => d.id === id);
 function dishChips(d, inQuick) {
   const c = [];
   if (inQuick && bot.draft.day && bot.draft.day.dishId === d.id) c.push('<span class="pill ok">хит продаж</span>');
-  if (d.soldOut) c.push('<span class="pill bad">в стоп-листе, гость не видит</span>');
+  if (d.soldOut) c.push('<span class="pill bad">на стопе, заказать нельзя</span>');
   if (d.choice) c.push('<span class="pill mute">выбор начинки/соуса в чате</span>');
   if (d.alcohol) c.push('<span class="pill warn">только к визиту</span>');
   return c.join(' ');
@@ -40,7 +40,7 @@ function searchResults(kind) {
   const found = bot.data.dishes.filter((d) => !taken.has(d.id) && (d.name.toLowerCase().includes(q) || d.category.toLowerCase().includes(q))).slice(0, 8);
   if (!found.length) return '<p class="muted" style="margin:0">Ничего не нашлось.</p>';
   return found
-    .map((d) => `<button class="bot-res" type="button" data-pick="${kind}" data-dish="${esc(d.id)}"><span><b>${esc(d.name)}</b> <span class="muted">· ${esc(d.category)}</span>${d.soldOut ? ' <span class="pill bad">стоп-лист</span>' : ''}</span><span class="price">${fmt(d.price)}</span></button>`)
+    .map((d) => `<button class="bot-res" type="button" data-pick="${kind}" data-dish="${esc(d.id)}"><span><b>${esc(d.name)}</b> <span class="muted">· ${esc(d.category)}</span>${d.soldOut ? ' <span class="pill bad">на стопе</span>' : ''}</span><span class="price">${fmt(d.price)}</span></button>`)
     .join('');
 }
 
@@ -58,7 +58,7 @@ function botRender() {
         <span class="ctl"><button type="button" class="btn small ghost" data-mv="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Выше">↑</button><button type="button" class="btn small ghost" data-mv="${i}" data-dir="1" ${i === n - 1 ? 'disabled' : ''} aria-label="Ниже">↓</button><button type="button" class="btn small ghost" data-rm="${i}" aria-label="Убрать">✕</button></span></li>`;
     })
     .join('');
-  const visible = dr.quick.map(dishById).filter((d) => d && !d.soldOut);
+  const visible = dr.quick.map(dishById).filter(Boolean);
   box.innerHTML = `
     ${bot.msg ? `<p class="alert ok" style="margin:0">${esc(bot.msg)}</p>` : ''}
     <div class="bot-grid">
@@ -68,10 +68,10 @@ function botRender() {
           <p class="muted" style="margin:0;font-size:13.5px">Гость видит его по кнопке «⭐ Хит продаж» в боте и карточкой вверху окна меню.</p>
           ${day ? `<div class="bot-day">
               ${day.photo ? `<img src="${esc(day.photo)}" alt="" width="64" height="64">` : '<span class="ph"></span>'}
-              <div class="t"><b>${esc(day.name)}</b><div><span class="price">${fmt(day.price)}</span> <span class="muted">${esc(day.category)} · ${day.soldOut ? 'в стоп-листе сегодня' : 'в наличии'}</span></div></div>
+              <div class="t"><b>${esc(day.name)}</b><div><span class="price">${fmt(day.price)}</span> <span class="muted">${esc(day.category)} · ${day.soldOut ? 'на стопе' : 'в наличии'}</span></div></div>
               <div class="acts"><button type="button" class="btn small ghost" data-day="replace">Заменить</button><button type="button" class="btn small ghost" data-day="clear">Снять</button></div>
             </div>
-            ${day.soldOut ? '<p class="hint" style="margin:0">Блюдо сегодня в стоп-листе. Гость увидит «Хит продаж сегодня закончился» и кнопку быстрого заказа.</p>' : ''}`
+            ${day.soldOut ? '<p class="hint" style="margin:0">Блюдо на стопе. Гость видит его с пометкой «на стопе», но заказать не может. Снять стоп можно во вкладке «Стоп-лист».</p>' : ''}`
           : '<p class="muted" style="margin:0">Главный хит не выбран. Гость увидит «Хит продаж пока не выбран» и кнопку быстрого заказа.</p>'}
           ${bot.picking || !day ? `<div class="field"><label for="bot-s-day">Выбрать главный хит</label><input id="bot-s-day" placeholder="Начните вводить название…" value="${esc(bot.search.day)}" autocomplete="off"></div><div class="bot-results" id="bot-r-day">${searchResults('day')}</div>` : ''}
           ${day ? `<div class="field"><label for="bot-n-ru">Комментарий шефа (RU)</label><textarea id="bot-n-ru" data-note="ru" maxlength="300" placeholder="Например: варим с утра, подаём со сметаной">${esc(dr.day.note.ru)}</textarea></div>
@@ -98,7 +98,7 @@ function botRender() {
         <section class="card bot-sec bot-prev">
           <h3>Так увидит гость</h3>
           <div class="tg-msg"><b>Быстрый заказ</b><br>Нажмите на блюдо, чтобы добавить.</div>
-          ${visible.length ? visible.map((d) => `<div class="tg-btn">⭐ ${esc(d.name)} · ${fmt(d.price).replace(/\s?₫$/, '')}</div>`).join('') : '<div class="tg-msg">Быстрый заказ пока не настроен.</div>'}
+          ${visible.length ? visible.map((d) => `<div class="tg-btn">${d.soldOut ? `🚫 ${esc(d.name)} · на стопе` : `⭐ ${esc(d.name)} · ${fmt(d.price).replace(/\s?₫$/, '')}`}</div>`).join('') : '<div class="tg-msg">Быстрый заказ пока не настроен.</div>'}
           <div class="tg-btn">🍽 Открыть меню</div>
         </section>
         <section class="card bot-sec">

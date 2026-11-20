@@ -114,6 +114,13 @@ describe('экраны', () => {
     expect(full.rows.at(-1)![0].web_app).toBeTruthy();
   });
 
+  it('блюдо на стопе остаётся в списке с пометкой, без цены', () => {
+    const s = quickScreen('ru', [dishes[0], { ...dishes[1], stopped: true }], [], menu, menuBtn);
+    expect(s.rows[1][0].text).toBe('🚫 Сырники · на стопе');
+    expect(s.rows[1][0].callback_data).toBe('q:a:syrniki');
+    expect(quickScreen('en', [{ ...dishes[1], stopped: true }], [], menu, menuBtn).rows[0][0].text).toBe('🚫 Сырники · unavailable');
+  });
+
   it('пустой список — подсказка и кнопка меню', () => {
     const s = quickScreen('vi', [], [], menu, menuBtn);
     expect(s.text).toContain('Đặt nhanh');
@@ -181,7 +188,7 @@ describe('повтор прошлого заказа', () => {
     );
     const s = repeatScreen('ru', 7, '10.11', r.items, r.notes, menu, menuBtn);
     expect(s.text).toContain('Ваш заказ №7 от 10.11');
-    expect(s.text).toContain('<s>Мохито ×1</s> <i>сегодня закончилось</i>');
+    expect(s.text).toContain('<s>Мохито ×1</s> <i>сейчас на стопе</i>');
     expect(s.text).toContain('Итого сейчас <b>417 000 ₫</b>');
     expect(s.text).toContain('было 135 000 ₫, сейчас 139 000 ₫');
     expect(s.rows[0][0]).toEqual({ text: 'Оформить · 417 000 ₫', callback_data: 'q:go' });
