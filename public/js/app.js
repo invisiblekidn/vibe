@@ -245,6 +245,96 @@ function renderMenu() {
   // Группы открываются по адресу #sec-<id>: работает кнопка «Назад» телефона и ссылки на группу.
   window.addEventListener('hashchange', () => showSection(true));
   showSection(false);
+  menuTabs();
+}
+
+/**
+ * Строка разделов меню: закреплена сверху (CSS sticky), подсвечивает раздел, блюда которого сейчас на экране,
+ * и сама сдвигается вбок, чтобы подсвеченная вкладка была видна. Нажатие плавно прокручивает к разделу.
+ */
+let tabsReady = false;
+let tabsLock = 0; // пока идёт прокрутка после нажатия, подсветку не пересчитываем (не «мигает» по пути)
+function menuTabs() {
+  const tabs = $('#tabs');
+  const bar = $('#tabs-bar');
+  const chips = () => [...tabs.querySelectorAll('a.chip')];
+  const target = (a) => document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
+  // Нижний край закреплённой строки: всё, что выше, уже «прочитано».
+  const line = () => parseFloat(getComputedStyle(bar).top) + bar.offsetHeight;
+  // За столом сверху закреплена ещё и плашка стола: строка разделов встаёт сразу под неё.
+  const fitTop = () => {
+    const tb = $('#tablebar');
+    bar.style.top = tb && !tb.hidden ? `${tb.offsetHeight}px` : '';
+    // Переход к разделу по ссылке (#cat-…) тоже останавливается под строкой, а не под ней спрятанным.
+    document.documentElement.style.setProperty('--tabs-line', `${Math.round(line())}px`);
+  };
+  const mark = (a) => {
+    chips().forEach((c) => {
+      const on = c === a;
+      c.classList.toggle('on', on);
+      if (on) c.setAttribute('aria-current', 'true');
+      else c.removeAttribute('aria-current');
+    });
+    if (!a || tabs.scrollWidth <= tabs.clientWidth) return fades();
+    // Сдвигаем только саму строку вбок (не страницу): подсвеченная вкладка встаёт по центру, по бокам видны соседние.
+    const r = a.getBoundingClientRect();
+    const left = Math.round(tabs.scrollLeft + r.left - tabs.getBoundingClientRect().left - (tabs.clientWidth - r.width) / 2);
+    if (Math.abs(tabs.scrollLeft - left) > 4) tabs.scrollTo({ left, behavior: 'smooth' });
+  };
+  // Затухание края — только там, куда ещё можно пролистать.
+  const fades = () => {
+    const max = tabs.scrollWidth - tabs.clientWidth;
+    tabs.classList.toggle('fade-l', max > 2 && tabs.scrollLeft > 2);
+    tabs.classList.toggle('fade-r', max > 2 && tabs.scrollLeft < max - 2);
+  };
+  const spy = () => {
+    if (Date.now() < tabsLock) return;
+    const list = chips();
+    if (!list.length) return;
+    const y = line() + 24;
+    let cur = list[0];
+    for (const a of list) {
+      const el = target(a);
+      if (el && !el.hidden && el.offsetParent && el.getBoundingClientRect().top <= y) cur = a;
+    }
+    // Долистали до самого низа: последний раздел может быть короче экрана, подсвечиваем его.
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = list[list.length - 1];
+    if (!cur.classList.contains('on')) mark(cur);
+  };
+  fitTop();
+  spy();
+  fades();
+  if (tabsReady) return;
+  tabsReady = true;
+  let raf = 0;
+  window.addEventListener('scroll', () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; spy(); });
+  }, { passive: true });
+  window.addEventListener('resize', () => { fitTop(); spy(); fades(); });
+  tabs.addEventListener('scroll', fades, { passive: true });
+  // Плашка стола появляется после загрузки и может занимать две строки — подстраиваемся под её высоту.
+  if (window.ResizeObserver && $('#tablebar')) new ResizeObserver(() => { fitTop(); spy(); }).observe($('#tablebar'));
+  tabs.addEventListener('click', (e) => {
+    const a = e.target.closest('a.chip');
+    if (!a) return;
+    const el = target(a);
+    if (!el) return;
+    e.preventDefault();
+    // «Бар» с открытой группой напитков: по вкладке возвращаемся к плиткам групп.
+    const h = decodeURIComponent(location.hash.slice(1));
+    if (h.startsWith('sec-') && document.getElementById(h)?.dataset.cat === el.id.slice(4)) {
+      history.replaceState(null, '', `#${el.id}`);
+      showSection(false);
+    }
+    mark(a);
+    const top = el.getBoundingClientRect().top + window.scrollY - line() - 8;
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wait = smooth ? 900 : 100;
+    tabsLock = Date.now() + wait;
+    window.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
+    setTimeout(spy, wait + 50);
+  });
 }
 
 /** Показать группу из адреса (#sec-…) или плитки групп (#cat-… / без адреса). */

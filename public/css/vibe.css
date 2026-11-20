@@ -121,14 +121,25 @@ a.chip { text-decoration: none; }
 
 /* Меню */
 .menu { display: grid; gap: 18px; padding-block: 18px 120px; }
-.tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--v-bg); padding-top: 10px; z-index: 3; }
+/* Строка разделов: обёртка закреплена сверху и непрозрачна, внутри ряд вкладок листается вбок. */
+.tabs-bar { min-width: 0; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 3; background: var(--v-bg); padding-top: 10px; padding-bottom: 6px; box-shadow: 0 10px 10px -12px rgba(43, 33, 25, .35); }
+.tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .tabs::-webkit-scrollbar { display: none; }
 /* С мышью (компьютер, Telegram Desktop) ряд не листается вбок: переносим разделы на вторую строку. */
 @media (hover: hover) and (pointer: fine) { .tabs { flex-wrap: wrap; overflow: visible; } }
-/* На телефоне ряд листается пальцем; край затухает, чтобы было видно, что разделов больше. */
-@media (pointer: coarse) { .tabs { mask-image: linear-gradient(to right, #000 85%, transparent); -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); } }
+/* На телефоне край затухает только с той стороны, где ещё есть вкладки. */
+.tabs.fade-l { --fl: transparent; }
+.tabs.fade-r, .tabs.fade-l {
+  mask-image: linear-gradient(to right, var(--fl, #000), #000 28px, #000 calc(100% - 36px), var(--fr, #000));
+  -webkit-mask-image: linear-gradient(to right, var(--fl, #000), #000 28px, #000 calc(100% - 36px), var(--fr, #000));
+}
+.tabs.fade-r { --fr: transparent; }
 #cats { display: grid; gap: 26px; }
-.cat { display: grid; gap: 12px; scroll-margin-top: 70px; }
+.cat { display: grid; gap: 12px; scroll-margin-top: calc(var(--tabs-line, 62px) + 8px); }
+/* Вкладка раздела, блюда которого сейчас на экране (подсветка при прокрутке). */
+.tabs .chip { transition: background-color .2s, color .2s, box-shadow .2s; }
+.tabs .chip.on { box-shadow: 0 2px 6px rgba(43, 33, 25, .18); }
+.tabs .chip-hit.on { box-shadow: inset 0 0 0 2px var(--v-brush), 0 2px 6px rgba(43, 33, 25, .18); }
 .dishes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 10px; }
 /* Компактная строка, как в утверждённом макете: фото слева, текст и цена справа. */
 .dish { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; align-items: center; border: 0; padding: 8px; text-align: left; cursor: pointer; color: inherit; font: inherit; }
@@ -246,7 +257,7 @@ legend { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
 .tb-title b { font-size: 17px; }
 .tb-acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .tb-acts .btn[aria-busy="true"] { background: var(--ok-bg); color: var(--ok); box-shadow: none; }
-body.at-table .tabs { top: 64px; }
+body.at-table .tabs-bar { top: 64px; }
 .bill-order { padding: 10px 12px; display: grid; gap: 4px; }
 .bill-order .hd { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 800; }
 .bill-order ul { margin: 0; padding-left: 18px; font-size: 14px; }
