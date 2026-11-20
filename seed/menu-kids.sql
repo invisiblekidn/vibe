@@ -3,7 +3,7 @@
 -- Английский и вьетнамский перевод наш, на листе только русский. seed/menu-vi.json держим в том же виде.
 
 INSERT INTO categories (id, sort, name) VALUES
- ('kids', 7, '{"ru": "Детское меню", "vi": "Thực đơn trẻ em", "en": "Kids menu"}')
+ ('kids', 2, '{"ru": "Детское меню", "vi": "Thực đơn trẻ em", "en": "Kids menu"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
 DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('kids-cutlets','kids-mac','kids-burger','kids-pelmeni','kids-nuggets','kids-syrniki','kids-veg','kids-porridge','kids-icecream','kids-puree'));

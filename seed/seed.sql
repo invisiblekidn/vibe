@@ -12,11 +12,11 @@ INSERT INTO locations (id, name, address, payment_qr_url, lat, lng) VALUES
 
 INSERT INTO categories (id, sort, name) VALUES
  ('breakfast', 1, '{"ru":"Завтраки","en":"Breakfasts","vi":"Breakfasts"}'),
- ('soups',     2, '{"ru":"Супы","en":"Soups","vi":"Soups"}'),
- ('salads',    3, '{"ru":"Салаты","en":"Salads","vi":"Salads"}'),
+ ('soups',     3, '{"ru":"Супы","en":"Soups","vi":"Soups"}'),
+ ('salads',    6, '{"ru":"Салаты","en":"Salads","vi":"Salads"}'),
  ('mains',     4, '{"ru":"Горячее","en":"Main dishes","vi":"Main dishes"}'),
- ('kids',      5, '{"ru":"Детское меню","en":"Kids menu","vi":"Kids menu"}'),
- ('desserts',  6, '{"ru":"Десерты","en":"Desserts","vi":"Desserts"}'),
- ('bar',       7, '{"ru":"Бар","en":"Bar","vi":"Bar"}');
+ ('kids',      2, '{"ru":"Детское меню","en":"Kids menu","vi":"Kids menu"}'),
+ ('desserts',  7, '{"ru":"Десерты","en":"Desserts","vi":"Desserts"}'),
+ ('bar',       9, '{"ru":"Бар","en":"Bar","vi":"Bar"}');
 
 -- Блюда всех разделов — в файлах seed/menu-*.sql.

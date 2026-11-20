@@ -5,7 +5,7 @@
 -- Вьетнамский текст здесь же; seed/menu-vi.json держим в том же виде.
 
 INSERT INTO categories (id, sort, name) VALUES
- ('mains', 6, '{"ru": "Горячее", "vi": "Món chính", "en": "Main dishes"}')
+ ('mains', 4, '{"ru": "Горячее", "vi": "Món chính", "en": "Main dishes"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
 DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('stroganoff','chicken-cutlets','meat-cutlets','kiev','stuffed-peppers','pelmeni','burger','pasta-chicken','pasta-shrimp','carbonara','bolognese','pasta-salmon','mac-cheese'));
