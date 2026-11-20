@@ -63,6 +63,38 @@ export async function tg(env: TgEnv, method: string, payload: Record<string, unk
   }
 }
 
+/** Фото в чат (multipart: Telegram не берёт файл в JSON). */
+export async function tgPhoto(env: TgEnv, chatId: number, photo: ArrayBuffer, mime: string, extra: Record<string, unknown>): Promise<any> {
+  if (!env.TG_BOT_TOKEN) return null;
+  const base = env.TG_API_BASE || 'https://api.telegram.org';
+  const form = new FormData();
+  form.set('chat_id', String(chatId));
+  form.set('photo', new Blob([photo], { type: mime }), 'place.jpg');
+  for (const [k, v] of Object.entries(extra)) form.set(k, typeof v === 'string' ? v : JSON.stringify(v));
+  try {
+    const r = await fetch(`${base}/bot${env.TG_BOT_TOKEN}/sendPhoto`, { method: 'POST', body: form });
+    const data: any = await r.json().catch(() => null);
+    if (!data?.ok) console.warn('telegram sendPhoto failed', data?.description);
+    return data?.ok ? data.result : null;
+  } catch (e) {
+    console.warn('telegram sendPhoto error', e);
+    return null;
+  }
+}
+
+/** Фото места доставки — в группу сотрудников, ответом на сообщение о заказе. */
+export async function notifyDeliveryPhoto(env: TgEnv, orderId: number, photo: ArrayBuffer, mime: string, replaced: boolean): Promise<void> {
+  const chat = staffChat(env);
+  if (!chat) return;
+  const o = await env.DB.prepare('SELECT id, staff_msg_id, delivery_address FROM orders WHERE id = ?').bind(orderId).first<any>();
+  if (!o) return;
+  const caption = `📷 ${replaced ? 'Новое фото' : 'Фото'} места от гостя · заказ №${o.id}${o.delivery_address ? `\n🛵 ${o.delivery_address}` : ''}`;
+  await tgPhoto(env, chat, photo, mime, {
+    caption,
+    ...(o.staff_msg_id ? { reply_parameters: { message_id: o.staff_msg_id, allow_sending_without_reply: true } } : {}),
+  });
+}
+
 const staffChat = (env: TgEnv) => (env.TG_STAFF_CHAT_ID ? Number(env.TG_STAFF_CHAT_ID) : null);
 
 /**

@@ -6,11 +6,12 @@ import { checkSlot, orderableDays, slotsForDay, toLocal, type OrderType } from '
 import { guestStatus, type Action, type OrderState } from './lib/status';
 import { SESSION_COOKIE, makeSession, pinMatches, readSession } from './auth';
 import { escHtml, fmtVnd as fmtVndPlain, verifyInitData } from './lib/telegram';
-import { handleUpdate, notifyBillEvent, notifyOrderEvent, notifyTableCall, tg, type TgEnv } from './bot';
+import { handleUpdate, notifyBillEvent, notifyDeliveryPhoto, notifyOrderEvent, notifyTableCall, tg, type TgEnv } from './bot';
 import { loadPicks, picksChangedText, savePicks, type PicksInput } from './quick';
 import { QUICK_MAX, QUICK_RECOMMENDED } from './lib/quick';
 import { enabledTypes, createOrder, transition } from './orders';
 import { cleanSettings, mapLink, validPoint } from './lib/delivery';
+import { fetchTile, geocode } from './lib/mapproxy';
 import { DEVICE_RE, TABLE_CODE_RE, tableOpenNow, tableTitle, type BillAction } from './lib/tables';
 import { billAction, billTotal, closeCall, createCall, findBill, guestBillView, markBillRequested, openBillFor, staffTablesView, tableByCode } from './tables';
 
@@ -90,6 +91,38 @@ function publicDelivery(loc: NonNullable<Awaited<ReturnType<typeof getLocation>>
     leadMin: loc.lead_delivery_min,
   };
 }
+
+// Плитки карты доставки через наш сайт (у части гостей сервера OpenStreetMap не открываются).
+app.get('/map/tile/:z/:x/:y', async (c) => {
+  const [z, x, y] = [c.req.param('z'), c.req.param('x'), c.req.param('y').replace(/\.png$/, '')].map((v) => (/^\d{1,7}$/.test(v) ? Number(v) : NaN));
+  try {
+    return await fetchTile(baseUrl(c), z, x, y);
+  } catch (e) {
+    console.warn('tile failed', String(e));
+    return c.body('tile error', 502, { 'Cache-Control': 'no-store' });
+  }
+});
+
+// Поиск адреса для доставки: тоже через наш сайт, только по нажатию «Найти на карте».
+app.get('/api/geocode', async (c) => {
+  const q = (c.req.query('q') || '').trim().slice(0, 200);
+  if (q.length < 3) return c.json({ found: null });
+  try {
+    return c.json({ found: await geocode(baseUrl(c), q, langOf(c.req.query('lang'))) });
+  } catch (e) {
+    console.warn('geocode failed', String(e));
+    return c.json({ error: 'GEOCODE_FAILED' }, 502);
+  }
+});
+
+// Отчёт гостя о карте доставки: загрузились ли плитки OpenStreetMap. Только пишем в лог воркера, ничего не храним.
+app.post('/api/maplog', async (c) => {
+  let b: Record<string, unknown> = {};
+  try { b = await c.req.json(); } catch { /* пустой отчёт */ }
+  const clip = (v: unknown) => String(v ?? '').slice(0, 20);
+  console.log(JSON.stringify({ maplog: b.ok === true ? 'ok' : 'fail', what: clip(b.what), ms: Number(b.ms) || 0, tg: clip(b.tg), online: b.online === true, ua: clip(c.req.header('user-agent')?.match(/(iPhone|iPad|Android|Windows|Macintosh|Linux)/)?.[1]) }));
+  return c.body(null, 204);
+});
 
 app.get('/api/menu', async (c) => {
   const loc = await getLocation(c.env.DB, c.env.LOCATION_ID);
@@ -230,6 +263,7 @@ function publicOrder(o: any, items: any[], qrUrl: string | null, botUsername?: s
     deliveryAddress: o.delivery_address,
     deliveryKm: o.delivery_km,
     deliveryPoint: o.delivery_lat != null ? { lat: o.delivery_lat, lng: o.delivery_lng } : null,
+    deliveryPhotoAt: o.delivery_photo_at ?? null,
     total: o.total,
     guestName: o.guest_name,
     comment: o.comment,
@@ -249,6 +283,45 @@ app.get('/api/orders/:token', async (c) => {
   const raw = items.results.map((i: any) => ({ ...i, options: JSON.parse(i.options) }));
   const named = await localizeItems(c.env.DB, raw, lang);
   return c.json(publicOrder(o, named.map((i: any) => ({ ...i, options: JSON.stringify(i.options) })), loc?.payment_qr_url ?? null, c.env.TG_BOT_USERNAME));
+});
+
+// Фото места доставки от гостя (по желанию). Одно на заказ, можно заменить, пока заказ не доставлен.
+const PHOTO_MAX = 2 * 1024 * 1024;
+function photoMime(b: Uint8Array): string | null {
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45) return 'image/webp';
+  return null;
+}
+
+app.post('/api/orders/:token/photo', async (c) => {
+  const o = await c.env.DB.prepare('SELECT id, type, status, delivery_photo_at FROM orders WHERE public_token = ?').bind(c.req.param('token')).first<any>();
+  if (!o) return c.json({ error: 'NOT_FOUND' }, 404);
+  if (o.type !== 'delivery') return c.json({ error: 'NOT_DELIVERY' }, 409);
+  if (o.status === 'completed' || o.status === 'cancelled') return c.json({ error: 'ORDER_CLOSED' }, 409);
+  const buf = await c.req.arrayBuffer();
+  if (!buf.byteLength) return c.json({ error: 'PHOTO_EMPTY' }, 400);
+  if (buf.byteLength > PHOTO_MAX) return c.json({ error: 'PHOTO_TOO_BIG' }, 413);
+  const mime = photoMime(new Uint8Array(buf, 0, Math.min(12, buf.byteLength)));
+  if (!mime) return c.json({ error: 'PHOTO_TYPE' }, 415);
+  const at = iso();
+  await c.env.DB.batch([
+    c.env.DB.prepare('INSERT OR REPLACE INTO order_photos (order_id, mime, data, created_at) VALUES (?, ?, ?, ?)').bind(o.id, mime, buf, at),
+    c.env.DB.prepare('UPDATE orders SET delivery_photo_at = ? WHERE id = ?').bind(at, o.id),
+  ]);
+  background(c, notifyDeliveryPhoto(c.env, o.id, buf, mime, !!o.delivery_photo_at));
+  return c.json({ ok: true, photoAt: at });
+});
+
+async function photoResponse(c: any, orderId: number) {
+  const p = await c.env.DB.prepare('SELECT mime, data FROM order_photos WHERE order_id = ?').bind(orderId).first();
+  if (!p) return c.json({ error: 'NOT_FOUND' }, 404);
+  return new Response(new Uint8Array(p.data as ArrayBuffer), { headers: { 'Content-Type': p.mime, 'Cache-Control': 'private, max-age=600' } });
+}
+
+app.get('/api/orders/:token/photo', async (c) => {
+  const o = await c.env.DB.prepare('SELECT id FROM orders WHERE public_token = ?').bind(c.req.param('token')).first<any>();
+  return o ? photoResponse(c, o.id) : c.json({ error: 'NOT_FOUND' }, 404);
 });
 
 app.post('/api/orders/:token/report-payment', async (c) => {
@@ -297,6 +370,8 @@ app.use('/api/staff/*', async (c, next) => {
 
 app.get('/api/staff/me', (c) => c.json({ name: c.get('staff') }));
 
+app.get('/api/staff/orders/:id/photo', (c) => photoResponse(c, Number(c.req.param('id'))));
+
 app.get('/api/staff/orders', async (c) => {
   const db = c.env.DB;
   const loc = await getLocation(db, c.env.LOCATION_ID);
@@ -337,6 +412,7 @@ app.get('/api/staff/orders', async (c) => {
       deliveryAddress: o.delivery_address,
       deliveryKm: o.delivery_km,
       deliveryMap: o.delivery_lat != null ? mapLink({ lat: o.delivery_lat, lng: o.delivery_lng }) : null,
+      deliveryPhotoAt: o.delivery_photo_at ?? null,
       total: o.total,
       guestName: o.guest_name,
       guestPhone: o.guest_phone,
