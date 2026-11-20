@@ -115,6 +115,13 @@ UPDATE dishes SET name = json_set(name, '$.vi', 'Salad thanh cua'), description 
 UPDATE dishes SET name = json_set(name, '$.vi', 'Salad Hy Lạp'), description = json_set(description, '$.vi', 'Rau củ tươi, phô mai feta, ô liu, hành tím và sốt dầu ô liu thơm.') WHERE id = 'greek-salad';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Salad rau củ tươi'), description = json_set(description, '$.vi', 'Cà chua, dưa leo, ớt chuông, hành tím, xà lách và rau thơm. Nước sốt tùy chọn: dầu ô liu hoặc kem chua.') WHERE id = 'veg-salad';
 UPDATE dishes SET name = json_set(name, '$.vi', 'Salad củ dền Vinaigrette'), description = json_set(description, '$.vi', 'Salad củ dền truyền thống với khoai tây, cà rốt, dưa chuột muối, đậu Hà Lan và hành tây, trộn dầu ô liu.') WHERE id = 'vinaigrette';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh crepe nhân ngọt'), description = json_set(description, '$.vi', 'Bánh crepe mỏng, nhân tùy chọn: sô-cô-la phết với chuối, sô-cô-la phết với xoài, mứt hoặc sữa đặc.') WHERE id = 'dessert-blinchiki';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh Napoleon'), description = json_set(description, '$.vi', 'Bánh ngàn lớp truyền thống với kem trứng sữa mềm mịn.') WHERE id = 'napoleon';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh mật ong Medovik'), description = json_set(description, '$.vi', 'Bánh mật ong nhiều lớp mềm với kem chua.') WHERE id = 'medovik';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh hạt óc chó nhân sữa đặc'), description = json_set(description, '$.vi', 'Món tráng miệng truyền thống: vỏ bánh giòn nhân sữa đặc nấu caramen.') WHERE id = 'oreshki';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Phô mai tươi với trái cây'), description = json_set(description, '$.vi', 'Phô mai tươi mềm với trái cây tươi.') WHERE id = 'tvorog-fruit';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh donut chiên'), description = json_set(description, '$.vi', 'Phần 3 cái, rắc đường bột.') WHERE id = 'donuts';
+UPDATE dishes SET name = json_set(name, '$.vi', 'Bánh waffle với kem'), description = json_set(description, '$.vi', 'Hai bánh waffle giòn, một viên kem và sốt caramen.') WHERE id = 'waffles';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Nhân') WHERE id = 'ol-fill';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Trứng') WHERE id = 'bb-eggs';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Lựa chọn') WHERE id = 'eb-with';
@@ -160,6 +167,7 @@ UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id = 'stuffed-peppers-side';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Món ăn kèm') WHERE id = 'burger-side';
 UPDATE option_groups SET name = json_set(name, '$.vi', 'Sốt trộn') WHERE id = 'vs-dress';
+UPDATE option_groups SET name = json_set(name, '$.vi', 'Nhân') WHERE id = 'dbl-fill';
 UPDATE options SET name = json_set(name, '$.vi', 'Với thịt gà') WHERE id = 'ol-chicken';
 UPDATE options SET name = json_set(name, '$.vi', 'Với xúc xích luộc') WHERE id = 'ol-sausage';
 UPDATE options SET name = json_set(name, '$.vi', 'Với cá hồi muối nhạt') WHERE id = 'ol-salmon';
@@ -327,3 +335,7 @@ UPDATE options SET name = json_set(name, '$.vi', 'Cơm') WHERE id = 'burger-side
 UPDATE options SET name = json_set(name, '$.vi', 'Mì ống') WHERE id = 'burger-side-pasta';
 UPDATE options SET name = json_set(name, '$.vi', 'Dầu ô liu') WHERE id = 'vs-oil';
 UPDATE options SET name = json_set(name, '$.vi', 'Kem chua') WHERE id = 'vs-sour';
+UPDATE options SET name = json_set(name, '$.vi', 'Sô-cô-la phết với chuối') WHERE id = 'dbl-choc-banana';
+UPDATE options SET name = json_set(name, '$.vi', 'Sô-cô-la phết với xoài') WHERE id = 'dbl-choc-mango';
+UPDATE options SET name = json_set(name, '$.vi', 'Mứt') WHERE id = 'dbl-jam';
+UPDATE options SET name = json_set(name, '$.vi', 'Sữa đặc') WHERE id = 'dbl-cond';

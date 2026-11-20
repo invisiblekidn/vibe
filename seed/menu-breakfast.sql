@@ -7,13 +7,13 @@
 
 INSERT INTO categories (id, sort, name) VALUES
  ('breakfast',  1, '{"ru":"Завтраки","en":"Breakfasts","vi":"Bữa sáng"}'),
- ('croissants', 2, '{"ru":"Круассаны","en":"Croissants","vi":"Bánh sừng bò"}'),
- ('starters',   3, '{"ru":"Закуски","en":"Starters","vi":"Món khai vị"}'),
- ('soups',      4, '{"ru":"Супы","en":"Soups","vi":"Súp"}'),
- ('salads',     5, '{"ru":"Салаты","en":"Salads","vi":"Salad"}'),
- ('mains',      6, '{"ru":"Горячее","en":"Main dishes","vi":"Món chính"}'),
- ('kids',       7, '{"ru":"Детское меню","en":"Kids menu","vi":"Thực đơn trẻ em"}'),
- ('desserts',   8, '{"ru":"Десерты","en":"Desserts","vi":"Tráng miệng"}'),
+ ('croissants', 5, '{"ru":"Круассаны","en":"Croissants","vi":"Bánh sừng bò"}'),
+ ('starters',   8, '{"ru":"Закуски","en":"Starters","vi":"Món khai vị"}'),
+ ('soups',      3, '{"ru":"Супы","en":"Soups","vi":"Súp"}'),
+ ('salads',     6, '{"ru":"Салаты","en":"Salads","vi":"Salad"}'),
+ ('mains',      4, '{"ru":"Горячее","en":"Main dishes","vi":"Món chính"}'),
+ ('kids',       2, '{"ru":"Детское меню","en":"Kids menu","vi":"Thực đơn trẻ em"}'),
+ ('desserts',   7, '{"ru":"Десерты","en":"Desserts","vi":"Tráng miệng"}'),
  ('bar',        9, '{"ru":"Бар","en":"Bar","vi":"Đồ uống"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 

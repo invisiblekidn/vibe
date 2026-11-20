@@ -4,7 +4,7 @@
 -- Вьетнамский текст здесь же; seed/menu-vi.json держим в том же виде.
 
 INSERT INTO categories (id, sort, name) VALUES
- ('salads', 5, '{"ru": "Салаты", "vi": "Salad", "en": "Salads"}')
+ ('salads', 6, '{"ru": "Салаты", "vi": "Salad", "en": "Salads"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
 DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('caesar-chicken','caesar-salmon','caesar-shrimp','avocado-salmon','olivier','crab-salad','greek-salad','veg-salad','vinaigrette'));
