@@ -10,6 +10,7 @@ const vars = Object.fromEntries(readFileSync('.dev.vars', 'utf8').split('\n').ma
 const TOKEN = vars.TG_BOT_TOKEN;
 const SECRET = vars.TG_WEBHOOK_SECRET;
 const GROUP = Number(vars.TG_STAFF_CHAT_ID);
+const CHEF = 555; // админ группы, не из списка TG_STAFF
 const [ANYA] = vars.TG_STAFF.split(',').map((x) => Number(x.split(':')[0]));
 
 // ---- имитация Bot API ----
@@ -20,8 +21,12 @@ const fake = http.createServer((req, res) => {
   req.on('data', (c) => (b += c));
   req.on('end', () => {
     const method = req.url.split('/').pop();
-    const result = method === 'answerCallbackQuery' || method === 'setMessageReaction' ? true : { message_id: ++msgId };
-    calls.push({ method, body: JSON.parse(b || '{}'), result });
+    const body = JSON.parse(b || '{}');
+    // getChatMember: 555 — админ группы, которого нет в TG_STAFF; остальные вне группы.
+    const result = method === 'answerCallbackQuery' || method === 'setMessageReaction' ? true
+      : method === 'getChatMember' ? { status: body.user_id === CHEF ? 'administrator' : 'left' }
+      : { message_id: ++msgId };
+    calls.push({ method, body, result });
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify({ ok: true, result }));
   });
@@ -64,7 +69,7 @@ try {
   await hook(start);
   await hook(start);
   await settle();
-  const greet = since(i).filter((c) => c.method === 'sendMessage' && c.body.chat_id === 777);
+  const greet = since(i).filter((c) => c.method === 'sendMessage' && c.body.chat_id === 777 && c.body.reply_markup?.inline_keyboard); // второе сообщение — клавиатура быстрых кнопок
   ok(greet.length === 1 && greet[0].body.reply_markup.inline_keyboard[0][0].web_app?.url.includes('/?tg=1'), '«Старт»: одно приветствие с кнопкой «Открыть меню» даже при повторе события');
 
   // 3. Заказ из Mini App
@@ -105,18 +110,18 @@ try {
   i = calls.length;
   await hook(press(999, `o:${N}:cp`, cardMsg));
   await settle();
-  ok(since(i).some((c) => c.method === 'answerCallbackQuery' && c.body.show_alert && c.body.text.includes('только для сотрудников')), 'не сотрудник: кнопка не срабатывает');
+  ok(since(i).some((c) => c.method === 'answerCallbackQuery' && c.body.show_alert && c.body.text.includes('только для участников группы')), 'не участник группы: кнопка не срабатывает');
   ok((await api(`/api/orders/${T}`)).data.paymentStatus === 'reported', '…и оплата не подтверждена');
   i = calls.length;
   await hook(press(ANYA, `o:${N}:sc`, cardMsg));
   await settle();
   ok(since(i).some((c) => c.method === 'answerCallbackQuery' && c.body.text.includes('Сначала подтвердите оплату')), '«Готовить» до подтверждения оплаты не срабатывает');
   i = calls.length;
-  await Promise.all([hook(press(ANYA, `o:${N}:cp`, cardMsg)), hook(press(ANYA, `o:${N}:cp`, cardMsg))]);
+  await Promise.all([hook(press(CHEF, `o:${N}:cp`, cardMsg)), hook(press(CHEF, `o:${N}:cp`, cardMsg))]);
   await settle();
   const conf = since(i).filter((c) => c.method === 'sendMessage' && c.body.chat_id === 777 && c.body.text.includes('Оплата подтверждена'));
   ok(conf.length === 1, 'два нажатия «Деньги пришли» подряд: гость получил одно «Оплата подтверждена»');
-  ok(since(i).some((c) => c.method === 'editMessageText' && c.body.text.includes('Аня подтвердил(а) оплату')), 'в карточке видно, кто подтвердил');
+  ok(since(i).some((c) => c.method === 'editMessageText' && c.body.text.includes('X подтвердил(а) оплату')), 'админ группы не из списка подтвердил оплату, в карточке видно, кто');
   for (const [code, word] of [['sc', 'готовим'], ['mr', 'готов'], ['cm', 'выдан']]) {
     i = calls.length;
     await hook(press(ANYA, `o:${N}:${code}`, cardMsg));
