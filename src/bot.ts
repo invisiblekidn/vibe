@@ -64,6 +64,32 @@ export async function tg(env: TgEnv, method: string, payload: Record<string, unk
 }
 
 const staffChat = (env: TgEnv) => (env.TG_STAFF_CHAT_ID ? Number(env.TG_STAFF_CHAT_ID) : null);
+
+/**
+ * Кто может управлять заказами из группы: любой участник группы сотрудников.
+ * TG_STAFF теперь только задаёт имена (в журнале и карточках); остальных бот узнаёт
+ * по членству в группе (getChatMember) и подписывает именем из Telegram.
+ */
+const memberCache = new Map<number, { ok: boolean; at: number }>();
+export async function staffName(env: TgEnv, from: any): Promise<string | null> {
+  const id = Number(from?.id);
+  if (!Number.isSafeInteger(id) || id <= 0 || from?.is_bot) return null;
+  const listed = parseStaffList(env.TG_STAFF).get(id);
+  if (listed) return listed;
+  const chat = staffChat(env);
+  if (!chat) return null;
+  const hit = memberCache.get(id);
+  let ok = hit && Date.now() - hit.at < 60_000 ? hit.ok : null;
+  if (ok === null) {
+    const m = await tg(env, 'getChatMember', { chat_id: chat, user_id: id });
+    if (!m) return null; // Telegram не ответил — не запоминаем отказ
+    ok = ['creator', 'administrator', 'member'].includes(m.status) || (m.status === 'restricted' && !!m.is_member);
+    memberCache.set(id, { ok, at: Date.now() });
+  }
+  if (!ok) return null;
+  const name = [from.first_name, from.last_name].filter(Boolean).join(' ').trim();
+  return (name || (from.username ? '@' + from.username : String(id))).slice(0, 40);
+}
 const kb = (rows: InlineButton[][]) => ({ inline_keyboard: rows });
 
 async function today(env: TgEnv) {
@@ -371,9 +397,8 @@ async function onPrivate(env: TgEnv, m: any, baseUrl: string) {
 }
 
 async function onStaffGroup(env: TgEnv, m: any) {
-  const staff = parseStaffList(env.TG_STAFF);
   const replyTo = m.reply_to_message?.message_id;
-  if (!replyTo || !staff.has(m.from?.id)) return;
+  if (!replyTo || !(await staffName(env, m.from))) return;
   // Ответ на сообщение гостя или на карточку заказа уходит гостю.
   let userId: number | null = null;
   const relay = await env.DB.prepare('SELECT user_id FROM tg_relay WHERE group_msg_id = ?').bind(replyTo).first<any>();
@@ -409,7 +434,7 @@ const ERR_TEXT: Record<string, string> = {
 
 /** /guests в группе сотрудников: последние гости, писавшие боту или заказывавшие через Telegram. */
 async function listGuests(env: TgEnv, m: any) {
-  if (!parseStaffList(env.TG_STAFF).has(m.from?.id)) return;
+  if (!(await staffName(env, m.from))) return;
   const r = await env.DB.prepare(
     `SELECT x.user_id, p.username, p.name, MAX(x.at) AS last_at,
        (SELECT id FROM orders o WHERE o.tg_user_id = x.user_id ORDER BY o.id DESC LIMIT 1) AS last_order
@@ -432,7 +457,7 @@ async function listGuests(env: TgEnv, m: any) {
 async function pickGuest(env: TgEnv, q: any, answer: (t: string, a?: boolean) => Promise<any>) {
   const chat = staffChat(env);
   if (!chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
-  if (!parseStaffList(env.TG_STAFF).has(q.from?.id)) return void (await answer('Эти кнопки только для сотрудников из списка.', true));
+  if (!(await staffName(env, q.from))) return void (await answer('Эти кнопки только для участников группы сотрудников.', true));
   const userId = Number(String(q.data).slice(2));
   const p = await env.DB.prepare('SELECT username, name FROM tg_people WHERE user_id = ?').bind(userId).first<any>();
   const last = await env.DB.prepare('SELECT id FROM orders WHERE tg_user_id = ? ORDER BY id DESC LIMIT 1').bind(userId).first<any>();
@@ -460,9 +485,8 @@ async function onCallback(env: TgEnv, q: any, baseUrl: string) {
   const parsed = parseCallback(q.data);
   const chat = staffChat(env);
   if (!parsed || !chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
-  const staff = parseStaffList(env.TG_STAFF);
-  const name = staff.get(q.from?.id);
-  if (!name) return void (await answer('Эти кнопки только для сотрудников из списка.', true));
+  const name = await staffName(env, q.from);
+  if (!name) return void (await answer('Эти кнопки только для участников группы сотрудников.', true));
 
   const o = await env.DB.prepare('SELECT * FROM orders WHERE id = ? AND location_id = ?').bind(parsed.orderId, env.LOCATION_ID).first<any>();
   if (!o) return void (await answer('Заказ не найден'));
@@ -568,8 +592,8 @@ export async function notifyBillEvent(env: TgEnv, billId: number, event: string,
 async function onTableCallback(env: TgEnv, q: any, tc: NonNullable<ReturnType<typeof parseTableCallback>>, answer: (t: string, a?: boolean) => Promise<any>) {
   const chat = staffChat(env);
   if (!chat || q.message?.chat?.id !== chat) return void (await answer('Кнопка устарела'));
-  const name = parseStaffList(env.TG_STAFF).get(q.from?.id);
-  if (!name) return void (await answer('Эти кнопки только для сотрудников из списка.', true));
+  const name = await staffName(env, q.from);
+  if (!name) return void (await answer('Эти кнопки только для участников группы сотрудников.', true));
 
   if (tc.kind === 'call') {
     const c = await env.DB.prepare('SELECT * FROM table_calls WHERE id = ?').bind(tc.id).first<any>();
