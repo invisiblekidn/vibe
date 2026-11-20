@@ -103,6 +103,12 @@ const I18N = {
   optOptional: { ru: 'по желанию', vi: 'tùy chọn', en: 'optional' },
   addToCart: { ru: 'В корзину · {sum}', vi: 'Thêm vào giỏ · {sum}', en: 'Add to cart · {sum}' },
   choose: { ru: 'Выберите: {x}', vi: 'Vui lòng chọn: {x}', en: 'Please choose: {x}' },
+  saveChoice: { ru: 'Сохранить · {sum}', vi: 'Lưu · {sum}', en: 'Save · {sum}' },
+  // Строка корзины, где не выбран обязательный вариант
+  needOption: { ru: 'Выберите: {x}', vi: 'Chọn: {x}', en: 'Choose: {x}' },
+  pickOption: { ru: 'Выбрать', vi: 'Chọn', en: 'Choose' },
+  changeOption: { ru: 'Изменить', vi: 'Sửa', en: 'Change' },
+  optionProblem: { ru: 'Выберите вариант для: {names}. Без этого заказ не оформить.', vi: 'Hãy chọn lựa chọn cho: {names}. Chưa chọn thì không đặt được.', en: 'Choose an option for: {names}. The order can’t be placed without it.' },
 
   // Корзина и оформление
   yourOrder: { ru: 'Ваш заказ', vi: 'Đơn hàng của bạn', en: 'Your order' },
@@ -135,8 +141,8 @@ const I18N = {
   err_DISH_UNAVAILABLE: { ru: 'Одного из блюд больше нет в меню. Уберите его из корзины.', vi: 'Một món không còn trong thực đơn. Vui lòng bỏ món đó khỏi giỏ.', en: 'One of the dishes is no longer on the menu. Please remove it from the cart.' },
   err_DISH_SOLD_OUT: { ru: 'Одно из блюд закончилось на выбранный день. Уберите его или выберите другой день.', vi: 'Một món đã hết vào ngày đã chọn. Hãy bỏ món đó hoặc chọn ngày khác.', en: 'One of the dishes is sold out on the chosen day. Remove it or choose another day.' },
   err_ALCOHOL_NOT_ALLOWED: { ru: 'Алкоголь можно заказать только «к визиту».', vi: 'Đồ uống có cồn chỉ đặt được với «Đặt trước khi đến».', en: 'Alcohol can only be ordered “For your visit”.' },
-  err_OPTION_REQUIRED: { ru: 'Для одного из блюд нужно выбрать вариант.', vi: 'Cần chọn một lựa chọn cho một món.', en: 'Please choose an option for one of the dishes.' },
-  err_OPTION_INVALID: { ru: 'Одна из добавок недоступна. Откройте блюдо и выберите заново.', vi: 'Một món thêm không còn. Hãy mở món và chọn lại.', en: 'One of the add-ons is unavailable. Open the dish and choose again.' },
+  err_OPTION_REQUIRED: { ru: 'Для блюда «{name}» нужно выбрать вариант. Нажмите «Выбрать» в корзине.', vi: 'Món «{name}» cần chọn một lựa chọn. Bấm «Chọn» trong giỏ hàng.', en: 'Please choose an option for «{name}». Tap «Choose» in the cart.' },
+  err_OPTION_INVALID: { ru: 'У блюда «{name}» изменились варианты. Нажмите «Изменить» и выберите заново.', vi: 'Lựa chọn của món «{name}» đã thay đổi. Bấm «Sửa» và chọn lại.', en: 'The options for «{name}» have changed. Tap «Change» and choose again.' },
   err_SLOT_FULL: { ru: 'Это время только что заняли. Выберите другое.', vi: 'Khung giờ này vừa kín. Vui lòng chọn giờ khác.', en: 'This time was just taken. Please choose another.' },
   err_SLOT_TOO_SOON: { ru: 'На это время уже не успеем приготовить. Выберите время позже.', vi: 'Không kịp chuẩn bị cho giờ này. Vui lòng chọn giờ muộn hơn.', en: 'We can’t have it ready by then. Please choose a later time.' },
   err_SLOT_INVALID: { ru: 'Выберите время из списка.', vi: 'Vui lòng chọn giờ trong danh sách.', en: 'Please choose a time from the list.' },

@@ -96,14 +96,16 @@ export function priceCart(
     for (const oid of optionIds) {
       const o = menu.options.get(oid);
       if (!o || !o.active || !groups.some((g) => g.id === o.group_id)) {
-        throw new OrderError('OPTION_INVALID', { dishId: dish.id, optionId: oid });
+        throw new OrderError('OPTION_INVALID', { dishId: dish.id, optionId: oid, name: pickName(dish.name, opts.lang) });
       }
       chosen.push(o);
     }
     for (const g of groups) {
       const n = chosen.filter((o) => o.group_id === g.id).length;
-      if (n < g.min_select) throw new OrderError('OPTION_REQUIRED', { dishId: dish.id, group: pickName(g.name, opts.lang) });
-      if (n > g.max_select) throw new OrderError('OPTION_INVALID', { dishId: dish.id, group: g.id });
+      if (n < g.min_select) {
+        throw new OrderError('OPTION_REQUIRED', { dishId: dish.id, name: pickName(dish.name, opts.lang), group: pickName(g.name, opts.lang) });
+      }
+      if (n > g.max_select) throw new OrderError('OPTION_INVALID', { dishId: dish.id, name: pickName(dish.name, opts.lang), group: g.id });
     }
 
     const unitPrice = dish.price + chosen.reduce((s, o) => s + o.price_delta, 0);
