@@ -2,7 +2,7 @@
 // Каждый телефон получает свой ключ (vibe_device): по нему сервер находит счёт этого телефона за столом.
 
 // Тексты ошибок стола — в i18n.js (err_<КОД>).
-const tableErr = (code) => (I18N['err_' + code] ? t('err_' + code) : null);
+const tableErr = (code, data = {}) => (I18N['err_' + code] ? t('err_' + code, data) : null);
 
 const ORDER_STATUS = {
   sent: 'warn',
@@ -103,24 +103,19 @@ function renderTableCart() {
   const body = $('#cart-body', dlg);
   const title = tableName(tableState.info && tableState.info.table);
   body.innerHTML = `
-    <div class="card">${state.cart
-      .map(
-        (i, idx) => `<div class="cart-item">
-          <div><b>${esc(tr(state.dishes.get(i.dishId).name))}</b>
-            ${i.optionIds.length ? `<small>${esc(optionNames(i))}</small>` : ''}<small>${fmt(unitPrice(i))}</small></div>
-          <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="${esc(t('less'))}">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="${esc(t('more'))}">+</button></div>
-        </div>`,
-      )
-      .join('')}</div>
+    <div class="card">${state.cart.map((i, idx) => cartLineHtml(i, idx)).join('')}</div>
     <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
     <p class="hint" style="margin:0"><b>${esc(title)}</b><br>${esc(t('tableHint'))}</p>
     <div class="field"><label for="g-comment">${esc(t('comment'))}</label><textarea id="g-comment" maxlength="300" placeholder="${esc(t('tableCommentPh'))}">${esc(state.comment)}</textarea></div>
+    ${optionProblem() ? `<p class="alert warn" style="margin:0">${esc(optionProblem())}</p>` : ''}
     ${tableState.info && !tableState.info.open ? `<p class="alert warn" style="margin:0">${esc(t('err_TABLE_CLOSED'))}</p>` : ''}
     <p class="alert" id="cart-err" hidden style="margin:0"></p>`;
   const sub = $('#submit', dlg);
   sub.textContent = t('sendOrder', { sum: fmt(cartTotal()) });
   sub.disabled = state.cart.length === 0 || !tableState.info;
   body.onclick = (e) => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed) return openDish(state.cart[Number(ed.dataset.edit)].dishId, Number(ed.dataset.edit));
     const q = e.target.closest('[data-ci]');
     if (!q) return;
     const it = state.cart[Number(q.dataset.ci)];
@@ -136,9 +131,17 @@ function renderTableCart() {
   };
 }
 
+function tableShowErr(msg) {
+  const el = $('#cart-err');
+  el.textContent = msg;
+  el.hidden = false;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
 let tableSending = false;
 async function submitTable() {
   if (tableSending) return;
+  if (askMissingOption(tableShowErr)) return;
   // Один ключ на одну попытку: повторное нажатие или повтор после обрыва связи не создаст второй заказ.
   let key = sessionStorage.getItem('vibe_idem');
   if (!key) { key = crypto.randomUUID(); sessionStorage.setItem('vibe_idem', key); }
@@ -163,11 +166,14 @@ async function submitTable() {
     openBill();
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
-    const el = $('#cart-err');
-    el.textContent = tableErr(e.code) || t('tableErr');
-    el.hidden = false;
-    btn.disabled = false;
-    btn.textContent = t('sendOrder', { sum: fmt(cartTotal()) });
+    if (e.code === 'OPTION_REQUIRED' || e.code === 'OPTION_INVALID') {
+      await refreshMenuData();
+      renderTableCart();
+    }
+    tableShowErr(tableErr(e.code, e.data) || t('tableErr'));
+    const b = $('#submit');
+    b.disabled = false;
+    b.textContent = t('sendOrder', { sum: fmt(cartTotal()) });
   } finally {
     tableSending = false;
   }

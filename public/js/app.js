@@ -2,7 +2,8 @@
 // Цену, наличие и время проверяет сервер; здесь только удобный показ.
 
 // Тексты ошибок по кодам сервера — в i18n.js (err_<КОД>).
-const errText = (code) => (I18N['err_' + code] ? t('err_' + code) : null);
+// В ответе сервера бывает название блюда (name) — подставляем его в текст.
+const errText = (code, data = {}) => (I18N['err_' + code] ? t('err_' + code, data) : null);
 
 // Гость открыл QR на столе: /?table=<код>. Заказ идёт на этот стол, без входа и выбора времени (см. table.js).
 const TABLE_CODE = (new URLSearchParams(location.search).get('table') || '').toLowerCase().replace(/[^a-z0-9]/g, '') || null;
@@ -34,6 +35,40 @@ function unitPrice(item) {
   for (const g of d.groups) for (const o of g.options) if (item.optionIds.includes(o.id)) p += o.price_delta;
   return p;
 }
+/** Обязательная группа, в которой у строки корзины не выбран вариант (или null). */
+function missingGroup(item) {
+  const d = state.dishes.get(item.dishId);
+  if (!d) return null;
+  for (const g of d.groups) {
+    if (g.min_select < 1 || !g.options.length) continue;
+    if (g.options.filter((o) => item.optionIds.includes(o.id)).length < g.min_select) return g;
+  }
+  return null;
+}
+
+const lineKey = (dishId, optionIds) => dishId + '|' + [...optionIds].sort().join(',');
+function addLine(cart, dishId, optionIds, qty) {
+  const key = lineKey(dishId, optionIds);
+  const same = cart.find((i) => i.key === key);
+  if (same) same.qty = Math.min(20, same.qty + qty);
+  else cart.push({ key, dishId, qty, optionIds });
+}
+
+/** Корзина по текущему меню. Корзина хранится в браузере и может быть собрана по старому меню:
+ *  блюда, которых больше нет, убираем, исчезнувшие варианты снимаем. Обязательный вариант
+ *  сами не подставляем — такая строка в корзине подсвечивается и просит выбрать. */
+function cleanCart(items) {
+  const out = [];
+  for (const i of Array.isArray(items) ? items : []) {
+    const d = i && state.dishes.get(i.dishId);
+    if (!d) continue;
+    const ids = Array.isArray(i.optionIds) ? i.optionIds : [];
+    const optionIds = d.groups.flatMap((g) => g.options.filter((o) => ids.includes(o.id)).slice(0, Math.max(1, g.max_select)).map((o) => o.id));
+    addLine(out, d.id, optionIds, Math.min(20, Math.max(1, parseInt(i.qty, 10) || 1)));
+  }
+  return out;
+}
+
 const cartTotal = () => state.cart.reduce((s, i) => s + unitPrice(i) * i.qty, 0);
 const cartCount = () => state.cart.reduce((s, i) => s + i.qty, 0);
 
@@ -67,7 +102,8 @@ async function init() {
     u.searchParams.delete('cart');
     history.replaceState(null, '', u.pathname + u.search);
   }
-  state.cart = state.cart.filter((i) => state.dishes.has(i.dishId));
+  state.cart = cleanCart(state.cart);
+  save(CART_KEY, state.cart);
   const hh = (v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
   $('#f-hours').textContent = t('factHoursVal', { from: hh(m.location.open), to: hh(m.location.close) });
   $('#f-addr').textContent = m.location.address;
@@ -86,11 +122,7 @@ function botCart(param) {
     if (!d) continue;
     const valid = new Set(d.groups.flatMap((g) => g.options.map((o) => o.id)));
     const optionIds = (opts ? opts.split('.') : []).filter((id) => valid.has(id));
-    const qty = Math.min(20, Math.max(1, parseInt(q, 10) || 1));
-    const key = dishId + '|' + [...optionIds].sort().join(',');
-    const same = out.find((i) => i.key === key);
-    if (same) same.qty = Math.min(20, same.qty + qty);
-    else out.push({ key, dishId, qty, optionIds });
+    addLine(out, dishId, optionIds, Math.min(20, Math.max(1, parseInt(q, 10) || 1)));
   }
   return out;
 }
@@ -214,11 +246,14 @@ function renderCartbar() {
 
 // ---------- Карточка блюда ----------
 
-function openDish(id) {
+/** Карточка блюда. editIdx — номер строки корзины: тогда карточка меняет варианты этой строки. */
+function openDish(id, editIdx = null) {
   const d = state.dishes.get(id);
   const dlg = $('#dish-sheet');
   const soldToday = state.menu.soldOutToday.includes(id);
-  let qty = 1;
+  const editing = editIdx === null ? null : state.cart[editIdx] || null;
+  const miss = editing && missingGroup(editing);
+  let qty = editing ? editing.qty : 1;
   dlg.innerHTML = `<form method="dialog" class="sheet-inner">
     <div class="sheet-head"><h2 id="dish-title">${esc(tr(d.name))}</h2><button class="icon-btn" value="close" aria-label="${esc(t('close'))}">×</button></div>
     <div class="sheet-scroll">
@@ -235,14 +270,14 @@ function openDish(id) {
             <legend>${esc(tr(g.name))} <span class="muted" style="font-weight:600">· ${need}</span></legend>
             ${g.options
               .map(
-                (o) => `<div class="opt"><label><input type="${radio ? 'radio' : 'checkbox'}" name="g-${g.id}" value="${o.id}">${esc(tr(o.name))}</label>
+                (o) => `<div class="opt"><label><input type="${radio ? 'radio' : 'checkbox'}" name="g-${g.id}" value="${o.id}"${editing && editing.optionIds.includes(o.id) ? ' checked' : ''}>${esc(tr(o.name))}</label>
                 ${o.price_delta ? `<span>+${fmt(o.price_delta)}</span>` : ''}</div>`,
               )
               .join('')}
           </fieldset>`;
         })
         .join('')}
-      <p class="alert" id="dish-err" hidden style="margin:0"></p>
+      <p class="alert" id="dish-err" ${miss ? '' : 'hidden'} style="margin:0">${miss ? esc(t('choose', { x: tr(miss.name) })) : ''}</p>
     </div>
     <div class="sheet-foot">
       <div class="qty"><button type="button" data-q="-1" aria-label="${esc(t('less'))}">−</button><span id="dq">1</span><button type="button" data-q="1" aria-label="${esc(t('more'))}">+</button></div>
@@ -252,7 +287,7 @@ function openDish(id) {
   const chosen = () => [...dlg.querySelectorAll('input:checked')].map((i) => i.value);
   const refresh = () => {
     $('#dq', dlg).textContent = qty;
-    $('#dish-add', dlg).textContent = t('addToCart', { sum: fmt(unitPrice({ dishId: id, optionIds: chosen() }) * qty) });
+    $('#dish-add', dlg).textContent = t(editing ? 'saveChoice' : 'addToCart', { sum: fmt(unitPrice({ dishId: id, optionIds: chosen() }) * qty) });
   };
   dlg.onclick = (e) => {
     const q = e.target.closest('[data-q]');
@@ -276,14 +311,26 @@ function openDish(id) {
         return;
       }
     }
-    const key = id + '|' + [...ids].sort().join(',');
-    const same = state.cart.find((i) => i.key === key);
-    if (same) same.qty = Math.min(20, same.qty + qty);
-    else state.cart.push({ key, dishId: id, qty, optionIds: ids });
+    if (editing && state.cart.includes(editing)) {
+      // Меняем строку на месте; если такая же строка уже есть, сливаем их.
+      const key = lineKey(id, ids);
+      const twin = state.cart.find((i) => i !== editing && i.key === key);
+      if (twin) {
+        twin.qty = Math.min(20, twin.qty + qty);
+        state.cart.splice(state.cart.indexOf(editing), 1);
+      } else Object.assign(editing, { key, qty, optionIds: ids });
+    } else addLine(state.cart, id, ids, qty);
     saveCart();
+    rerenderCart();
   });
   refresh();
   dlg.showModal();
+  if (miss) dlg.querySelector(`fieldset[data-group="${miss.id}"]`)?.scrollIntoView({ block: 'center' });
+}
+
+/** Корзина открыта под карточкой блюда — перерисовать её после изменения. */
+function rerenderCart() {
+  if ($('#cart-sheet').open) (TABLE_CODE ? renderTableCart() : renderCart());
 }
 
 // ---------- Корзина и оформление ----------
@@ -293,6 +340,51 @@ function optionNames(item) {
   const names = [];
   for (const g of d.groups) for (const o of g.options) if (item.optionIds.includes(o.id)) names.push(tr(o.name));
   return names.join(', ');
+}
+
+/** Строка корзины (сайт и заказ со стола): выбранные варианты, а если обязательный не выбран —
+ *  строка подсвечена и есть кнопка «Выбрать», которая открывает карточку блюда прямо из корзины. */
+function cartLineHtml(i, idx, extra = '') {
+  const d = state.dishes.get(i.dishId);
+  const miss = missingGroup(i);
+  const names = optionNames(i);
+  const action = miss
+    ? `<button type="button" class="need-opt" data-edit="${idx}">${esc(t('needOption', { x: tr(miss.name) }))}<span>${esc(t('pickOption'))} ›</span></button>`
+    : d.groups.some((g) => g.options.length)
+      ? ` · <button type="button" class="edit-opt" data-edit="${idx}">${esc(t('changeOption'))}</button>`
+      : '';
+  return `<div class="cart-item${miss ? ' need' : ''}" data-line="${idx}">
+    <div><b>${esc(tr(d.name))}</b>${extra}
+      ${names ? `<small class="ci-opts">${esc(names)}</small>` : ''}
+      ${miss ? action : ''}<small>${fmt(unitPrice(i))}${miss ? '' : action}</small></div>
+    <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="${esc(t('less'))}">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="${esc(t('more'))}">+</button></div>
+  </div>`;
+}
+
+/** Строки, где не выбран обязательный вариант, — текст предупреждения или null. */
+function optionProblem() {
+  const names = state.cart.filter(missingGroup).map((i) => tr(state.dishes.get(i.dishId).name));
+  return names.length ? t('optionProblem', { names: [...new Set(names)].join(', ') }) : null;
+}
+
+/** Перед оформлением: если вариант не выбран, называем блюдо и сразу открываем выбор. */
+function askMissingOption(showError) {
+  const idx = state.cart.findIndex(missingGroup);
+  if (idx < 0) return false;
+  const it = state.cart[idx];
+  showError(t('err_OPTION_REQUIRED', { name: tr(state.dishes.get(it.dishId).name) }));
+  openDish(it.dishId, idx);
+  return true;
+}
+
+/** Сервер сказал, что варианты блюда не сходятся с меню: берём свежее меню и чистим корзину. */
+async function refreshMenuData() {
+  try {
+    state.menu = await api('/api/menu');
+    state.dishes = new Map(state.menu.dishes.map((d) => [d.id, d]));
+    state.cart = cleanCart(state.cart);
+    saveCart();
+  } catch { /* остаёмся на старом меню */ }
 }
 
 function openCart() {
@@ -320,16 +412,12 @@ function renderCart() {
   const problems = [];
   if (hasAlcohol && state.type !== 'visit') problems.push(t('alcoholProblem'));
   if (state.cart.some((i) => daySold.has(i.dishId))) problems.push(t('soldProblem'));
+  const optProblem = optionProblem();
+  if (optProblem) problems.unshift(optProblem);
 
   body.innerHTML = `
     <div class="card">${state.cart
-      .map(
-        (i, idx) => `<div class="cart-item">
-          <div><b>${esc(tr(state.dishes.get(i.dishId).name))}</b>${daySold.has(i.dishId) ? ` <span class="pill bad">${esc(t('soldOutPill'))}</span>` : ''}
-            ${i.optionIds.length ? `<small>${esc(optionNames(i))}</small>` : ''}<small>${fmt(unitPrice(i))}</small></div>
-          <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="${esc(t('less'))}">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="${esc(t('more'))}">+</button></div>
-        </div>`,
-      )
+      .map((i, idx) => cartLineHtml(i, idx, daySold.has(i.dishId) ? ` <span class="pill bad">${esc(t('soldOutPill'))}</span>` : ''))
       .join('')}</div>
     <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
 
@@ -373,6 +461,8 @@ function renderCart() {
   sub.disabled = !state.slot || state.cart.length === 0;
 
   body.onclick = (e) => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed) return openDish(state.cart[Number(ed.dataset.edit)].dishId, Number(ed.dataset.edit));
     const q = e.target.closest('[data-ci]');
     if (q) {
       const it = state.cart[Number(q.dataset.ci)];
@@ -424,6 +514,7 @@ function showErr(msg) {
 let sending = false;
 async function submit() {
   if (sending) return;
+  if (askMissingOption(showErr)) return;
   const name = state.guest.name.trim();
   const phone = state.guest.phone.trim();
   if (!name) return showErr(t('needName'));
@@ -461,11 +552,15 @@ async function submit() {
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
-    showErr(errText(e.code) || t('genericErr'));
+    if (e.code === 'OPTION_REQUIRED' || e.code === 'OPTION_INVALID') {
+      await refreshMenuData();
+      renderCart();
+    }
+    showErr(errText(e.code, e.data) || t('genericErr'));
     if (e.code === 'SLOT_FULL' || e.code === 'SLOT_TOO_SOON' || e.code === 'DISH_SOLD_OUT') {
       state.slot = e.code === 'DISH_SOLD_OUT' ? state.slot : null;
       await loadSlots();
-      showErr(errText(e.code));
+      showErr(errText(e.code, e.data));
     }
   } finally {
     sending = false;

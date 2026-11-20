@@ -195,6 +195,12 @@ legend { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
 .line.tot { font-weight: 800; font-size: 17px; border-top: 1px dashed var(--v-line); padding-top: 10px; margin-top: 4px; }
 .cart-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 10px 12px; align-items: center; }
 .cart-item small { display: block; color: var(--v-soft); }
+.cart-item .ci-opts { color: var(--v-ink, inherit); font-weight: 600; }
+/* Строка без обязательного варианта: подсветка и кнопка «Выбрать» прямо в корзине */
+.cart-item.need { background: var(--bad-bg); box-shadow: inset 4px 0 0 var(--bad); border-radius: 14px; }
+.need-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin: 6px 0 2px; padding: 8px 12px; border: 0; border-radius: 12px; background: var(--v-paper); color: var(--bad); font: inherit; font-size: 13.5px; font-weight: 700; text-align: left; cursor: pointer; }
+.need-opt span { flex: none; background: var(--bad); color: #fff; border-radius: 999px; padding: 4px 10px; font-weight: 800; }
+.edit-opt { border: 0; background: none; padding: 0; color: var(--v-brush); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 
 .seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 4px; background: var(--v-chip); border-radius: 14px; padding: 4px; }
 .seg button { border: 0; background: transparent; border-radius: 10px; padding: 10px 4px; font-weight: 700; font-size: 14px; }

@@ -202,6 +202,8 @@ export const QT: Record<Lang, T> = {
     err_SLOT_TOO_SOON: 'На это время уже не успеваем. Выберите время попозже.',
     err_ALCOHOL_NOT_ALLOWED: 'Алкоголь можно заказать только к визиту.',
     err_NOT_ACCEPTING: 'Сейчас ресторан не принимает предзаказы. Напишите нам сюда, мы ответим.',
+    err_OPTION_REQUIRED: 'Для блюда «{name}» нужно выбрать вариант. Откройте меню и выберите его.',
+    err_OPTION_INVALID: 'У блюда «{name}» изменились варианты. Откройте меню и выберите заново.',
     err_OTHER: 'Не получилось оформить заказ. Попробуйте ещё раз или откройте меню.',
   },
   vi: {
@@ -235,6 +237,8 @@ export const QT: Record<Lang, T> = {
     err_SLOT_TOO_SOON: 'Giờ này không kịp chuẩn bị. Vui lòng chọn giờ muộn hơn.',
     err_ALCOHOL_NOT_ALLOWED: 'Đồ uống có cồn chỉ đặt được khi đến quán.',
     err_NOT_ACCEPTING: 'Hiện nhà hàng tạm ngừng nhận đặt trước. Hãy nhắn cho chúng tôi tại đây.',
+    err_OPTION_REQUIRED: 'Món «{name}» cần chọn một lựa chọn. Mở thực đơn để chọn.',
+    err_OPTION_INVALID: 'Lựa chọn của món «{name}» đã thay đổi. Mở thực đơn để chọn lại.',
     err_OTHER: 'Chưa đặt được đơn. Vui lòng thử lại hoặc mở thực đơn.',
   },
   en: {
@@ -268,6 +272,8 @@ export const QT: Record<Lang, T> = {
     err_SLOT_TOO_SOON: 'We cannot make it by this time. Please choose a later time.',
     err_ALCOHOL_NOT_ALLOWED: 'Alcohol can only be ordered for your visit.',
     err_NOT_ACCEPTING: 'The restaurant is not taking pre-orders right now. Write to us here and we will reply.',
+    err_OPTION_REQUIRED: 'Please choose an option for «{name}». Open the menu to choose it.',
+    err_OPTION_INVALID: 'The options for «{name}» have changed. Open the menu to choose again.',
     err_OTHER: 'Could not place the order. Please try again or open the menu.',
   },
 };

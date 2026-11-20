@@ -60,6 +60,13 @@ describe('расчёт корзины на сервере', () => {
 
   it('обязательная опция и чужие опции', () => {
     expect(code(() => priceCart([{ dishId: 'syrniki', qty: 1 }], menu, new Set(), opts))).toBe('OPTION_REQUIRED');
+    // В ошибке — название блюда, чтобы гость понял, где выбрать вариант.
+    try {
+      priceCart([{ dishId: 'syrniki', qty: 1 }], menu, new Set(), opts);
+    } catch (e: any) {
+      expect(e.details).toMatchObject({ dishId: 'syrniki', name: expect.any(String) });
+      expect(e.details.name.length).toBeGreaterThan(0);
+    }
     expect(code(() => priceCart([{ dishId: 'syrniki', qty: 1, optionIds: ['cond', 'jam'] }], menu, new Set(), opts))).toBe('OPTION_INVALID');
     expect(code(() => priceCart([{ dishId: 'omelette', qty: 1, optionIds: ['cond'] }], menu, new Set(), opts))).toBe('OPTION_INVALID');
     expect(code(() => priceCart([{ dishId: 'omelette', qty: 1, optionIds: ['bacon'] }], menu, new Set(), opts))).toBe('OPTION_INVALID');
