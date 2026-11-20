@@ -176,12 +176,12 @@ export const QT: Record<Lang, T> = {
     kbHint: '👇 Хит продаж, быстрый заказ и повтор прошлого заказа — на кнопках внизу. Если они скрылись, нажмите значок ⌨ рядом с полем ввода.',
     dayTitle: 'Хит продаж', dayAdd: '➕ Добавить в заказ', dayMore: '⚡ Ещё из быстрого заказа', chef: 'шеф',
     dayNone: 'Хит продаж пока не выбран. Загляните в быстрый заказ или в меню.',
-    daySold: 'Хит продаж сегодня закончился. Загляните в быстрый заказ или в меню.',
+    daySold: 'Хит продаж «{name}» сейчас на стопе. Загляните в быстрый заказ или в меню.', stopTag: 'на стопе',
     quickTitle: 'Быстрый заказ', quickHint: 'Нажмите на блюдо, чтобы добавить. Повторное нажатие добавит ещё одну порцию.',
     quickEmpty: 'Быстрый заказ пока не настроен. Всё меню открывается кнопкой ниже.',
     inCart: '🧺 В заказе', total: 'Итого', undo: '➖ Убрать последнее', clear: '🗑 Очистить', checkout: 'Оформить · {sum}',
     openMenu: '🍽 Открыть меню', editInMenu: '✏️ Изменить в меню', back: '← Назад', toCart: '← К заказу',
-    added: 'Добавили: {name}', removed: 'Убрали', cleared: 'Корзина пуста', soldNow: '{name} сейчас нет в наличии', empty: 'В заказе пока ничего нет',
+    added: 'Добавили: {name}', removed: 'Убрали', cleared: 'Корзина пуста', soldNow: '{name} сейчас на стопе, заказать нельзя', empty: 'В заказе пока ничего нет',
     chooseOpt: '{dish}: {group}',
     howGet: 'Как вы получите заказ?', pickup: '🥡 Самовывоз', visit: '🍽 К визиту', delivery: '🛵 Доставка (в меню)',
     alcoholOnlyVisit: 'В заказе есть алкоголь, его можно заказать только к визиту.',
@@ -194,9 +194,9 @@ export const QT: Record<Lang, T> = {
     placed: '✅ Заказ №{n} оформлен. Ниже карточка заказа: там оплата и статус.', already: 'Заказ №{n} уже оформлен',
     repeatTitle: 'Ваш заказ №{n} от {date}', repeatNone: 'Прошлых заказов пока нет. Загляните в быстрый заказ или в меню.',
     repeatNow: 'Итого сейчас', addQuick: '⚡ Добавить из быстрого', inMenu: '✏️ В меню', repeatNothing: 'Сегодня ни одно блюдо из этого заказа заказать не получится.',
-    gone_sold_out: 'сегодня закончилось', gone_unavailable: 'больше нет в меню', gone_changed: 'изменился состав, выберите в меню', gone_alcohol: 'только к визиту',
+    gone_sold_out: 'сейчас на стопе', gone_unavailable: 'больше нет в меню', gone_changed: 'изменился состав, выберите в меню', gone_alcohol: 'только к визиту',
     priceChanged: 'Цена изменилась: {name} — было {was}, сейчас {now}',
-    err_DISH_SOLD_OUT: '{name} только что закончилось. Уберите блюдо из заказа.',
+    err_DISH_SOLD_OUT: '{name} сейчас на стопе. Уберите блюдо из заказа.',
     err_DISH_UNAVAILABLE: 'Одного из блюд больше нет в меню. Уберите его из заказа.',
     err_SLOT_FULL: 'Это время только что заняли. Выберите другое.',
     err_SLOT_TOO_SOON: 'На это время уже не успеваем. Выберите время попозже.',
@@ -211,12 +211,12 @@ export const QT: Record<Lang, T> = {
     kbHint: '👇 Món bán chạy, đặt nhanh và đặt lại đơn trước — ở các nút bên dưới. Nếu nút bị ẩn, hãy bấm biểu tượng ⌨ cạnh ô nhập tin.',
     dayTitle: 'Món bán chạy', dayAdd: '➕ Thêm vào đơn', dayMore: '⚡ Thêm món đặt nhanh', chef: 'bếp trưởng',
     dayNone: 'Chưa chọn món bán chạy. Mời bạn xem đặt nhanh hoặc thực đơn.',
-    daySold: 'Món bán chạy hôm nay đã hết. Mời bạn xem đặt nhanh hoặc thực đơn.',
+    daySold: 'Món bán chạy «{name}» hiện tạm hết. Mời bạn xem đặt nhanh hoặc thực đơn.', stopTag: 'tạm hết',
     quickTitle: 'Đặt nhanh', quickHint: 'Bấm vào món để thêm. Bấm lần nữa để thêm một phần.',
     quickEmpty: 'Đặt nhanh chưa được thiết lập. Bấm nút bên dưới để xem toàn bộ thực đơn.',
     inCart: '🧺 Trong đơn', total: 'Tổng', undo: '➖ Bớt món cuối', clear: '🗑 Xóa hết', checkout: 'Đặt món · {sum}',
     openMenu: '🍽 Xem thực đơn', editInMenu: '✏️ Sửa trong thực đơn', back: '← Quay lại', toCart: '← Về đơn',
-    added: 'Đã thêm: {name}', removed: 'Đã bớt', cleared: 'Đơn trống', soldNow: '{name} hiện đã hết', empty: 'Đơn chưa có món nào',
+    added: 'Đã thêm: {name}', removed: 'Đã bớt', cleared: 'Đơn trống', soldNow: '{name} hiện tạm hết, chưa đặt được', empty: 'Đơn chưa có món nào',
     chooseOpt: '{dish}: {group}',
     howGet: 'Bạn muốn nhận đơn thế nào?', pickup: '🥡 Tự đến lấy', visit: '🍽 Đặt trước khi đến', delivery: '🛵 Giao hàng (trong thực đơn)',
     alcoholOnlyVisit: 'Đơn có đồ uống có cồn, chỉ đặt được khi đến dùng tại quán.',
@@ -229,9 +229,9 @@ export const QT: Record<Lang, T> = {
     placed: '✅ Đã đặt đơn số {n}. Thẻ đơn hàng bên dưới có thanh toán và trạng thái.', already: 'Đơn số {n} đã được đặt',
     repeatTitle: 'Đơn số {n} ngày {date}', repeatNone: 'Bạn chưa có đơn nào. Mời bạn xem đặt nhanh hoặc thực đơn.',
     repeatNow: 'Tổng hiện tại', addQuick: '⚡ Thêm từ đặt nhanh', inMenu: '✏️ Thực đơn', repeatNothing: 'Hôm nay không đặt được món nào trong đơn này.',
-    gone_sold_out: 'hôm nay đã hết', gone_unavailable: 'không còn trong thực đơn', gone_changed: 'đã thay đổi, chọn trong thực đơn', gone_alcohol: 'chỉ khi đến quán',
+    gone_sold_out: 'hiện tạm hết', gone_unavailable: 'không còn trong thực đơn', gone_changed: 'đã thay đổi, chọn trong thực đơn', gone_alcohol: 'chỉ khi đến quán',
     priceChanged: 'Giá đã thay đổi: {name} — trước {was}, nay {now}',
-    err_DISH_SOLD_OUT: '{name} vừa hết. Vui lòng bỏ món này khỏi đơn.',
+    err_DISH_SOLD_OUT: '{name} hiện tạm hết. Vui lòng bỏ món này khỏi đơn.',
     err_DISH_UNAVAILABLE: 'Một món không còn trong thực đơn. Vui lòng bỏ món đó.',
     err_SLOT_FULL: 'Giờ này vừa kín chỗ. Vui lòng chọn giờ khác.',
     err_SLOT_TOO_SOON: 'Giờ này không kịp chuẩn bị. Vui lòng chọn giờ muộn hơn.',
@@ -246,12 +246,12 @@ export const QT: Record<Lang, T> = {
     kbHint: '👇 Best seller, quick order and repeat last order are on the buttons below. If they are hidden, tap the ⌨ icon next to the message field.',
     dayTitle: 'Best seller', dayAdd: '➕ Add to order', dayMore: '⚡ More from quick order', chef: 'chef',
     dayNone: 'No best seller picked yet. Have a look at the quick order or the menu.',
-    daySold: 'Today’s best seller is sold out. Have a look at the quick order or the menu.',
+    daySold: 'Best seller «{name}» is unavailable right now. Have a look at the quick order or the menu.', stopTag: 'unavailable',
     quickTitle: 'Quick order', quickHint: 'Tap a dish to add it. Tap again to add one more portion.',
     quickEmpty: 'The quick order is not set up yet. The full menu opens with the button below.',
     inCart: '🧺 In your order', total: 'Total', undo: '➖ Remove last', clear: '🗑 Clear', checkout: 'Checkout · {sum}',
     openMenu: '🍽 Open menu', editInMenu: '✏️ Edit in menu', back: '← Back', toCart: '← Back to order',
-    added: 'Added: {name}', removed: 'Removed', cleared: 'Order is empty', soldNow: '{name} is not available now', empty: 'Your order is empty',
+    added: 'Added: {name}', removed: 'Removed', cleared: 'Order is empty', soldNow: '{name} is unavailable right now', empty: 'Your order is empty',
     chooseOpt: '{dish}: {group}',
     howGet: 'How will you get your order?', pickup: '🥡 Pickup', visit: '🍽 For my visit', delivery: '🛵 Delivery (in menu)',
     alcoholOnlyVisit: 'Your order has alcohol, it can only be ordered for your visit.',
@@ -264,9 +264,9 @@ export const QT: Record<Lang, T> = {
     placed: '✅ Order #{n} placed. The order card below has payment and status.', already: 'Order #{n} is already placed',
     repeatTitle: 'Your order #{n} from {date}', repeatNone: 'No past orders yet. Have a look at the quick order or the menu.',
     repeatNow: 'Total now', addQuick: '⚡ Add from quick order', inMenu: '✏️ Menu', repeatNothing: 'None of the dishes from this order can be ordered today.',
-    gone_sold_out: 'sold out today', gone_unavailable: 'no longer on the menu', gone_changed: 'changed, choose it in the menu', gone_alcohol: 'only for your visit',
+    gone_sold_out: 'unavailable right now', gone_unavailable: 'no longer on the menu', gone_changed: 'changed, choose it in the menu', gone_alcohol: 'only for your visit',
     priceChanged: 'Price changed: {name} — was {was}, now {now}',
-    err_DISH_SOLD_OUT: '{name} has just sold out. Please remove it from the order.',
+    err_DISH_SOLD_OUT: '{name} is unavailable right now. Please remove it from the order.',
     err_DISH_UNAVAILABLE: 'One of the dishes is no longer on the menu. Please remove it.',
     err_SLOT_FULL: 'This time has just been taken. Please choose another.',
     err_SLOT_TOO_SOON: 'We cannot make it by this time. Please choose a later time.',
@@ -298,6 +298,8 @@ export interface QuickDish {
   name: string;
   price: number;
   isDay: boolean;
+  /** На стопе: кнопка видна, но заказать нельзя. */
+  stopped?: boolean;
 }
 
 /** Экран «Быстрый заказ»: одно сообщение, которое бот обновляет при каждом нажатии. */
@@ -313,6 +315,7 @@ export function quickScreen(
   const sum = cartTotal(menu, items);
   if (items.length) lines.push('', `${qt(lang, 'inCart')}: ${cartSummary(menu, items, lang)}`, `${qt(lang, 'total')} <b>${fmtVnd(sum)}</b>`);
   const rows: InlineButton[][] = dishes.map((d) => {
+    if (d.stopped) return [cb(`🚫 ${d.name} · ${qt(lang, 'stopTag')}`.slice(0, 64), `q:a:${d.id}`)];
     const n = qtyOf(items, d.id);
     return [cb(`⭐ ${d.name} · ${shortPrice(d.price)}${n ? ` ✓${n}` : ''}`.slice(0, 64), `q:a:${d.id}`)];
   });

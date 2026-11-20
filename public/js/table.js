@@ -107,6 +107,7 @@ function renderTableCart() {
     <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
     <p class="hint" style="margin:0"><b>${esc(title)}</b><br>${esc(t('tableHint'))}</p>
     <div class="field"><label for="g-comment">${esc(t('comment'))}</label><textarea id="g-comment" maxlength="300" placeholder="${esc(t('tableCommentPh'))}">${esc(state.comment)}</textarea></div>
+    ${stopProblem() ? `<p class="alert warn" style="margin:0">${esc(stopProblem())}</p>` : ''}
     ${optionProblem() ? `<p class="alert warn" style="margin:0">${esc(optionProblem())}</p>` : ''}
     ${tableState.info && !tableState.info.open ? `<p class="alert warn" style="margin:0">${esc(t('err_TABLE_CLOSED'))}</p>` : ''}
     <p class="alert" id="cart-err" hidden style="margin:0"></p>`;
@@ -116,6 +117,7 @@ function renderTableCart() {
   body.onclick = (e) => {
     const ed = e.target.closest('[data-edit]');
     if (ed) return openDish(state.cart[Number(ed.dataset.edit)].dishId, Number(ed.dataset.edit));
+    if (removeStopped(e)) return state.cart.length ? renderTableCart() : dlg.close();
     const q = e.target.closest('[data-ci]');
     if (!q) return;
     const it = state.cart[Number(q.dataset.ci)];
@@ -141,6 +143,7 @@ function tableShowErr(msg) {
 let tableSending = false;
 async function submitTable() {
   if (tableSending) return;
+  if (blockStopped()) return;
   if (askMissingOption(tableShowErr)) return;
   // Один ключ на одну попытку: повторное нажатие или повтор после обрыва связи не создаст второй заказ.
   let key = sessionStorage.getItem('vibe_idem');
@@ -166,7 +169,7 @@ async function submitTable() {
     openBill();
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
-    if (e.code === 'OPTION_REQUIRED' || e.code === 'OPTION_INVALID') {
+    if (e.code === 'OPTION_REQUIRED' || e.code === 'OPTION_INVALID' || e.code === 'DISH_SOLD_OUT') {
       await refreshMenuData();
       renderTableCart();
     }

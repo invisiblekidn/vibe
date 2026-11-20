@@ -88,9 +88,45 @@ export function indexMenu(m: MenuData): MenuIndex {
   };
 }
 
+/** Стоп-лист «до снятия»: блюдо на стопе, пока сотрудник не снимет его во вкладке «Стоп-лист». */
+export const STOP_UNTIL_REMOVED = '*';
+
+/** Блюда, которые нельзя заказать на этот день: стоп-лист «до снятия» плюс стоп на конкретную дату. */
 export async function soldOutOn(db: D1Database, locationId: string, day: string): Promise<Set<string>> {
-  const r = await db.prepare('SELECT dish_id FROM stop_list WHERE location_id = ? AND day = ?').bind(locationId, day).all<{ dish_id: string }>();
+  const r = await db
+    .prepare('SELECT dish_id FROM stop_list WHERE location_id = ? AND (day = ? OR day = ?)')
+    .bind(locationId, day, STOP_UNTIL_REMOVED)
+    .all<{ dish_id: string }>();
   return new Set(r.results.map((x) => x.dish_id));
+}
+
+export interface StopEntry {
+  dish_id: string;
+  by_name: string | null;
+  at: string | null;
+}
+
+/** Что сейчас на стопе (для панели): кто и когда поставил. */
+export async function stopEntries(db: D1Database, locationId: string, day: string): Promise<Map<string, StopEntry>> {
+  const r = await db
+    .prepare('SELECT dish_id, by_name, at FROM stop_list WHERE location_id = ? AND (day = ? OR day = ?) ORDER BY at')
+    .bind(locationId, day, STOP_UNTIL_REMOVED)
+    .all<StopEntry>();
+  return new Map(r.results.map((x) => [x.dish_id, x]));
+}
+
+/** Поставить или снять стоп. Возвращает true, если что-то изменилось (повторное нажатие ничего не меняет). */
+export async function setStop(db: D1Database, locationId: string, dishId: string, stopped: boolean, who: string, at: string, day: string): Promise<boolean> {
+  if (stopped) {
+    const r = await db
+      .prepare('INSERT OR IGNORE INTO stop_list (location_id, dish_id, day, by_name, at) VALUES (?, ?, ?, ?, ?)')
+      .bind(locationId, dishId, STOP_UNTIL_REMOVED, who, at)
+      .run();
+    return (r.meta.changes ?? 0) > 0;
+  }
+  // Снимаем и «до снятия», и стоп на сегодня — гость сразу может заказать.
+  const r = await db.prepare('DELETE FROM stop_list WHERE location_id = ? AND dish_id = ? AND (day = ? OR day = ?)').bind(locationId, dishId, STOP_UNTIL_REMOVED, day).run();
+  return (r.meta.changes ?? 0) > 0;
 }
 
 export async function takenSlots(db: D1Database, locationId: string, day: string): Promise<Record<string, number>> {

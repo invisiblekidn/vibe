@@ -69,7 +69,25 @@ function cleanCart(items) {
   return out;
 }
 
-const cartTotal = () => state.cart.reduce((s, i) => s + unitPrice(i) * i.qty, 0);
+/** Блюдо на стопе: есть в меню, но заказать нельзя (ставит сотрудник во вкладке «Стоп-лист»). */
+const isStopped = (id) => !!state.menu && (state.menu.soldOutToday.includes(id) || !!(state.slotsData && state.slotsData.soldOut.includes(id)));
+
+/** Перед оформлением: если в корзине блюдо на стопе — показываем его строку и не отправляем. */
+function blockStopped() {
+  if (!stopProblem()) return false;
+  const row = document.querySelector('#cart-sheet .cart-item.stop');
+  if (row) { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.classList.remove('shake'); void row.offsetWidth; row.classList.add('shake'); }
+  return true;
+}
+
+/** Строки корзины с блюдами на стопе — текст предупреждения или null. */
+function stopProblem() {
+  const names = [...new Set(state.cart.filter((i) => isStopped(i.dishId)).map((i) => tr(state.dishes.get(i.dishId).name)))];
+  return names.length ? t('stopProblem', { names: names.join(', ') }) : null;
+}
+
+// Блюда на стопе в сумму не входят: заказать их нельзя.
+const cartTotal = () => state.cart.reduce((s, i) => s + (isStopped(i.dishId) ? 0 : unitPrice(i) * i.qty), 0);
 const cartCount = () => state.cart.reduce((s, i) => s + i.qty, 0);
 
 function saveCart() {
@@ -148,14 +166,15 @@ function renderMenu() {
   // «Хиты продаж» вверху меню: главный хит крупной карточкой, дальше все блюда из быстрого заказа.
   const dod = m.dishOfDay && state.dishes.get(m.dishOfDay.dishId);
   const hitList = [...hits].filter((id) => id !== dod?.id).map((id) => state.dishes.get(id)).filter(Boolean);
+  const dodOut = !!dod && soldOut.has(dod.id);
   const dodCard = dod
-    ? `<button type="button" class="card dod" data-dish="${dod.id}">
-        <span class="dod-ph">${dod.photo ? `<img src="${esc(dod.photo)}" alt="" width="112" height="112">` : ''}</span>
+    ? `<button type="button" class="card dod${dodOut ? ' out' : ''}" data-dish="${dod.id}">
+        <span class="dod-ph">${dod.photo ? `<img src="${esc(dod.photo)}" alt="" width="112" height="112">` : ''}${dodOut ? `<span class="tag-out">${esc(t('soldOutToday'))}</span>` : ''}</span>
         <span class="dod-body">
           <span class="dod-tag">★ ${esc(t('topHit'))}</span>
           <b>${esc(tr(dod.name))}</b>
           ${tr(m.dishOfDay.note) ? `<span class="dod-note">«${esc(tr(m.dishOfDay.note))}» — ${esc(t('chef'))}</span>` : tr(dod.description) ? `<span class="dod-note">${esc(tr(dod.description))}</span>` : ''}
-          <span class="row"><span class="price">${fmt(dod.price)}</span><span class="btn small">${esc(t('dodAdd'))}</span></span>
+          <span class="row"><span class="price">${fmt(dod.price)}</span>${dodOut ? `<span class="pill bad">${esc(t('soldOutPill'))}</span>` : `<span class="btn small">${esc(t('dodAdd'))}</span>`}</span>
         </span>
       </button>`
     : '';
@@ -250,7 +269,7 @@ function renderCartbar() {
 function openDish(id, editIdx = null) {
   const d = state.dishes.get(id);
   const dlg = $('#dish-sheet');
-  const soldToday = state.menu.soldOutToday.includes(id);
+  const soldToday = isStopped(id);
   const editing = editIdx === null ? null : state.cart[editIdx] || null;
   const miss = editing && missingGroup(editing);
   let qty = editing ? editing.qty : 1;
@@ -287,6 +306,8 @@ function openDish(id, editIdx = null) {
   const chosen = () => [...dlg.querySelectorAll('input:checked')].map((i) => i.value);
   const refresh = () => {
     $('#dq', dlg).textContent = qty;
+    // На стопе: блюдо видно, но добавить его нельзя.
+    if (soldToday) { $('#dish-add', dlg).textContent = t('stopBtn'); $('#dish-add', dlg).disabled = true; return; }
     $('#dish-add', dlg).textContent = t(editing ? 'saveChoice' : 'addToCart', { sum: fmt(unitPrice({ dishId: id, optionIds: chosen() }) * qty) });
   };
   dlg.onclick = (e) => {
@@ -299,7 +320,9 @@ function openDish(id, editIdx = null) {
     if (max > 1 && fs.querySelectorAll('input:checked').length > max) e.target.checked = false;
     refresh();
   };
+  if (soldToday) $('.qty', dlg).hidden = true;
   $('#dish-add', dlg).addEventListener('click', (e) => {
+    if (soldToday) { e.preventDefault(); return; }
     const ids = chosen();
     for (const fs of dlg.querySelectorAll('fieldset')) {
       if (fs.querySelectorAll('input:checked').length < Number(fs.dataset.min)) {
@@ -346,6 +369,14 @@ function optionNames(item) {
  *  строка подсвечена и есть кнопка «Выбрать», которая открывает карточку блюда прямо из корзины. */
 function cartLineHtml(i, idx, extra = '') {
   const d = state.dishes.get(i.dishId);
+  if (isStopped(i.dishId)) {
+    // Блюдо поставили на стоп, пока оно лежало в корзине: строка подсвечена, одна кнопка — убрать.
+    return `<div class="cart-item need stop" data-line="${idx}">
+      <div><b>${esc(tr(d.name))}</b> <span class="pill bad">${esc(t('soldOutPill'))}</span>
+        <small>${esc(t('stopLine'))}</small></div>
+      <button type="button" class="btn small ghost" data-rm="${idx}">${esc(t('remove'))}</button>
+    </div>`;
+  }
   const miss = missingGroup(i);
   const names = optionNames(i);
   const action = miss
@@ -359,6 +390,16 @@ function cartLineHtml(i, idx, extra = '') {
       ${miss ? action : ''}<small>${fmt(unitPrice(i))}${miss ? '' : action}</small></div>
     <div class="qty"><button type="button" data-ci="${idx}" data-d="-1" aria-label="${esc(t('less'))}">−</button>${i.qty}<button type="button" data-ci="${idx}" data-d="1" aria-label="${esc(t('more'))}">+</button></div>
   </div>`;
+}
+
+/** Кнопка «Убрать» у блюда на стопе. true — строка убрана. */
+function removeStopped(e) {
+  const rm = e.target.closest('[data-rm]');
+  if (!rm) return false;
+  state.cart.splice(Number(rm.dataset.rm), 1);
+  saveCart();
+  renderCartbar();
+  return true;
 }
 
 /** Строки, где не выбран обязательный вариант, — текст предупреждения или null. */
@@ -406,18 +447,18 @@ function renderCart() {
   const body = $('#cart-body', dlg);
   if (!body) return;
   const types = state.menu.location.orderTypes;
-  const daySold = new Set(state.slotsData?.soldOut || []);
   const hasAlcohol = state.cart.some((i) => state.dishes.get(i.dishId).is_alcohol);
   const today = state.menu.today;
   const problems = [];
   if (hasAlcohol && state.type !== 'visit') problems.push(t('alcoholProblem'));
-  if (state.cart.some((i) => daySold.has(i.dishId))) problems.push(t('soldProblem'));
+  const stop = stopProblem();
+  if (stop) problems.unshift(stop);
   const optProblem = optionProblem();
   if (optProblem) problems.unshift(optProblem);
 
   body.innerHTML = `
     <div class="card">${state.cart
-      .map((i, idx) => cartLineHtml(i, idx, daySold.has(i.dishId) ? ` <span class="pill bad">${esc(t('soldOutPill'))}</span>` : ''))
+      .map((i, idx) => cartLineHtml(i, idx))
       .join('')}</div>
     <div class="line tot"><span>${esc(t('total'))}</span><span>${fmt(cartTotal())}</span></div>
 
@@ -463,6 +504,7 @@ function renderCart() {
   body.onclick = (e) => {
     const ed = e.target.closest('[data-edit]');
     if (ed) return openDish(state.cart[Number(ed.dataset.edit)].dishId, Number(ed.dataset.edit));
+    if (removeStopped(e)) return state.cart.length ? renderCart() : dlg.close();
     const q = e.target.closest('[data-ci]');
     if (q) {
       const it = state.cart[Number(q.dataset.ci)];
@@ -514,6 +556,7 @@ function showErr(msg) {
 let sending = false;
 async function submit() {
   if (sending) return;
+  if (blockStopped()) return;
   if (askMissingOption(showErr)) return;
   const name = state.guest.name.trim();
   const phone = state.guest.phone.trim();
@@ -552,7 +595,7 @@ async function submit() {
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
-    if (e.code === 'OPTION_REQUIRED' || e.code === 'OPTION_INVALID') {
+    if (e.code === 'OPTION_REQUIRED' || e.code === 'OPTION_INVALID' || e.code === 'DISH_SOLD_OUT') {
       await refreshMenuData();
       renderCart();
     }

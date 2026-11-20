@@ -91,15 +91,20 @@ function render(flash = '') {
       <button class="chip" data-f="check" aria-pressed="${filter === 'check'}">Проверить оплату · ${nCheck}</button>
       <button class="chip" data-f="all" aria-pressed="${filter === 'all'}">Все</button>
       <button class="chip" data-f="bot" aria-pressed="${filter === 'bot'}">Бот</button>
+      <button class="chip" data-f="stop" aria-pressed="${filter === 'stop'}">Стоп-лист</button>
     </div>
     ${flash ? `<p class="alert warn" style="margin:0">${esc(flash)}</p>` : ''}
-    ${filter === 'bot' ? botTab() : filter === 'tables' ? renderTables() : `
+    ${filter === 'bot' ? botTab() : filter === 'stop' ? stopTab() : filter === 'tables' ? renderTables() : `
     ${list.length ? '' : '<p class="muted">Заказов нет.</p>'}
     ${list.map((o) => orderCard(o)).join('')}`}
   </div>`;
   if (filter === 'bot') {
     if (bot.data && botDirty()) botRender();
     else botLoad();
+  }
+  if (filter === 'stop') {
+    if (stop.data) stopRender();
+    stopLoad();
   }
 }
 
@@ -213,7 +218,7 @@ async function load(flash = '') {
 function start() {
   load();
   clearTimeout(timer);
-  const tick = () => { timer = setTimeout(async () => { if (!document.querySelector('[data-sure]') && filter !== 'bot') await load(); tick(); }, 15000); };
+  const tick = () => { timer = setTimeout(async () => { if (!document.querySelector('[data-sure]') && filter !== 'bot' && filter !== 'stop') await load(); tick(); }, 15000); };
   tick();
 }
 

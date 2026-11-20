@@ -144,8 +144,9 @@ function menuButton(x: Ctx, lang: Lang, items: BotCartItem[], key = 'openMenu'):
 function quickDishes(x: Ctx, lang: Lang): QuickDish[] {
   return x.picks.quick
     .map((id) => x.index.dishes.get(id))
-    .filter((d): d is NonNullable<typeof d> => !!d && d.active && !x.soldToday.has(d.id))
-    .map((d) => ({ id: d.id, name: pickName(d.name, lang), price: d.price, isDay: x.picks.day?.dishId === d.id }));
+    .filter((d): d is NonNullable<typeof d> => !!d && d.active)
+    // Блюдо на стопе остаётся в списке с пометкой «на стопе»; нажатие только покажет подсказку.
+    .map((d) => ({ id: d.id, name: pickName(d.name, lang), price: d.price, isDay: x.picks.day?.dishId === d.id, stopped: x.soldToday.has(d.id) }));
 }
 
 const quickView = (x: Ctx, lang: Lang, c: Cart): Screen => quickScreen(lang, quickDishes(x, lang), c.items, x.index, menuButton(x, lang, c.items));
@@ -184,7 +185,7 @@ async function sendDay(env: TgEnv, tg: Tg, x: Ctx, chatId: number, lang: Lang) {
   if (!pick || !d || !d.active || x.soldToday.has(d.id)) {
     await tg(env, 'sendMessage', {
       chat_id: chatId,
-      text: qt(lang, pick && d ? 'daySold' : 'dayNone'),
+      text: qt(lang, pick && d && d.active ? 'daySold' : 'dayNone', { name: d ? pickName(d.name, lang) : '' }),
       reply_markup: kb([more, [menuButton(x, lang, [])]]),
     });
     return;

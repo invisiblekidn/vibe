@@ -82,7 +82,11 @@ const I18N = {
   menuSections: { ru: 'Разделы меню', vi: 'Danh mục thực đơn', en: 'Menu sections' },
   menuLoading: { ru: 'Загружаем меню…', vi: 'Đang tải thực đơn…', en: 'Loading the menu…' },
   menuFailed: { ru: 'Не удалось загрузить меню. Обновите страницу.', vi: 'Không tải được thực đơn. Vui lòng tải lại trang.', en: 'Could not load the menu. Please refresh the page.' },
-  soldOutToday: { ru: 'Сегодня закончилось', vi: 'Hôm nay đã hết', en: 'Sold out today' },
+  soldOutToday: { ru: 'На стопе', vi: 'Tạm hết', en: 'Unavailable' },
+  remove: { ru: 'Убрать', vi: 'Bỏ', en: 'Remove' },
+  stopBtn: { ru: 'Сейчас на стопе', vi: 'Hiện tạm hết', en: 'Unavailable right now' },
+  stopLine: { ru: 'Сейчас заказать нельзя. Уберите из заказа.', vi: 'Hiện chưa đặt được. Vui lòng bỏ khỏi đơn.', en: 'Can’t be ordered right now. Please remove it.' },
+  stopProblem: { ru: 'Сейчас на стопе: {names}. Уберите из заказа, чтобы оформить.', vi: 'Hiện tạm hết: {names}. Vui lòng bỏ khỏi đơn để đặt.', en: 'Unavailable right now: {names}. Remove to place the order.' },
   topHit: { ru: 'Главный хит', vi: 'Bán chạy nhất', en: 'Top hit' },
   hitsTitle: { ru: 'Хиты продаж', vi: 'Món bán chạy', en: 'Best sellers' },
   hitTag: { ru: 'Хит', vi: 'Bán chạy', en: 'Hit' },
@@ -96,7 +100,7 @@ const I18N = {
   cartBar: { ru: 'Корзина · {n} · {sum}', vi: 'Giỏ hàng · {n} · {sum}', en: 'Cart · {n} · {sum}' },
 
   // Карточка блюда
-  dishSoldToday: { ru: 'Сегодня это блюдо закончилось. Его можно заказать на завтра и позже.', vi: 'Hôm nay món này đã hết. Bạn có thể đặt cho ngày mai hoặc sau đó.', en: 'This dish is sold out today. You can order it for tomorrow or later.' },
+  dishSoldToday: { ru: 'Блюдо сейчас на стопе: оно есть в меню, но заказать его пока нельзя.', vi: 'Món này hiện tạm hết: vẫn có trong thực đơn nhưng tạm thời chưa đặt được.', en: 'This dish is on the menu but unavailable right now.' },
   alcoholVisit: { ru: 'Алкоголь подаём только к вашему визиту в ресторан.', vi: 'Đồ uống có cồn chỉ phục vụ khi bạn đến nhà hàng.', en: 'Alcohol is served only when you visit the restaurant.' },
   optRequired: { ru: 'обязательно', vi: 'bắt buộc', en: 'required' },
   optUpTo: { ru: 'до {n}', vi: 'tối đa {n}', en: 'up to {n}' },
@@ -112,7 +116,7 @@ const I18N = {
 
   // Корзина и оформление
   yourOrder: { ru: 'Ваш заказ', vi: 'Đơn hàng của bạn', en: 'Your order' },
-  soldOutPill: { ru: 'закончилось', vi: 'đã hết', en: 'sold out' },
+  soldOutPill: { ru: 'на стопе', vi: 'tạm hết', en: 'unavailable' },
   howGet: { ru: 'Как получить', vi: 'Cách nhận món', en: 'How to get it' },
   visitHint: { ru: 'Приготовим к вашему приходу, стол будет ждать. Минимум за 30 минут.', vi: 'Chúng tôi sẽ chuẩn bị sẵn khi bạn đến, bàn sẽ chờ bạn. Đặt trước ít nhất 30 phút.', en: 'We will have it ready when you arrive and keep a table for you. At least 30 minutes ahead.' },
   pickupHint: { ru: 'Заберёте сами в ресторане. Минимум за 30 минут.', vi: 'Bạn tự đến nhà hàng lấy món. Đặt trước ít nhất 30 phút.', en: 'You pick it up at the restaurant. At least 30 minutes ahead.' },
@@ -139,7 +143,7 @@ const I18N = {
   // Ошибки оформления (коды с сервера)
   err_EMPTY_CART: { ru: 'Корзина пуста.', vi: 'Giỏ hàng trống.', en: 'Your cart is empty.' },
   err_DISH_UNAVAILABLE: { ru: 'Одного из блюд больше нет в меню. Уберите его из корзины.', vi: 'Một món không còn trong thực đơn. Vui lòng bỏ món đó khỏi giỏ.', en: 'One of the dishes is no longer on the menu. Please remove it from the cart.' },
-  err_DISH_SOLD_OUT: { ru: 'Одно из блюд закончилось на выбранный день. Уберите его или выберите другой день.', vi: 'Một món đã hết vào ngày đã chọn. Hãy bỏ món đó hoặc chọn ngày khác.', en: 'One of the dishes is sold out on the chosen day. Remove it or choose another day.' },
+  err_DISH_SOLD_OUT: { ru: '«{name}» сейчас на стопе. Уберите блюдо из заказа.', vi: '«{name}» hiện tạm hết. Vui lòng bỏ món này khỏi đơn.', en: '«{name}» is unavailable right now. Please remove it from the order.' },
   err_ALCOHOL_NOT_ALLOWED: { ru: 'Алкоголь можно заказать только «к визиту».', vi: 'Đồ uống có cồn chỉ đặt được với «Đặt trước khi đến».', en: 'Alcohol can only be ordered “For your visit”.' },
   err_OPTION_REQUIRED: { ru: 'Для блюда «{name}» нужно выбрать вариант. Нажмите «Выбрать» в корзине.', vi: 'Món «{name}» cần chọn một lựa chọn. Bấm «Chọn» trong giỏ hàng.', en: 'Please choose an option for «{name}». Tap «Choose» in the cart.' },
   err_OPTION_INVALID: { ru: 'У блюда «{name}» изменились варианты. Нажмите «Изменить» и выберите заново.', vi: 'Lựa chọn của món «{name}» đã thay đổi. Bấm «Sửa» và chọn lại.', en: 'The options for «{name}» have changed. Tap «Change» and choose again.' },
