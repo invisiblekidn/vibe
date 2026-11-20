@@ -1,5 +1,5 @@
 -- ТЕСТОВЫЕ ДАННЫЕ для разработки. Часть настоящего меню (ноябрь 2026), фото временные.
--- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql, супы — в seed/menu-soups.sql, горячее — в seed/menu-mains.sql, салаты — в seed/menu-salads.sql, бар — в seed/menu-bar.sql (выполнять после этого файла).
+-- Завтраки и круассаны — в seed/menu-breakfast.sql, детское меню — в seed/menu-kids.sql, супы — в seed/menu-soups.sql, горячее — в seed/menu-mains.sql, салаты — в seed/menu-salads.sql, десерты — в seed/menu-desserts.sql, бар — в seed/menu-bar.sql (выполнять после этого файла).
 -- Вьетнамские названия пока совпадают с английскими: переведём на этапе 6.
 
 DELETE FROM order_events; DELETE FROM order_items; DELETE FROM orders;

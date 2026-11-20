@@ -116,7 +116,14 @@
     "crab-salad": ["Salad thanh cua", "Thanh cua, trứng, bắp, dưa leo tươi và sốt mayonnaise béo."],
     "greek-salad": ["Salad Hy Lạp", "Rau củ tươi, phô mai feta, ô liu, hành tím và sốt dầu ô liu thơm."],
     "veg-salad": ["Salad rau củ tươi", "Cà chua, dưa leo, ớt chuông, hành tím, xà lách và rau thơm. Nước sốt tùy chọn: dầu ô liu hoặc kem chua."],
-    "vinaigrette": ["Salad củ dền Vinaigrette", "Salad củ dền truyền thống với khoai tây, cà rốt, dưa chuột muối, đậu Hà Lan và hành tây, trộn dầu ô liu."]
+    "vinaigrette": ["Salad củ dền Vinaigrette", "Salad củ dền truyền thống với khoai tây, cà rốt, dưa chuột muối, đậu Hà Lan và hành tây, trộn dầu ô liu."],
+    "dessert-blinchiki": ["Bánh crepe nhân ngọt", "Bánh crepe mỏng, nhân tùy chọn: sô-cô-la phết với chuối, sô-cô-la phết với xoài, mứt hoặc sữa đặc."],
+    "napoleon": ["Bánh Napoleon", "Bánh ngàn lớp truyền thống với kem trứng sữa mềm mịn."],
+    "medovik": ["Bánh mật ong Medovik", "Bánh mật ong nhiều lớp mềm với kem chua."],
+    "oreshki": ["Bánh hạt óc chó nhân sữa đặc", "Món tráng miệng truyền thống: vỏ bánh giòn nhân sữa đặc nấu caramen."],
+    "tvorog-fruit": ["Phô mai tươi với trái cây", "Phô mai tươi mềm với trái cây tươi."],
+    "donuts": ["Bánh donut chiên", "Phần 3 cái, rắc đường bột."],
+    "waffles": ["Bánh waffle với kem", "Hai bánh waffle giòn, một viên kem và sốt caramen."]
   },
   "groups": {
     "ol-fill": "Nhân",
@@ -163,7 +170,8 @@
     "kiev-side": "Món ăn kèm",
     "stuffed-peppers-side": "Món ăn kèm",
     "burger-side": "Món ăn kèm",
-    "vs-dress": "Sốt trộn"
+    "vs-dress": "Sốt trộn",
+    "dbl-fill": "Nhân"
   },
   "options": {
     "ol-chicken": "Với thịt gà",
@@ -332,6 +340,10 @@
     "burger-side-rice": "Cơm",
     "burger-side-pasta": "Mì ống",
     "vs-oil": "Dầu ô liu",
-    "vs-sour": "Kem chua"
+    "vs-sour": "Kem chua",
+    "dbl-choc-banana": "Sô-cô-la phết với chuối",
+    "dbl-choc-mango": "Sô-cô-la phết với xoài",
+    "dbl-jam": "Mứt",
+    "dbl-cond": "Sữa đặc"
   }
 }
