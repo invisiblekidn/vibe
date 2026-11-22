@@ -1,14 +1,14 @@
--- Актуальная страница «Бар / Bar — безалкогольные напитки» (фото меню от 16.11.2026).
+-- Бар: безалкогольные напитки — страница от 16.11.2026, шоты, пиво, коктейли и свежевыжатые соки — «Коктейльная карта» от 22.11.2026.
 -- Можно выполнять повторно: обновляет напитки и опции, заказы и стоп-лист не трогает.
--- Алкоголь (шоты и коктейли) на этой странице нет — оставлен как был (11.11). Алкоголь — только к визиту и в зале.
+-- Алкоголь (шоты, пиво, коктейли) — только к визиту и в зале.
 -- Группы напитков (плитки) — в seed/menu-bar-sections.sql, выполнять после этого файла.
 
 INSERT INTO categories (id, sort, name) VALUES
  ('bar', 9, '{"ru": "Бар", "vi": "Đồ uống", "en": "Bar"}')
 ON CONFLICT(id) DO UPDATE SET sort = excluded.sort, name = excluded.name;
 
-DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag','juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-carrot','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw','cola','cola-zero','sprite','fanta','tonic','water','tan','kvass','coconut','shot-tequila','shot-vodka','shot-rum','mojito','aperol','pina-colada','daiquiri','margarita'));
-DELETE FROM option_groups WHERE dish_id IN ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag','juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-carrot','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw','cola','cola-zero','sprite','fanta','tonic','water','tan','kvass','coconut','shot-tequila','shot-vodka','shot-rum','mojito','aperol','pina-colada','daiquiri','margarita');
+DELETE FROM options WHERE group_id IN (SELECT id FROM option_groups WHERE dish_id IN ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag','juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-mango','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw','cola','cola-zero','sprite','fanta','tonic','water','tan','kvass','coconut','shot-vodka','shot-rice-vodka','shot-rum','shot-choc-rum','shot-passion-rum','shot-whisky','beer-tiger','beer-heineken','beer-saigon','beer-draft','beer-jvs','mojito','aperol','pina-colada'));
+DELETE FROM option_groups WHERE dish_id IN ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag','juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-mango','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw','cola','cola-zero','sprite','fanta','tonic','water','tan','kvass','coconut','shot-vodka','shot-rice-vodka','shot-rum','shot-choc-rum','shot-passion-rum','shot-whisky','beer-tiger','beer-heineken','beer-saigon','beer-draft','beer-jvs','mojito','aperol','pina-colada');
 
 INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weight, is_kids, is_alcohol, active) VALUES
  ('espresso', 'bar', 1, '{"ru": "Эспрессо", "vi": "Espresso", "en": "Espresso"}',
@@ -38,19 +38,19 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
  ('tea-bag', 'bar', 13, '{"ru": "Чай пакетированный", "vi": "Trà túi lọc", "en": "Tea Bag"}',
    '{"ru": "1 чашка.", "vi": "1 tách.", "en": "1 cup."}', 25000, '/img/dishes/bar-tea.jpg', NULL, 0, 0, 1),
  ('juice-orange', 'bar', 14, '{"ru": "Апельсиновый сок", "vi": "Nước cam", "en": "Orange Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 49000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 49000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
  ('juice-pineapple', 'bar', 15, '{"ru": "Ананасовый сок", "vi": "Nước dứa", "en": "Pineapple Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
  ('juice-watermelon', 'bar', 16, '{"ru": "Арбузный сок", "vi": "Nước dưa hấu", "en": "Watermelon Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
  ('juice-apple', 'bar', 17, '{"ru": "Яблочный сок", "vi": "Nước táo", "en": "Apple Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 49000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 49000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
  ('juice-celery', 'bar', 18, '{"ru": "Сельдереевый сок", "vi": "Nước cần tây", "en": "Celery Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
  ('juice-dragon', 'bar', 19, '{"ru": "Сок из драгонфрута", "vi": "Nước thanh long", "en": "Dragon Fruit Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 49000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
- ('juice-carrot', 'bar', 20, '{"ru": "Морковный сок", "vi": "Nước cà rốt", "en": "Carrot Juice"}',
-   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', NULL, 0, 0, 1),
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 49000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
+ ('juice-mango', 'bar', 20, '{"ru": "Сок манго-маракуйя", "vi": "Nước xoài chanh dây", "en": "Mango & Passion Fruit Juice"}',
+   '{"ru": "Свежевыжатый.", "vi": "Ép tươi.", "en": "Freshly squeezed."}', 59000, '/img/dishes/bar-juice.jpg', '300 мл', 0, 0, 1),
  ('smoothie-berry', 'bar', 21, '{"ru": "Смузи ягодный", "vi": "Sinh tố quả mọng", "en": "Berry Smoothie"}',
    '{"ru": "Клубника, малина, черника.", "vi": "Dâu tây, mâm xôi, việt quất.", "en": "Strawberry, raspberry, blueberry."}', 80000, '/img/dishes/bar-smoothie.jpg', NULL, 0, 0, 1),
  ('smoothie-mango', 'bar', 22, '{"ru": "Смузи манго-маракуйя", "vi": "Sinh tố xoài chanh dây", "en": "Mango & Passion Fruit Smoothie"}',
@@ -81,22 +81,34 @@ INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weig
    '{"ru": "Новинка! Хлебный квас по домашнему рецепту.", "vi": "Món mới! Kvass bánh mì theo công thức nhà làm.", "en": "New! Bread kvass made to a homemade recipe."}', 35000, '/img/dishes/bar-soft.jpg', NULL, 0, 0, 1),
  ('coconut', 'bar', 35, '{"ru": "Свежий холодный кокос", "vi": "Dừa tươi ướp lạnh", "en": "Fresh Cold Coconut"}',
    '{}', 35000, '/img/dishes/bar-coconut.jpg', NULL, 0, 0, 1),
- ('shot-tequila', 'bar', 36, '{"ru": "Текила", "vi": "Tequila", "en": "Tequila"}',
-   '{"ru": "Шот.", "vi": "Ly shot.", "en": "Shot."}', 75000, '/img/dishes/bar-tequila.jpg', NULL, 0, 1, 1),
- ('shot-vodka', 'bar', 37, '{"ru": "Водка", "vi": "Vodka", "en": "Vodka"}',
-   '{"ru": "Шот.", "vi": "Ly shot.", "en": "Shot."}', 65000, '/img/dishes/bar-vodka.jpg', NULL, 0, 1, 1),
- ('shot-rum', 'bar', 38, '{"ru": "Ром", "vi": "Rum", "en": "Rum"}',
-   '{"ru": "Шот.", "vi": "Ly shot.", "en": "Shot."}', 75000, '/img/dishes/bar-rum.jpg', NULL, 0, 1, 1),
- ('mojito', 'bar', 39, '{"ru": "Мохито", "vi": "Mojito", "en": "Mojito"}',
-   '{"ru": "Ром, лайм, мята, сахар, содовая.", "vi": "Rum, chanh, bạc hà, đường, soda.", "en": "Rum, lime, mint, sugar, soda water."}', 129000, '/img/dishes/bar-mojito.jpg', NULL, 0, 1, 1),
- ('aperol', 'bar', 40, '{"ru": "Апероль Спритц", "vi": "Aperol Spritz", "en": "Aperol Spritz"}',
-   '{"ru": "Апероль, игристое вино, содовая, апельсин.", "vi": "Aperol, rượu vang sủi, soda, cam.", "en": "Aperol, sparkling wine, soda water, orange."}', 149000, '/img/dishes/bar-aperol.jpg', NULL, 0, 1, 1),
- ('pina-colada', 'bar', 41, '{"ru": "Пина Колада", "vi": "Piña Colada", "en": "Piña Colada"}',
-   '{"ru": "Ром, ананасовый сок, кокосовые сливки.", "vi": "Rum, nước dứa, kem dừa.", "en": "Rum, pineapple juice, coconut cream."}', 149000, '/img/dishes/bar-pina.jpg', NULL, 0, 1, 1),
- ('daiquiri', 'bar', 42, '{"ru": "Дайкири", "vi": "Daiquiri", "en": "Daiquiri"}',
-   '{"ru": "Ром, лайм, сахар, клубника.", "vi": "Rum, chanh, đường, dâu tây.", "en": "Rum, lime, sugar, strawberry."}', 139000, '/img/dishes/bar-daiquiri.jpg', NULL, 0, 1, 1),
- ('margarita', 'bar', 43, '{"ru": "Маргарита", "vi": "Margarita", "en": "Margarita"}',
-   '{"ru": "Текила, лайм, апельсиновый ликёр.", "vi": "Tequila, chanh, rượu mùi cam.", "en": "Tequila, lime, orange liqueur."}', 149000, '/img/dishes/bar-margarita.jpg', NULL, 0, 1, 1)
+ ('shot-vodka', 'bar', 36, '{"ru": "Шот водки", "vi": "Shot vodka", "en": "Vodka Shot"}',
+   '{}', 49000, '/img/dishes/bar-shots.jpg', '50 мл', 0, 1, 1),
+ ('shot-rice-vodka', 'bar', 37, '{"ru": "Шот рисовой водки", "vi": "Shot rượu gạo", "en": "Rice Vodka Shot"}',
+   '{}', 49000, '/img/dishes/bar-shots.jpg', '50 мл', 0, 1, 1),
+ ('shot-rum', 'bar', 38, '{"ru": "Шот рома", "vi": "Shot rum", "en": "Rum Shot"}',
+   '{}', 49000, '/img/dishes/bar-shots.jpg', '50 мл', 0, 1, 1),
+ ('shot-choc-rum', 'bar', 39, '{"ru": "Шот шоколадного рома", "vi": "Shot rum sô-cô-la", "en": "Chocolate Rum Shot"}',
+   '{}', 55000, '/img/dishes/bar-shots.jpg', '50 мл', 0, 1, 1),
+ ('shot-passion-rum', 'bar', 40, '{"ru": "Шот «Маракуйя Ром»", "vi": "Shot rum chanh dây", "en": "Passion Fruit Rum Shot"}',
+   '{}', 55000, '/img/dishes/bar-shots.jpg', '50 мл', 0, 1, 1),
+ ('shot-whisky', 'bar', 41, '{"ru": "Шот виски", "vi": "Shot whisky", "en": "Whisky Shot"}',
+   '{}', 49000, '/img/dishes/bar-shots.jpg', '50 мл', 0, 1, 1),
+ ('beer-tiger', 'bar', 42, '{"ru": "Пиво Tiger", "vi": "Bia Tiger", "en": "Tiger Beer"}',
+   '{"ru": "Бутылка 330 мл.", "vi": "Chai 330 ml.", "en": "Bottle 330 ml."}', 45000, '/img/dishes/bar-tiger.jpg', '330 мл', 0, 1, 1),
+ ('beer-heineken', 'bar', 43, '{"ru": "Пиво Heineken", "vi": "Bia Heineken", "en": "Heineken Beer"}',
+   '{"ru": "Бутылка 330 мл.", "vi": "Chai 330 ml.", "en": "Bottle 330 ml."}', 40000, '/img/dishes/bar-heineken.jpg', '330 мл', 0, 1, 1),
+ ('beer-saigon', 'bar', 44, '{"ru": "Пиво Saigon", "vi": "Bia Sài Gòn", "en": "Saigon Beer"}',
+   '{"ru": "Бутылка 330 мл.", "vi": "Chai 330 ml.", "en": "Bottle 330 ml."}', 35000, '/img/dishes/bar-saigon.jpg', '330 мл', 0, 1, 1),
+ ('beer-draft', 'bar', 45, '{"ru": "Пиво на разлив", "vi": "Bia tươi", "en": "Draft Beer"}',
+   '{"ru": "1 литр.", "vi": "1 lít.", "en": "1 litre."}', 50000, '/img/dishes/bar-draft.jpg', '1 л', 0, 1, 1),
+ ('beer-jvs', 'bar', 46, '{"ru": "Крафтовое пиво JVS", "vi": "Bia thủ công JVS", "en": "JVS Barley Unfiltered Lager"}',
+   '{"ru": "Нефильтрованный лагер, бутылка 330 мл.", "vi": "Bia lager không lọc, chai 330 ml.", "en": "Unfiltered lager, bottle 330 ml."}', 69000, '/img/dishes/bar-jvs.jpg', '330 мл', 0, 1, 1),
+ ('mojito', 'bar', 47, '{"ru": "Мохито", "vi": "Mojito", "en": "Mojito"}',
+   '{"ru": "Ром, лайм, мята, сахар, содовая.", "vi": "Rum, chanh, bạc hà, đường, soda.", "en": "Rum, lime, mint, sugar, soda water."}', 110000, '/img/dishes/bar-mojito2.jpg', NULL, 0, 1, 1),
+ ('aperol', 'bar', 48, '{"ru": "Апероль Шприц", "vi": "Aperol Spritz", "en": "Aperol Spritz"}',
+   '{"ru": "Апероль, игристое вино, содовая, апельсин.", "vi": "Aperol, rượu vang sủi, soda, cam.", "en": "Aperol, sparkling wine, soda water, orange."}', 159000, '/img/dishes/bar-aperol2.jpg', NULL, 0, 1, 1),
+ ('pina-colada', 'bar', 49, '{"ru": "Пина Колада", "vi": "Piña Colada", "en": "Piña Colada"}',
+   '{"ru": "Ром, ананасовый сок, кокосовые сливки.", "vi": "Rum, nước dứa, kem dừa.", "en": "Rum, pineapple juice, coconut cream."}', 140000, '/img/dishes/bar-pina2.jpg', NULL, 0, 1, 1)
 ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = excluded.sort, name = excluded.name,
  description = excluded.description, price = excluded.price, photo = excluded.photo, weight = excluded.weight,
  is_kids = excluded.is_kids, is_alcohol = excluded.is_alcohol, active = excluded.active;
