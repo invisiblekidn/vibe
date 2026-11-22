@@ -113,6 +113,9 @@ ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = exclude
  description = excluded.description, price = excluded.price, photo = excluded.photo, weight = excluded.weight,
  is_kids = excluded.is_kids, is_alcohol = excluded.is_alcohol, active = excluded.active;
 
+-- Напитки бара, которых нет на актуальных листах (16.11 и 22.11), скрываем (не удаляем: на них ссылаются прошлые заказы).
+UPDATE dishes SET active = 0 WHERE category_id = 'bar' AND id NOT IN ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag','juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-mango','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw','cola','cola-zero','sprite','fanta','tonic','water','tan','kvass','coconut','shot-vodka','shot-rice-vodka','shot-rum','shot-choc-rum','shot-passion-rum','shot-whisky','beer-tiger','beer-heineken','beer-saigon','beer-draft','beer-jvs','mojito','aperol','pina-colada');
+
 INSERT INTO option_groups (id, dish_id, sort, name, min_select, max_select) VALUES
  ('th-kind', 'tea-herbal', 1, '{"ru": "Вкус", "vi": "Vị", "en": "Flavour"}', 1, 1),
  ('tf-kind', 'tea-fruit', 1, '{"ru": "Вкус", "vi": "Vị", "en": "Flavour"}', 1, 1);
