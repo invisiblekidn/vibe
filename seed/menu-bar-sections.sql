@@ -13,7 +13,7 @@ ON CONFLICT(id) DO UPDATE SET category_id = excluded.category_id, sort = exclude
 UPDATE dishes SET section_id = 'bar-hot' WHERE id IN
  ('espresso','americano','cappuccino','latte','affogato','viet-coffee','egg-coffee','cocoa','tea-black','tea-green','tea-herbal','tea-fruit','tea-bag');
 UPDATE dishes SET section_id = 'bar-juice' WHERE id IN
- ('juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-carrot','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw');
+ ('juice-orange','juice-pineapple','juice-watermelon','juice-apple','juice-celery','juice-dragon','juice-mango','smoothie-berry','smoothie-mango','smoothie-avocado','shake-vanilla','shake-choc','shake-straw');
 UPDATE dishes SET section_id = 'bar-soft' WHERE id IN
  ('cola','cola-zero','sprite','fanta','tonic','water','tan','kvass','coconut');
 -- Весь алкоголь бара (шоты, коктейли и любой новый алкогольный напиток) — в группу «Алкоголь».
