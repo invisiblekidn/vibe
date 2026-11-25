@@ -14,9 +14,9 @@ export interface DeliverySettings {
 /** Здание, куда возим. */
 export const BUILDING = 'Napoleon Castle 1';
 export const BUILDING_RU = 'Наполеон';
-/** Этажи здания: 1–3 — магазины и общие зоны, 4–40 — квартиры, 41 — крыша. */
+/** Этажи здания: 1–43 (уточнение Aleks 25.11). Номер квартиры на этаже — двузначный: 01–99. */
 export const FLOOR_MIN = 1;
-export const FLOOR_MAX = 41;
+export const FLOOR_MAX = 43;
 
 export interface Apartment {
   floor: number;
@@ -28,12 +28,12 @@ export function cleanApartment(v: unknown): Apartment | null {
   const o = (v ?? {}) as { floor?: unknown; apt?: unknown };
   const floor = typeof o.floor === 'string' ? Number(o.floor.trim()) : o.floor;
   if (!Number.isInteger(floor) || (floor as number) < FLOOR_MIN || (floor as number) > FLOOR_MAX) return null;
-  const apt = typeof o.apt === 'string' ? o.apt.trim().replace(/\s+/g, ' ') : typeof o.apt === 'number' ? String(o.apt) : '';
-  if (!/^[0-9A-Za-z][0-9A-Za-z.\-/ ]{0,9}$/.test(apt)) return null;
-  return { floor: floor as number, apt };
+  const raw = typeof o.apt === 'string' ? o.apt.trim() : typeof o.apt === 'number' ? String(o.apt) : '';
+  if (!/^\d{1,2}$/.test(raw) || Number(raw) === 0) return null;
+  return { floor: floor as number, apt: raw.padStart(2, '0') };
 }
 
-/** Строка для курьера и чека: «Наполеон, этаж 12, кв. 1206». */
+/** Строка для курьера и чека: «Наполеон, этаж 12, кв. 05». */
 export const apartmentText = (a: Apartment) => `${BUILDING_RU}, этаж ${a.floor}, кв. ${a.apt}`;
 
 export type DeliveryQuote = { fee: number };

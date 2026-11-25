@@ -139,7 +139,7 @@ function orderCard(o, compact = false) {
     ${kitchenOnly ? '' : deliveryBlock(o)}
     <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
     ${kitchenOnly || compact ? '' : `<div class="line tot" style="margin:0"><span>Сумма</span><span>${fmt(o.total)}</span></div>`}
-    ${isTable ? (o.comment ? `<div class="muted" style="font-size:14px">«${esc(o.comment)}»</div>` : '') : `<div class="muted" style="font-size:14px">${esc(o.guestName)} · <a href="tel:${esc(o.guestPhone)}">${esc(o.guestPhone)}</a>${o.comment ? `<br>«${esc(o.comment)}»` : ''}</div>`}
+    ${isTable ? (o.comment ? `<div class="muted" style="font-size:14px">«${esc(o.comment)}»</div>` : '') : `<div class="muted" style="font-size:14px">${esc(o.guestName)} · ${o.guestPhone ? `<a href="tel:${esc(o.guestPhone)}">${esc(o.guestPhone)}</a>` : `<i>без телефона${o.inTelegram ? ', пишите в чате бота' : ', гость не в Telegram'}</i>`}${o.comment ? `<br>«${esc(o.comment)}»` : ''}</div>`}
     <div class="acts">${actionsFor(o).filter((a) => !kitchenOnly || a === 'mark_ready').map((a) => `<button class="btn small${a === 'cancel' ? ' ghost' : ''}" data-id="${o.id}" data-a="${a}">${actionLabel(o, a)}</button>`).join('')}</div>
   </article>`;
 }

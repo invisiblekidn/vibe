@@ -197,7 +197,9 @@ app.post('/api/orders', async (c) => {
   const name = cleanText(body.guest?.name, 60);
   const phone = cleanText(body.guest?.phone, 30);
   if (!name) return c.json({ error: 'BAD_INPUT', field: 'name' }, 400);
-  if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return c.json({ error: 'BAD_INPUT', field: 'phone' }, 400);
+  // Для доставки по «Наполеону» телефон необязателен (решение Aleks 25.11): связь с гостем в чате, курьер знает квартиру.
+  const phoneOptional = body.type === 'delivery' && phone === '';
+  if (!phoneOptional && !/^\+?[0-9 ()-]{7,20}$/.test(phone)) return c.json({ error: 'BAD_INPUT', field: 'phone' }, 400);
 
   let tgUserId: number | null = null;
   if (body.tgInitData) {
@@ -400,6 +402,7 @@ app.get('/api/staff/orders', async (c) => {
       total: o.total,
       guestName: o.guest_name,
       guestPhone: o.guest_phone,
+      inTelegram: !!o.tg_user_id,
       comment: o.comment,
       createdAt: o.created_at,
       items: items.results

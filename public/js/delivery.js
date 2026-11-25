@@ -18,10 +18,10 @@ const dlvConf = () => state.menu && state.menu.location.delivery;
 function dlvApt() {
   const d = dlvConf();
   const floor = Number(String(dlv.apt.floor).trim());
-  const apt = String(dlv.apt.apt).trim().replace(/\s+/g, ' ');
+  const apt = String(dlv.apt.apt).trim();
   if (!d || !Number.isInteger(floor) || floor < d.floorMin || floor > d.floorMax) return null;
-  if (!/^[0-9A-Za-z][0-9A-Za-z.\-/ ]{0,9}$/.test(apt)) return null;
-  return { floor, apt };
+  if (!/^\d{1,2}$/.test(apt) || Number(apt) === 0) return null;
+  return { floor, apt: apt.padStart(2, '0') };
 }
 
 /** Можно ли оформлять доставку: текст проблемы или null. */
@@ -44,7 +44,7 @@ function dlvHtml() {
       <div class="field"><label for="d-floor">${esc(t('aptFloor'))}</label>
         <input id="d-floor" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="${d.floorMin}–${d.floorMax}" value="${esc(dlv.apt.floor)}"></div>
       <div class="field"><label for="d-apt">${esc(t('aptNumber'))}</label>
-        <input id="d-apt" inputmode="text" maxlength="10" autocomplete="off" placeholder="${esc(t('aptNumberPh'))}" value="${esc(dlv.apt.apt)}"></div>
+        <input id="d-apt" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" placeholder="${esc(t('aptNumberPh'))}" value="${esc(dlv.apt.apt)}"></div>
     </div>
     <p class="dlv-terms">${esc(t(d.fee ? 'aptTermsPaid' : 'aptTermsFree', { fee: fmt(d.fee) }))}${d.minOrder > 0 ? ' ' + esc(t('aptTermsMin', { x: fmt(d.minOrder) })) : ''}</p>
     <p class="muted" style="margin:0;font-size:13px">${esc(t('aptOnly'))}</p>`;

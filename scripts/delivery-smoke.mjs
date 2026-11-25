@@ -34,7 +34,7 @@ const two = 2 * dish.price >= 100000 ? 2 : Math.ceil(100000 / dish.price);
 const alco = menu.dishes.find((x) => x.is_alcohol);
 const order = (over = {}) => ({
   idempotencyKey: rnd(), type: 'delivery', slot: `${day} ${time}`, guest: { name: 'Тест доставки', phone: '+84 900 000 001' }, lang: 'ru',
-  items: [{ dishId: dish.id, qty: two }], delivery: { floor: '12', apt: '1206' }, ...over,
+  items: [{ dishId: dish.id, qty: two }], delivery: { floor: '43', apt: '5' }, ...over,
 });
 
 // 1. Заказ в квартиру: доставка бесплатная
@@ -45,7 +45,7 @@ ok(a.status === 201 && a.data.total === dish.price * two, `доставка по
 const a2 = await call('/api/orders', { method: 'POST', body });
 ok(a2.data?.duplicate && a2.data.number === a.data.number, 'повторное нажатие не создаёт второй заказ');
 const pub = (await call(`/api/orders/${a.data.token}`)).data;
-ok(pub.type === 'delivery' && pub.deliveryFee === 0 && pub.deliveryAddress === 'Наполеон, этаж 12, кв. 1206' && pub.deliveryPoint === null, `гость видит: ${pub.deliveryAddress}`);
+ok(pub.type === 'delivery' && pub.deliveryFee === 0 && pub.deliveryAddress === 'Наполеон, этаж 43, кв. 05' && pub.deliveryPoint === null, `гость видит: ${pub.deliveryAddress}`);
 // 3. Цена от гостя не принимается
 const fake = await call('/api/orders', { method: 'POST', body: order({ deliveryFee: 50000, total: 1 }) });
 ok(fake.data?.total === dish.price * two, 'цену доставки считает только сервер');
@@ -53,7 +53,7 @@ ok(fake.data?.total === dish.price * two, 'цену доставки счита�
 const small = await call('/api/orders', { method: 'POST', body: order({ items: [{ dishId: dish.id, qty: 1 }] }) });
 ok(small.status === 409 && small.data.error === 'DELIVERY_MIN_ORDER' && small.data.min === 100000, `меньше 100 000 — отказ ${small.data?.error}`);
 // 5. Без квартиры, неверный этаж, старый сайт с картой
-for (const [del, what] of [[{ floor: '12', apt: '' }, 'без квартиры'], [{ floor: '55', apt: '5501' }, 'этаж 55'], [{ address: 'Hòn Chồng', lat: 12.27, lng: 109.2 }, 'старая корзина с картой'], [undefined, 'без данных']]) {
+for (const [del, what] of [[{ floor: '12', apt: '' }, 'без квартиры'], [{ floor: '44', apt: '05' }, 'этаж 44'], [{ floor: '12', apt: '1206' }, 'четырёхзначная квартира'], [{ address: 'Hòn Chồng', lat: 12.27, lng: 109.2 }, 'старая корзина с картой'], [undefined, 'без данных']]) {
   const r = await call('/api/orders', { method: 'POST', body: order({ delivery: del }) });
   ok(r.status === 409 && r.data.error === 'DELIVERY_NO_APT', `${what} — отказ ${r.data?.error}`);
 }
@@ -86,12 +86,21 @@ ok((await put({ fee: -5 })).status === 400, 'отрицательная цена
 await put({ enabled: true });
 // 11. Сотрудник видит квартиру
 const staff = (await call('/api/staff/orders', { cookie })).data.orders.find((o) => o.id === a.data.number);
-ok(staff && staff.deliveryAddress === 'Наполеон, этаж 12, кв. 1206' && staff.deliveryMap === null && staff.deliveryFee === 0, 'сотрудник видит этаж и квартиру');
+ok(staff && staff.deliveryAddress === 'Наполеон, этаж 43, кв. 05' && staff.deliveryMap === null && staff.deliveryFee === 0, 'сотрудник видит этаж и квартиру');
 // 12. Статусы: оплата → готовить → отдать курьеру → доставлен
 for (const act of ['confirm_payment', 'start_cooking', 'mark_ready', 'complete']) {
   const r = await call(`/api/staff/orders/${a.data.number}/action`, { method: 'POST', cookie, body: { action: act } });
   ok(r.status === 200, `действие ${act}: ${r.data?.status}`);
 }
+// 12б. Телефон для доставки необязателен, для «С собой» — обязателен
+const nophone = await call('/api/orders', { method: 'POST', body: order({ guest: { name: 'Без телефона', phone: '' } }) });
+ok(nophone.status === 201, `доставка без телефона принята: ${nophone.status}`);
+const badphone = await call('/api/orders', { method: 'POST', body: order({ guest: { name: 'Кривой', phone: 'abc' } }) });
+ok(badphone.status === 400, 'доставка с неверным телефоном — отказ');
+const pkNoPhone = await call('/api/orders', { method: 'POST', body: order({ type: 'pickup', delivery: undefined, guest: { name: 'Без телефона', phone: '' } }) });
+ok(pkNoPhone.status === 400 && pkNoPhone.data.field === 'phone', '«С собой» без телефона — отказ');
+const staffNp = (await call('/api/staff/orders', { cookie })).data.orders.find((o) => o.id === nophone.data.number);
+ok(staffNp && staffNp.guestPhone === '' && staffNp.inTelegram === false, 'сотрудник видит заказ без телефона');
 // 13. «С собой» (pickup) работает как прежде
 const pk = await call('/api/orders', { method: 'POST', body: order({ type: 'pickup', delivery: undefined, items: [{ dishId: dish.id, qty: 1 }] }) });
 ok(pk.status === 201 && pk.data.total === dish.price, '«С собой» без минимума и доставки');

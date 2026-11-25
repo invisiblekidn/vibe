@@ -141,6 +141,7 @@ export interface OrderForText {
   total: number;
   guest_name: string;
   guest_phone: string;
+  tg_user_id?: number | null;
   comment?: string | null;
   channel: string;
   /** 'chat' — оформлен быстрыми кнопками в чате бота. */
@@ -199,7 +200,7 @@ export function staffOrderText(o: OrderForText, today?: string, lastActor?: stri
     items,
     ...(o.type === 'delivery' ? deliveryLines(o) : []),
     `<b>${fmtVnd(o.total)}</b> · ${isTable ? 'по счёту в конце' : 'QR'}`,
-    isTable ? '' : `${escHtml(o.guest_name)} · ${escHtml(o.guest_phone)}`,
+    isTable ? '' : `${escHtml(o.guest_name)} · ${o.guest_phone ? escHtml(o.guest_phone) : `<i>без телефона${o.tg_user_id ? ', пишите в чате бота' : ', гость не в Telegram'}</i>`}`,
     o.comment ? `«${escHtml(o.comment)}»` : '',
     '',
     isTable ? '' : `Оплата: ${PAY_LINE[o.payment_status] || o.payment_status}`,

@@ -591,7 +591,8 @@ function renderCart() {
 
     <h3 style="font-size:16px">${esc(t('contacts'))}</h3>
     <div class="field"><label for="g-name">${esc(t('name'))}</label><input id="g-name" autocomplete="name" value="${esc(state.guest.name)}" maxlength="60"></div>
-    <div class="field"><label for="g-phone">${esc(t('phone'))}</label><input id="g-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+84 …" value="${esc(state.guest.phone)}" maxlength="20"></div>
+    <div class="field"><label for="g-phone">${esc(t(state.type === 'delivery' ? 'phoneOpt' : 'phone'))}</label><input id="g-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+84 …" value="${esc(state.guest.phone)}" maxlength="20"></div>
+    ${state.type === 'delivery' && !TGW ? `<p class="muted" style="margin:-4px 0 0;font-size:13px">${esc(t('phoneOptHint'))}</p>` : ''}
     <div class="field"><label for="g-comment">${esc(t('comment'))}</label><textarea id="g-comment" maxlength="300" placeholder="${esc(t('commentPh'))}">${esc(state.comment)}</textarea></div>
     <p class="hint" style="margin:0">${esc(t('payHint'))}</p>
     ${problems.map((p) => `<p class="alert warn" style="margin:0">${esc(p)}</p>`).join('')}
@@ -662,7 +663,7 @@ async function submit() {
   const name = state.guest.name.trim();
   const phone = state.guest.phone.trim();
   if (!name) return showErr(t('needName'));
-  if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr(t('badPhone'));
+  if (!(state.type === 'delivery' && !phone) && !/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr(t('badPhone'));
   if (state.type === 'delivery') {
     const p = dlvProblem(cartTotal());
     if (p) return showErr(p);
