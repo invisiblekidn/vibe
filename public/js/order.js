@@ -22,7 +22,7 @@ function render() {
       <span class="muted">${esc(t('order'))}</span>
       <span class="ordno">${LANG === 'ru' ? '№' : '#'} ${o.number}</span>
       <span>${esc(typeLabel(o.type))} · ${esc(slotLabel(o.slot))}</span>
-      ${o.type === 'delivery' ? `<span class="muted" style="font-size:14px">🛵 ${esc(o.deliveryAddress || t('addrPinOnly'))}</span>` : ''}
+      ${o.type === 'delivery' ? `<span class="muted" style="font-size:14px">${o.deliveryPoint ? '🛵' : '🏢'} ${esc(aptLine(o.deliveryAddress) || t('addrPinOnly'))}</span>` : ''}
     </div>
 
     ${o.status === 'cancelled' ? `<p class="alert" style="margin:0">${esc(t('cancelledOrder'))}</p>` : ''}
@@ -71,10 +71,16 @@ function render() {
 }
 
 /** Фото места для курьера: показать, добавить или заменить, пока заказ в работе. */
+/** «Наполеон, этаж 12, кв. 1206» на языке гостя. Старые адреса (до 25.11) показываем как есть. */
+function aptLine(addr) {
+  const m = /^Наполеон, этаж (\d+), кв\. (.+)$/.exec(addr || '');
+  return m ? t('aptLine', { f: m[1], a: m[2] }) : addr;
+}
+
+/** Фото места было только у доставок с картой (до 25.11): показываем уже присланное, новое не просим. */
 function photoBlock(o) {
-  if (o.type !== 'delivery') return '';
-  const open = !['completed', 'cancelled'].includes(o.status);
-  if (!open && !o.deliveryPhotoAt) return '';
+  if (o.type !== 'delivery' || !o.deliveryPhotoAt) return '';
+  const open = false;
   const msg = photoState === 'fail' ? `<p class="alert warn" style="margin:0">${esc(t('photoFailed'))}</p>`
     : photoState === 'bad' ? `<p class="alert warn" style="margin:0">${esc(t('photoBad'))}</p>`
     : photoState === 'sent' || o.deliveryPhotoAt ? `<span class="muted" style="font-size:13px">${esc(t('photoSent'))}</span>`

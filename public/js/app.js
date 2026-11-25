@@ -568,7 +568,7 @@ function renderCart() {
           ? esc(t('deliveryHint', { m: state.menu.location.delivery?.leadMin ?? 40 }))
           : esc(t('pickupHint'))
     }</p>
-    ${delivery ? dlvHtml(subtotal) : ''}
+    ${delivery ? dlvHtml() : ''}
 
     <h3 style="font-size:16px">${esc(t(delivery ? 'whenDelivery' : 'when'))}</h3>
     <div class="days" id="days">${(state.slotsData?.days || [])
@@ -697,12 +697,7 @@ async function submit() {
     sessionStorage.removeItem('vibe_idem');
     const mine = load('vibe_orders', []);
     if (!mine.includes(r.token)) save('vibe_orders', [r.token, ...mine].slice(0, 10));
-    let photoFail = false;
-    if (state.type === 'delivery' && dlv.photo) {
-      btn.textContent = t('photoSending');
-      photoFail = !(await dlvSendPhoto(r.token));
-    }
-    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '') + (photoFail ? '&photo=fail' : '');
+    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '');
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
@@ -713,8 +708,6 @@ async function submit() {
     if (e.code === 'DELIVERY_OFF') { await refreshMenuData(); state.type = 'pickup'; state.slot = null; await loadSlots(); }
     const data = { ...e.data };
     if (typeof data.min === 'number') data.min = fmt(data.min);
-    if (typeof data.km === 'number') data.km = kmText(data.km);
-    if (typeof data.radius === 'number') data.radius = kmText(data.radius);
     showErr(errText(e.code, data) || t('genericErr'));
     if (e.code === 'SLOT_FULL' || e.code === 'SLOT_TOO_SOON' || e.code === 'DISH_SOLD_OUT') {
       state.slot = e.code === 'DISH_SOLD_OUT' ? state.slot : null;

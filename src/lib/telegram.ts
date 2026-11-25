@@ -77,7 +77,7 @@ export function parseStaffList(v: string | undefined): Map<number, string> {
 export const fmtVnd = (v: number) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₫';
 export const escHtml = (s: unknown) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 
-const TYPE = { pickup: 'Самовывоз', visit: 'К визиту', delivery: 'Доставка', table: 'В зале' } as Record<string, string>;
+const TYPE = { pickup: 'С собой', visit: 'К визиту', delivery: 'Доставка', table: 'В зале' } as Record<string, string>;
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 // ---------- Язык гостя в боте ----------
@@ -94,8 +94,8 @@ export const asLang = (v: unknown): Lang => (v === 'vi' || v === 'en' ? v : 'ru'
 
 const TYPE_L: Record<Lang, Record<string, string>> = {
   ru: TYPE,
-  vi: { pickup: 'Tự đến lấy', visit: 'Đặt trước khi đến', delivery: 'Giao hàng', table: 'Tại bàn' },
-  en: { pickup: 'Pickup', visit: 'For your visit', delivery: 'Delivery', table: 'At the table' },
+  vi: { pickup: 'Mang đi', visit: 'Đặt trước khi đến', delivery: 'Giao hàng', table: 'Tại bàn' },
+  en: { pickup: 'Takeaway', visit: 'For your visit', delivery: 'Delivery', table: 'At the table' },
 };
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -176,12 +176,12 @@ export function orderTableTitle(o: { table_id?: string | null; table_zone?: stri
   return tableTitle({ id: String(o.table_id ?? '?'), zone: o.table_zone || 'hall' });
 }
 
-/** Адрес для курьера: текст гостя, ссылка на точку, расстояние и цена доставки. */
+/** Адрес для курьера: этаж и квартира в «Наполеоне» и цена доставки. У старых заказов — ещё ссылка на точку и км. */
 function deliveryLines(o: OrderForText): string[] {
   const point = o.delivery_lat != null && o.delivery_lng != null ? { lat: o.delivery_lat, lng: o.delivery_lng } : null;
   const fee = o.delivery_fee ? fmtVnd(o.delivery_fee) : 'бесплатно';
   return [
-    `🛵 ${o.delivery_address ? `<b>${escHtml(o.delivery_address)}</b>` : '<i>адрес не написан, только точка на карте</i>'}`,
+    `${point ? '🛵' : '🏢'} ${o.delivery_address ? `<b>${escHtml(o.delivery_address)}</b>` : '<i>адрес не написан, только точка на карте</i>'}`,
     point ? `📍 <a href="${mapLink(point)}">Точка на карте</a>${o.delivery_km != null ? ` · ${String(o.delivery_km).replace('.', ',')} км` : ''} · доставка ${fee}` : `Доставка ${fee}`,
   ];
 }
@@ -250,7 +250,7 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
       cooking_started: `👩‍🍳 Заказ №${id} готовим.`,
       ready_visit: `🍽 <b>Заказ №${id} готов</b>\nЖдём вас, стол готов. Назовите номер ${id}.`,
       ready: `🍽 <b>Заказ №${id} готов</b>\nМожно забирать на кассе. Назовите номер ${id}.`,
-      ready_delivery: `🛵 <b>Заказ №${id} в пути</b>\nКурьер везёт заказ по вашему адресу. Если что-то изменилось, напишите сюда.`,
+      ready_delivery: `🛵 <b>Заказ №${id} в пути</b>\nКурьер несёт заказ к вашей квартире. Если что-то изменилось, напишите сюда.`,
       completed_delivery: `Заказ №${id} доставлен. Приятного аппетита!\nБудем рады видеть вас и в ресторане, у нас есть детская зона.`,
       completed: `Заказ №${id} выдан. Приятного аппетита!\nБудем рады видеть вас снова, у нас есть детская зона.`,
       cancelled: `Заказ №${id} отменён. Если это ошибка, напишите сюда, мы ответим.`,
@@ -262,7 +262,7 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
       cooking_started: `👩‍🍳 Đơn số ${id} đang được nấu.`,
       ready_visit: `🍽 <b>Đơn số ${id} đã sẵn sàng</b>\nBàn của bạn đã sẵn sàng, chúng tôi đang chờ bạn. Hãy đọc số ${id}.`,
       ready: `🍽 <b>Đơn số ${id} đã sẵn sàng</b>\nBạn có thể nhận tại quầy. Hãy đọc số ${id}.`,
-      ready_delivery: `🛵 <b>Đơn số ${id} đang được giao</b>\nShipper đang mang đơn đến địa chỉ của bạn. Nếu có thay đổi, hãy nhắn vào đây.`,
+      ready_delivery: `🛵 <b>Đơn số ${id} đang được giao</b>\nNhân viên đang mang đơn đến căn hộ của bạn. Nếu có thay đổi, hãy nhắn vào đây.`,
       completed_delivery: `Đơn số ${id} đã giao xong. Chúc bạn ngon miệng!\nRất mong được đón bạn tại nhà hàng, chúng tôi có khu vui chơi cho trẻ em.`,
       completed: `Đơn số ${id} đã được giao. Chúc bạn ngon miệng!\nRất mong được đón bạn lần sau, chúng tôi có khu vui chơi cho trẻ em.`,
       cancelled: `Đơn số ${id} đã bị hủy. Nếu có nhầm lẫn, hãy nhắn vào đây, chúng tôi sẽ trả lời.`,
@@ -274,7 +274,7 @@ export function guestEventText(event: string, o: OrderForText, today?: string, l
       cooking_started: `👩‍🍳 We are cooking order #${id}.`,
       ready_visit: `🍽 <b>Order #${id} is ready</b>\nYour table is ready and waiting. Just say number ${id}.`,
       ready: `🍽 <b>Order #${id} is ready</b>\nYou can pick it up at the counter. Just say number ${id}.`,
-      ready_delivery: `🛵 <b>Order #${id} is on the way</b>\nThe courier is bringing it to your address. If anything changed, write here.`,
+      ready_delivery: `🛵 <b>Order #${id} is on the way</b>\nThe courier is bringing it to your apartment. If anything changed, write here.`,
       completed_delivery: `Order #${id} delivered. Enjoy your meal!\nWe hope to see you at the restaurant too, we have a play area for kids.`,
       completed: `Order #${id} handed over. Enjoy your meal!\nWe hope to see you again, we have a play area for kids.`,
       cancelled: `Order #${id} was cancelled. If this is a mistake, write here and we will reply.`,
@@ -298,17 +298,17 @@ export function staffAlertText(event: string, o: OrderForText): string | null {
 export const WELCOME_L: Record<Lang, string> = {
   ru:
     'Здравствуйте! Это семейный ресторан VIBE в Нячанге 🌿\n\n' +
-    'Здесь можно заказать заранее: забрать самому, к своему приходу или с доставкой.\n\n' +
+    'Здесь можно заказать заранее: с собой, к своему приходу или с доставкой по зданию «Наполеон».\n\n' +
     'Работаем ежедневно 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
     'Если хотите что-то спросить, просто напишите сюда, ответит администратор.',
   vi:
     'Xin chào! Đây là nhà hàng gia đình VIBE ở Nha Trang 🌿\n\n' +
-    'Bạn có thể đặt món trước: tự đến lấy, chuẩn bị sẵn khi bạn đến hoặc giao hàng.\n\n' +
+    'Bạn có thể đặt món trước: mang đi, chuẩn bị sẵn khi bạn đến hoặc giao trong tòa Napoleon.\n\n' +
     'Mở cửa hằng ngày 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
     'Nếu bạn có câu hỏi, cứ nhắn vào đây, quản lý sẽ trả lời.',
   en:
     'Hello! This is VIBE, a family restaurant in Nha Trang 🌿\n\n' +
-    'Order ahead here: pick it up yourself, have it ready for your visit or get it delivered.\n\n' +
+    'Order ahead here: takeaway, ready for your visit or delivery within the Napoleon building.\n\n' +
     'Open daily 9:00–22:00.\n25 Nguyễn Đình Chiểu, Bắc Nha Trang\n\n' +
     'If you have a question, just write here and the manager will reply.',
 };

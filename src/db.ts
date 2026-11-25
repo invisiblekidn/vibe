@@ -22,18 +22,9 @@ export interface Location extends ScheduleSettings {
   delivery_changed_at: string | null;
 }
 
-/** Тариф доставки точки в виде, который понимает src/lib/delivery.ts. */
+/** Условия доставки по зданию в виде, который понимает src/lib/delivery.ts. */
 export function deliverySettings(loc: Location): DeliverySettings {
-  return {
-    lat: loc.lat,
-    lng: loc.lng,
-    radius_km: loc.delivery_radius_km,
-    base_fee: loc.delivery_base_fee,
-    base_km: loc.delivery_base_km,
-    per_km: loc.delivery_per_km,
-    free_from: loc.delivery_free_from,
-    min_order: loc.delivery_min_order,
-  };
+  return { fee: loc.delivery_base_fee, min_order: loc.delivery_min_order };
 }
 
 const parse = (s: string | null | undefined): I18n => {

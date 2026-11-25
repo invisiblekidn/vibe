@@ -165,9 +165,9 @@ async function show(env: TgEnv, tg: Tg, chatId: number, messageId: number | null
 }
 
 const TYPE_L: Record<Lang, Record<string, string>> = {
-  ru: { pickup: '🥡 Самовывоз', visit: '🍽 К визиту' },
-  vi: { pickup: '🥡 Tự đến lấy', visit: '🍽 Đặt trước khi đến' },
-  en: { pickup: '🥡 Pickup', visit: '🍽 For your visit' },
+  ru: { pickup: '🥡 С собой', visit: '🍽 К визиту' },
+  vi: { pickup: '🥡 Mang đi', visit: '🍽 Đặt trước khi đến' },
+  en: { pickup: '🥡 Takeaway', visit: '🍽 For your visit' },
 };
 
 /** Кнопки под приветствием: блюдо дня, быстрый заказ и «Повторить», если у гостя уже был предзаказ. */

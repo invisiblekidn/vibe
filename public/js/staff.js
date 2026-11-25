@@ -42,11 +42,11 @@ const actionLabel = (o, a) => (o.type === 'table' ? TABLE_ACTION_LABEL[a] : o.ty
 const kitchenLabel = (o) => (o.type === 'table' ? TABLE_KITCHEN : o.type === 'delivery' ? DELIVERY_KITCHEN : KITCHEN)[o.status];
 const kmStr = (km) => String(km).replace('.', ',');
 
-/** Блок для курьера: адрес, ссылка на карту, расстояние и цена доставки. */
+/** Блок для курьера: «Наполеон, этаж, квартира» и цена доставки (у старых заказов ещё карта, км и фото). */
 function deliveryBlock(o) {
   if (o.type !== 'delivery') return '';
   return `<div class="dlv-box">
-    <div>🛵 <b>${o.deliveryAddress ? esc(o.deliveryAddress) : '<i>Адрес не написан, только точка на карте</i>'}</b></div>
+    <div>${o.deliveryMap ? '🛵' : '🏢'} <b>${o.deliveryAddress ? esc(o.deliveryAddress) : '<i>Адрес не написан, только точка на карте</i>'}</b></div>
     <div class="muted" style="font-size:14px">${o.deliveryKm != null ? `${kmStr(o.deliveryKm)} км · ` : ''}доставка ${o.deliveryFee ? fmt(o.deliveryFee) : 'бесплатно'}</div>
     ${o.deliveryMap ? `<a class="btn small ghost" href="${esc(o.deliveryMap)}" target="_blank" rel="noopener">📍 Открыть точку на карте</a>` : ''}
     ${o.deliveryPhotoAt ? `<a href="/api/staff/orders/${o.id}/photo?v=${encodeURIComponent(o.deliveryPhotoAt)}" target="_blank" rel="noopener" class="dlv-photo-row"><img src="/api/staff/orders/${o.id}/photo?v=${encodeURIComponent(o.deliveryPhotoAt)}" alt="Фото места" loading="lazy"><span>📷 Фото места от гостя<br><small class="muted">нажмите, чтобы открыть</small></span></a>` : ''}

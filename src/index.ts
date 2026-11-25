@@ -10,7 +10,7 @@ import { handleUpdate, notifyBillEvent, notifyDeliveryPhoto, notifyOrderEvent, n
 import { loadPicks, picksChangedText, savePicks, type PicksInput } from './quick';
 import { QUICK_MAX, QUICK_RECOMMENDED } from './lib/quick';
 import { enabledTypes, createOrder, transition } from './orders';
-import { cleanSettings, mapLink, validPoint } from './lib/delivery';
+import { BUILDING, cleanApartment, cleanSettings, FLOOR_MAX, FLOOR_MIN, mapLink } from './lib/delivery';
 import { fetchTile, geocode } from './lib/mapproxy';
 import { DEVICE_RE, TABLE_CODE_RE, tableOpenNow, tableTitle, type BillAction } from './lib/tables';
 import { billAction, billTotal, closeCall, createCall, findBill, guestBillView, markBillRequested, openBillFor, staffTablesView, tableByCode } from './tables';
@@ -79,17 +79,7 @@ async function hitsFor(db: D1Database, locationId: string, menu: { dishes: { id:
 
 function publicDelivery(loc: NonNullable<Awaited<ReturnType<typeof getLocation>>>) {
   const d = deliverySettings(loc);
-  return {
-    lat: d.lat,
-    lng: d.lng,
-    radiusKm: d.radius_km,
-    baseFee: d.base_fee,
-    baseKm: d.base_km,
-    perKm: d.per_km,
-    freeFrom: d.free_from,
-    minOrder: d.min_order,
-    leadMin: loc.lead_delivery_min,
-  };
+  return { building: BUILDING, floorMin: FLOOR_MIN, floorMax: FLOOR_MAX, fee: d.fee, minOrder: d.min_order, leadMin: loc.lead_delivery_min };
 }
 
 // Плитки карты доставки через наш сайт (у части гостей сервера OpenStreetMap не открываются).
@@ -183,8 +173,8 @@ interface CreateOrderBody {
   lang?: string;
   /** initData из Telegram Mini App: заказ привязывается к гостю в Telegram. */
   tgInitData?: string;
-  /** Доставка: адрес текстом и точка на карте. */
-  delivery?: { address?: string; lat?: number; lng?: number };
+  /** Доставка по зданию «Наполеон»: этаж и квартира. */
+  delivery?: { floor?: number | string; apt?: string };
 }
 
 const cleanText = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -227,13 +217,7 @@ app.post('/api/orders', async (c) => {
     lang: langOf(body.lang),
     tgUserId,
     source: null,
-    delivery:
-      body.type === 'delivery'
-        ? {
-            address: cleanText(body.delivery?.address, 200),
-            point: validPoint({ lat: body.delivery?.lat, lng: body.delivery?.lng }) ? { lat: body.delivery!.lat!, lng: body.delivery!.lng! } : null,
-          }
-        : null,
+    delivery: body.type === 'delivery' ? cleanApartment(body.delivery) : null,
   });
   if (r.duplicate) return c.json({ number: r.id, token: r.token, total: r.total, duplicate: true });
   notifyLater(c, r.id, 'created', 'guest');
@@ -570,10 +554,9 @@ app.put('/api/staff/delivery', async (c) => {
   const who = c.get('staff');
   await db
     .prepare(
-      `UPDATE locations SET delivery_enabled = ?, lat = ?, lng = ?, delivery_radius_km = ?, delivery_base_fee = ?, delivery_base_km = ?,
-         delivery_per_km = ?, delivery_free_from = ?, delivery_min_order = ?, delivery_changed_by = ?, delivery_changed_at = ? WHERE id = ?`,
+      `UPDATE locations SET delivery_enabled = ?, delivery_base_fee = ?, delivery_min_order = ?, delivery_changed_by = ?, delivery_changed_at = ? WHERE id = ?`,
     )
-    .bind(v.enabled ? 1 : 0, v.lat, v.lng, v.radius_km, v.base_fee, v.base_km, v.per_km, v.free_from, v.min_order, who, iso(), before.id)
+    .bind(v.enabled ? 1 : 0, v.fee, v.min_order, who, iso(), before.id)
     .run();
   const loc = (await getLocation(db, c.env.LOCATION_ID))!;
   if (c.env.TG_STAFF_CHAT_ID) {
@@ -581,8 +564,7 @@ app.put('/api/staff/delivery', async (c) => {
     const sum = (x: number) => fmtVndPlain(x);
     const text = [
       `${onOff} · ${escHtml(who)}`,
-      `${sum(v.base_fee)} до ${v.base_km} км, +${sum(v.per_km)} за км, радиус ${v.radius_km} км`,
-      `${v.free_from ? `Бесплатно от ${sum(v.free_from)}` : 'Бесплатной доставки нет'} · ${v.min_order ? `минимум ${sum(v.min_order)}` : 'без минимальной суммы'}`,
+      `По зданию «Наполеон»: ${v.fee ? sum(v.fee) : 'бесплатно'} · ${v.min_order ? `минимум ${sum(v.min_order)}` : 'без минимальной суммы'}`,
     ].join('\n');
     background(c, tg(c.env, 'sendMessage', { chat_id: Number(c.env.TG_STAFF_CHAT_ID), text, parse_mode: 'HTML', disable_notification: true }));
   }

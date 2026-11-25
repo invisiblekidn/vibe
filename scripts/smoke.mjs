@@ -49,7 +49,7 @@ ok((await call('/api/orders', { method: 'POST', body: order({ items: [{ dishId: 
 ok((await call('/api/orders', { method: 'POST', body: order({ type: 'visit', items: [{ dishId: 'mojito', qty: 1 }] }) })).status === 201, 'мохито к визиту — можно');
 ok((await call('/api/orders', { method: 'POST', body: order({ items: [{ dishId: 'nope', qty: 1 }] }) })).data.error === 'DISH_UNAVAILABLE', 'несуществующее блюдо — отказ');
 ok((await call('/api/orders', { method: 'POST', body: order({ slot: `${day} 12:15` }) })).data.error === 'SLOT_INVALID', 'время не по сетке — отказ');
-ok((await call('/api/orders', { method: 'POST', body: order({ type: 'delivery' }) })).data.error === 'DELIVERY_NO_POINT', 'доставка без точки на карте — отказ');
+ok((await call('/api/orders', { method: 'POST', body: order({ type: 'delivery' }) })).data.error === 'DELIVERY_NO_APT', 'доставка без этажа и квартиры — отказ');
 
 // 4. Заполненный интервал: 5 заказов на 13:00 одновременно + шестой
 const slot = `${day} ${emptyB}`;
