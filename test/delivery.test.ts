@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { cleanSettings, distanceKm, feeForKm, quoteDelivery, type DeliverySettings } from '../src/lib/delivery';
+import { apartmentText, cleanApartment, cleanSettings, quoteDelivery, type DeliverySettings } from '../src/lib/delivery';
 import { OrderError } from '../src/lib/pricing';
 import { guestEventText, staffButtons, staffOrderText } from '../src/lib/telegram';
 
-const S: DeliverySettings = { lat: 12.2697605, lng: 109.2015646, radius_km: 10, base_fee: 30000, base_km: 3, per_km: 5000, free_from: 250000, min_order: 0 };
-const home = { lat: S.lat!, lng: S.lng! };
-/** Точка на север от ресторана на km километров. */
-const north = (km: number) => ({ lat: home.lat + km / 111.195, lng: home.lng });
+const S: DeliverySettings = { fee: 0, min_order: 100000 };
+const apt = { floor: 12, apt: '05' };
 const code = (f: () => unknown) => {
   try {
     f();
@@ -16,42 +14,40 @@ const code = (f: () => unknown) => {
   return null;
 };
 
-describe('доставка: тариф', () => {
-  it('до 3 км — 30 000, дальше +5 000 за каждый начатый км', () => {
-    expect(feeForKm(S, 0.5)).toBe(30000);
-    expect(feeForKm(S, 3)).toBe(30000);
-    expect(feeForKm(S, 3.1)).toBe(35000);
-    expect(feeForKm(S, 4)).toBe(35000);
-    expect(feeForKm(S, 4.2)).toBe(40000);
-    expect(feeForKm(S, 10)).toBe(65000);
+describe('доставка по зданию «Наполеон»', () => {
+  it('этаж и квартира проверяются', () => {
+    expect(cleanApartment({ floor: 12, apt: '05' })).toEqual(apt);
+    expect(cleanApartment({ floor: '12', apt: ' 5 ' })).toEqual(apt);
+    expect(cleanApartment({ floor: 43, apt: '18' })).toEqual({ floor: 43, apt: '18' });
+    expect(cleanApartment({ floor: 0, apt: '05' })).toBeNull();
+    expect(cleanApartment({ floor: 44, apt: '05' })).toBeNull();
+    expect(cleanApartment({ floor: 12.5, apt: '05' })).toBeNull();
+    expect(cleanApartment({ floor: 12, apt: '1206' })).toBeNull();
+    expect(cleanApartment({ floor: 12, apt: '00' })).toBeNull();
+    expect(cleanApartment({ floor: 12, apt: '' })).toBeNull();
+    expect(cleanApartment({ floor: 12, apt: '<b>' })).toBeNull();
+    expect(cleanApartment({ floor: 12, apt: '12345678901' })).toBeNull();
+    expect(cleanApartment(null)).toBeNull();
+    // Старый сайт (карта) присылает адрес и точку — такой заказ не пройдёт.
+    expect(cleanApartment({ address: 'Hòn Chồng', lat: 12.27, lng: 109.2 })).toBeNull();
   });
 
-  it('расстояние по прямой', () => {
-    expect(distanceKm(home, north(5))).toBeCloseTo(5, 2);
+  it('строка для курьера', () => {
+    expect(apartmentText(apt)).toBe('Наполеон, этаж 12, кв. 05');
   });
 
-  it('считает цену по точке и бесплатно от 250 000 за блюда', () => {
-    expect(quoteDelivery(S, north(4.2), 100000)).toEqual({ km: 4.2, fee: 40000, baseFee: 40000, free: false });
-    expect(quoteDelivery(S, north(4.2), 250000)).toMatchObject({ fee: 0, free: true, baseFee: 40000 });
-    expect(quoteDelivery({ ...S, free_from: 0 }, north(1), 999999)).toMatchObject({ fee: 30000, free: false });
-  });
-
-  it('дальше радиуса, без точки и меньше минимальной суммы — ошибка', () => {
-    expect(code(() => quoteDelivery(S, north(10.4), 100000))).toBe('DELIVERY_TOO_FAR');
-    expect(code(() => quoteDelivery(S, north(9.9), 100000))).toBeNull();
-    expect(code(() => quoteDelivery(S, null, 100000))).toBe('DELIVERY_NO_POINT');
-    expect(code(() => quoteDelivery(S, { lat: NaN, lng: 1 }, 100000))).toBe('DELIVERY_NO_POINT');
-    expect(code(() => quoteDelivery({ ...S, min_order: 150000 }, north(1), 149000))).toBe('DELIVERY_MIN_ORDER');
-    expect(code(() => quoteDelivery({ ...S, min_order: 150000 }, north(1), 150000))).toBeNull();
+  it('бесплатно, минимум 100 000 за блюда', () => {
+    expect(quoteDelivery(S, apt, 100000)).toEqual({ fee: 0 });
+    expect(code(() => quoteDelivery(S, apt, 99000))).toBe('DELIVERY_MIN_ORDER');
+    expect(code(() => quoteDelivery(S, null, 200000))).toBe('DELIVERY_NO_APT');
+    expect(quoteDelivery({ fee: 10000, min_order: 0 }, apt, 1)).toEqual({ fee: 10000 });
   });
 
   it('настройки из панели проверяются', () => {
-    const ok = cleanSettings({ enabled: true, ...S });
-    expect(ok).toMatchObject({ enabled: true, base_fee: 30000 });
-    expect(cleanSettings({ enabled: true, ...S, radius_km: 0 })).toBeNull();
-    expect(cleanSettings({ enabled: true, ...S, base_fee: -1 })).toBeNull();
-    expect(cleanSettings({ enabled: true, ...S, base_fee: 1.5 })).toBeNull();
-    expect(cleanSettings({ enabled: true, ...S, lat: 'x' })).toBeNull();
+    expect(cleanSettings({ enabled: true, fee: 0, min_order: 100000 })).toEqual({ enabled: true, fee: 0, min_order: 100000 });
+    expect(cleanSettings({ enabled: true, fee: -1, min_order: 0 })).toBeNull();
+    expect(cleanSettings({ enabled: true, fee: 1.5, min_order: 0 })).toBeNull();
+    expect(cleanSettings({ enabled: true, fee: 0 })).toBeNull();
   });
 });
 
@@ -67,6 +63,16 @@ describe('доставка: сообщения', () => {
     expect(txt).toContain('🛵 <b>Hòn Chồng, отель Sea &lt;b&gt;</b>');
     expect(txt).toContain('https://www.google.com/maps/search/?api=1&query=12.270000,109.200000');
     expect(txt).toContain('4,2 км · доставка 40 000 ₫');
+  });
+  it('в группе сотрудников: квартира в «Наполеоне», без карты', () => {
+    const txt = staffOrderText({ ...o, delivery_fee: 0, delivery_address: 'Наполеон, этаж 12, кв. 05', delivery_lat: null, delivery_lng: null, delivery_km: null }, '2026-11-20');
+    expect(txt).toContain('🏢 <b>Наполеон, этаж 12, кв. 05</b>');
+    expect(txt).toContain('Доставка бесплатно');
+    expect(txt).not.toContain('maps');
+  });
+  it('без телефона: подсказка, где связаться', () => {
+    expect(staffOrderText({ ...o, guest_phone: '', tg_user_id: 42 }, '2026-11-20')).toContain('Анна · <i>без телефона, пишите в чате бота</i>');
+    expect(staffOrderText({ ...o, guest_phone: '' }, '2026-11-20')).toContain('без телефона, гость не в Telegram');
   });
   it('кнопки для доставки: «Отдать курьеру», потом «Доставлен»', () => {
     expect(staffButtons(o)[0].map((b) => b.text)).toEqual(['🛵 Отдать курьеру']);

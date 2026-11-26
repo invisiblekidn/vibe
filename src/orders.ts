@@ -1,7 +1,7 @@
 // Смена статуса заказа — общая для сайта, панели сотрудника и кнопок в Telegram.
 import { applyAction, type Action, type OrderState } from './lib/status';
 import { deliverySettings, indexMenu, loadMenu, soldOutOn, type Location } from './db';
-import { quoteDelivery, validPoint, type Point } from './lib/delivery';
+import { apartmentText, quoteDelivery, type Apartment } from './lib/delivery';
 import { OrderError, priceCart, type CartItemInput } from './lib/pricing';
 import { checkSlot, type OrderType } from './lib/time';
 
@@ -41,16 +41,12 @@ export async function orderWithItems(db: D1Database, id: number) {
 // ---------- Оформление предзаказа: общее для сайта, окна меню в Telegram и быстрых кнопок в чате бота ----------
 
 /** Виды предзаказа, которые сейчас можно выбрать. Доставку сотрудник включает и выключает во вкладке «Доставка». */
-export function enabledTypes(loc: Pick<Location, 'delivery_enabled' | 'lat' | 'lng'>): OrderType[] {
-  return loc.delivery_enabled && loc.lat != null && loc.lng != null ? ['pickup', 'visit', 'delivery'] : ['pickup', 'visit'];
+export function enabledTypes(loc: Pick<Location, 'delivery_enabled'>): OrderType[] {
+  return loc.delivery_enabled ? ['pickup', 'visit', 'delivery'] : ['pickup', 'visit'];
 }
 
-export interface DeliveryInput {
-  /** Адрес текстом (улица, дом, отель, квартира). Может быть пустым, если гость поставил точку на карте. */
-  address: string;
-  /** Точка на карте: по ней считаем расстояние и цену. */
-  point: Point | null;
-}
+/** Доставка только по зданию «Наполеон»: этаж и квартира (null — гость не заполнил или заполнил неверно). */
+export type DeliveryInput = Apartment | null;
 
 export interface NewOrder {
   /** Ключ заказа: повторное оформление с тем же ключом возвращает уже созданный заказ. */
@@ -85,7 +81,7 @@ export async function createOrder(db: D1Database, loc: Location, n: NewOrder, no
   if (existing) return existing;
   if (!loc.accepting_orders) throw new OrderError('NOT_ACCEPTING');
   if (!enabledTypes(loc).includes(n.type)) throw new OrderError(n.type === 'delivery' ? 'DELIVERY_OFF' : 'TYPE_NOT_AVAILABLE');
-  if (n.type === 'delivery' && (!n.delivery || !validPoint(n.delivery.point))) throw new OrderError('DELIVERY_NO_POINT');
+  if (n.type === 'delivery' && !n.delivery) throw new OrderError('DELIVERY_NO_APT');
   const slotErr = checkSlot(n.slot, nowMs, loc, n.type);
   if (slotErr) throw new OrderError(slotErr);
 
@@ -96,8 +92,8 @@ export async function createOrder(db: D1Database, loc: Location, n: NewOrder, no
 
   const token = crypto.randomUUID();
   const now = new Date(nowMs).toISOString();
-  // Доставка: расстояние, радиус, минимальная сумма и цена — только по настройкам точки.
-  const q = n.type === 'delivery' ? quoteDelivery(deliverySettings(loc), n.delivery!.point, subtotal) : null;
+  // Доставка: минимальная сумма и цена — только по настройкам точки.
+  const q = n.type === 'delivery' ? quoteDelivery(deliverySettings(loc), n.delivery ?? null, subtotal) : null;
   const fee = q ? q.fee : 0;
   const total = subtotal + fee;
   const d = n.type === 'delivery' ? n.delivery! : null;
@@ -115,7 +111,7 @@ export async function createOrder(db: D1Database, loc: Location, n: NewOrder, no
     )
     .bind(
       token, n.key, loc.id, channel, n.type, n.slot, subtotal, fee, total, n.name, n.phone, n.comment, n.lang, now, now, n.tgUserId, n.source,
-      d ? d.address || null : null, d?.point?.lat ?? null, d?.point?.lng ?? null, q?.km ?? null,
+      d ? apartmentText(d) : null, null, null, null,
       loc.id, n.slot, loc.slot_capacity,
     );
   const insertItems = lines.map((l) =>

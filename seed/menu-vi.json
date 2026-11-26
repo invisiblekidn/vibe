@@ -14,7 +14,7 @@
   "dishes": {
     "borsch": ["Súp borscht bò", "Súp borscht đậm đà truyền thống với thịt bò, rau củ, kem chua và rau thơm. Có thể thêm mỡ heo muối (salo)."],
     "pelmeni": ["Bánh pelmeni", "Bánh pelmeni nhà làm nhân thịt, ăn kèm kem chua."],
-    "caesar-chicken": ["Salad Caesar gà", "Phi lê gà nướng mọng nước, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan."],
+    "caesar-chicken": ["Salad Caesar gà", "Phi lê gà nướng mọng nước, xà lách romaine, cà chua bi, trứng luộc, bánh mì nướng giòn, sốt Caesar, phô mai Parmesan và rau mầm."],
     "olivier": ["Salad Olivier VIBE", "Salad Nga truyền thống, tùy chọn: với thịt gà, xúc xích luộc hoặc cá hồi muối nhạt."],
     "kiev": ["Gà cuộn bơ kiểu Kiev với khoai tây nghiền", "Phi lê gà cuộn bơ thơm và rau thơm trong lớp vỏ giòn, ăn kèm khoai tây nghiền. Có thể đổi món ăn kèm sang kiều mạch, cơm hoặc mì ống."],
     "carbonara": ["Mì Ý Carbonara", "Mì Ý truyền thống với thịt xông khói sốt kem, rắc phô mai Parmesan."],
@@ -111,7 +111,7 @@
     "pasta-salmon": ["Mì Ý cá hồi sốt kem", "Mì Ý với cá hồi sốt kem, rắc phô mai Parmesan và rau thơm tươi."],
     "mac-cheese": ["Nui phô mai", "Nui yêu thích trong sốt phô mai béo ngậy."],
     "caesar-salmon": ["Salad Caesar cá hồi", "Cá hồi cắt lát, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan."],
-    "caesar-shrimp": ["Salad Caesar tôm", "Tôm áp chảo, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan."],
+    "caesar-shrimp": ["Salad Caesar tôm", "Tôm áp chảo, xà lách romaine, cà chua bi, trứng luộc, bánh mì nướng giòn, sốt Caesar, phô mai Parmesan và rau mầm."],
     "avocado-salmon": ["Salad bơ và cá hồi", "Bơ, cá hồi, táo xanh, xà lách và sốt kem."],
     "crab-salad": ["Salad thanh cua", "Thanh cua, trứng, bắp, dưa leo tươi và sốt mayonnaise béo."],
     "greek-salad": ["Salad Hy Lạp", "Rau củ tươi, phô mai feta, ô liu, hành tím và sốt dầu ô liu thơm."],

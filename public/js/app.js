@@ -568,7 +568,7 @@ function renderCart() {
           ? esc(t('deliveryHint', { m: state.menu.location.delivery?.leadMin ?? 40 }))
           : esc(t('pickupHint'))
     }</p>
-    ${delivery ? dlvHtml(subtotal) : ''}
+    ${delivery ? dlvHtml() : ''}
 
     <h3 style="font-size:16px">${esc(t(delivery ? 'whenDelivery' : 'when'))}</h3>
     <div class="days" id="days">${(state.slotsData?.days || [])
@@ -591,7 +591,8 @@ function renderCart() {
 
     <h3 style="font-size:16px">${esc(t('contacts'))}</h3>
     <div class="field"><label for="g-name">${esc(t('name'))}</label><input id="g-name" autocomplete="name" value="${esc(state.guest.name)}" maxlength="60"></div>
-    <div class="field"><label for="g-phone">${esc(t('phone'))}</label><input id="g-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+84 …" value="${esc(state.guest.phone)}" maxlength="20"></div>
+    <div class="field"><label for="g-phone">${esc(t(state.type === 'delivery' ? 'phoneOpt' : 'phone'))}</label><input id="g-phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+84 …" value="${esc(state.guest.phone)}" maxlength="20"></div>
+    ${state.type === 'delivery' && !TGW ? `<p class="muted" style="margin:-4px 0 0;font-size:13px">${esc(t('phoneOptHint'))}</p>` : ''}
     <div class="field"><label for="g-comment">${esc(t('comment'))}</label><textarea id="g-comment" maxlength="300" placeholder="${esc(t('commentPh'))}">${esc(state.comment)}</textarea></div>
     <p class="hint" style="margin:0">${esc(t('payHint'))}</p>
     ${problems.map((p) => `<p class="alert warn" style="margin:0">${esc(p)}</p>`).join('')}
@@ -662,7 +663,7 @@ async function submit() {
   const name = state.guest.name.trim();
   const phone = state.guest.phone.trim();
   if (!name) return showErr(t('needName'));
-  if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr(t('badPhone'));
+  if (!(state.type === 'delivery' && !phone) && !/^\+?[0-9 ()-]{7,20}$/.test(phone)) return showErr(t('badPhone'));
   if (state.type === 'delivery') {
     const p = dlvProblem(cartTotal());
     if (p) return showErr(p);
@@ -697,12 +698,7 @@ async function submit() {
     sessionStorage.removeItem('vibe_idem');
     const mine = load('vibe_orders', []);
     if (!mine.includes(r.token)) save('vibe_orders', [r.token, ...mine].slice(0, 10));
-    let photoFail = false;
-    if (state.type === 'delivery' && dlv.photo) {
-      btn.textContent = t('photoSending');
-      photoFail = !(await dlvSendPhoto(r.token));
-    }
-    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '') + (photoFail ? '&photo=fail' : '');
+    location.href = '/order?t=' + encodeURIComponent(r.token) + (TGW ? '&tg=1' : '');
     return;
   } catch (e) {
     if (e.code !== 'NETWORK') sessionStorage.removeItem('vibe_idem');
@@ -713,8 +709,6 @@ async function submit() {
     if (e.code === 'DELIVERY_OFF') { await refreshMenuData(); state.type = 'pickup'; state.slot = null; await loadSlots(); }
     const data = { ...e.data };
     if (typeof data.min === 'number') data.min = fmt(data.min);
-    if (typeof data.km === 'number') data.km = kmText(data.km);
-    if (typeof data.radius === 'number') data.radius = kmText(data.radius);
     showErr(errText(e.code, data) || t('genericErr'));
     if (e.code === 'SLOT_FULL' || e.code === 'SLOT_TOO_SOON' || e.code === 'DISH_SOLD_OUT') {
       state.slot = e.code === 'DISH_SOLD_OUT' ? state.slot : null;

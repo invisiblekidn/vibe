@@ -42,11 +42,11 @@ const actionLabel = (o, a) => (o.type === 'table' ? TABLE_ACTION_LABEL[a] : o.ty
 const kitchenLabel = (o) => (o.type === 'table' ? TABLE_KITCHEN : o.type === 'delivery' ? DELIVERY_KITCHEN : KITCHEN)[o.status];
 const kmStr = (km) => String(km).replace('.', ',');
 
-/** Блок для курьера: адрес, ссылка на карту, расстояние и цена доставки. */
+/** Блок для курьера: «Наполеон, этаж, квартира» и цена доставки (у старых заказов ещё карта, км и фото). */
 function deliveryBlock(o) {
   if (o.type !== 'delivery') return '';
   return `<div class="dlv-box">
-    <div>🛵 <b>${o.deliveryAddress ? esc(o.deliveryAddress) : '<i>Адрес не написан, только точка на карте</i>'}</b></div>
+    <div>${o.deliveryMap ? '🛵' : '🏢'} <b>${o.deliveryAddress ? esc(o.deliveryAddress) : '<i>Адрес не написан, только точка на карте</i>'}</b></div>
     <div class="muted" style="font-size:14px">${o.deliveryKm != null ? `${kmStr(o.deliveryKm)} км · ` : ''}доставка ${o.deliveryFee ? fmt(o.deliveryFee) : 'бесплатно'}</div>
     ${o.deliveryMap ? `<a class="btn small ghost" href="${esc(o.deliveryMap)}" target="_blank" rel="noopener">📍 Открыть точку на карте</a>` : ''}
     ${o.deliveryPhotoAt ? `<a href="/api/staff/orders/${o.id}/photo?v=${encodeURIComponent(o.deliveryPhotoAt)}" target="_blank" rel="noopener" class="dlv-photo-row"><img src="/api/staff/orders/${o.id}/photo?v=${encodeURIComponent(o.deliveryPhotoAt)}" alt="Фото места" loading="lazy"><span>📷 Фото места от гостя<br><small class="muted">нажмите, чтобы открыть</small></span></a>` : ''}
@@ -139,7 +139,7 @@ function orderCard(o, compact = false) {
     ${kitchenOnly ? '' : deliveryBlock(o)}
     <ul>${o.items.map((i) => `<li>${i.qty} × ${esc(i.name)}${i.options.length ? ` <span class="muted">(${esc(i.options.join(', '))})</span>` : ''}</li>`).join('')}</ul>
     ${kitchenOnly || compact ? '' : `<div class="line tot" style="margin:0"><span>Сумма</span><span>${fmt(o.total)}</span></div>`}
-    ${isTable ? (o.comment ? `<div class="muted" style="font-size:14px">«${esc(o.comment)}»</div>` : '') : `<div class="muted" style="font-size:14px">${esc(o.guestName)} · <a href="tel:${esc(o.guestPhone)}">${esc(o.guestPhone)}</a>${o.comment ? `<br>«${esc(o.comment)}»` : ''}</div>`}
+    ${isTable ? (o.comment ? `<div class="muted" style="font-size:14px">«${esc(o.comment)}»</div>` : '') : `<div class="muted" style="font-size:14px">${esc(o.guestName)} · ${o.guestPhone ? `<a href="tel:${esc(o.guestPhone)}">${esc(o.guestPhone)}</a>` : `<i>без телефона${o.inTelegram ? ', пишите в чате бота' : ', гость не в Telegram'}</i>`}${o.comment ? `<br>«${esc(o.comment)}»` : ''}</div>`}
     <div class="acts">${actionsFor(o).filter((a) => !kitchenOnly || a === 'mark_ready').map((a) => `<button class="btn small${a === 'cancel' ? ' ghost' : ''}" data-id="${o.id}" data-a="${a}">${actionLabel(o, a)}</button>`).join('')}</div>
   </article>`;
 }
