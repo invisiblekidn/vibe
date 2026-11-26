@@ -12,13 +12,13 @@ DELETE FROM option_groups WHERE dish_id IN ('caesar-chicken','caesar-salmon','ca
 
 INSERT INTO dishes (id, category_id, sort, name, description, price, photo, weight, is_kids, is_alcohol, active) VALUES
  ('caesar-chicken', 'salads', 1, '{"ru": "Цезарь с курицей", "vi": "Salad Caesar gà", "en": "Caesar Salad with Chicken"}',
-   '{"ru": "Сочное куриное филе на гриле, листья салата романо, томаты черри, гренки, соус «Цезарь» и сыр пармезан.", "vi": "Phi lê gà nướng mọng nước, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan.", "en": "Grilled chicken breast, romaine lettuce, cherry tomatoes, croutons, Caesar sauce and Parmesan cheese."}',
+   '{"ru": "Сочное куриное филе на гриле, листья салата романо, томаты черри, варёное яйцо, гренки, соус «Цезарь», сыр пармезан и микрозелень.", "vi": "Phi lê gà nướng mọng nước, xà lách romaine, cà chua bi, trứng luộc, bánh mì nướng giòn, sốt Caesar, phô mai Parmesan và rau mầm.", "en": "Grilled chicken breast, romaine lettuce, cherry tomatoes, boiled egg, croutons, Caesar sauce, Parmesan cheese and microgreens."}',
    119000, '/img/dishes/sa-caesar-chicken.jpg', NULL, 0, 0, 1),
  ('caesar-salmon', 'salads', 2, '{"ru": "Цезарь с лососем", "vi": "Salad Caesar cá hồi", "en": "Caesar Salad with Salmon"}',
    '{"ru": "Слайсы лосося, листья салата романо, томаты черри, гренки, соус «Цезарь» и сыр пармезан.", "vi": "Cá hồi cắt lát, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan.", "en": "Slices of salmon, romaine lettuce, cherry tomatoes, croutons, Caesar sauce and Parmesan cheese."}',
    139000, '/img/dishes/sa-caesar-salmon.jpg', NULL, 0, 0, 1),
  ('caesar-shrimp', 'salads', 3, '{"ru": "Цезарь с креветками", "vi": "Salad Caesar tôm", "en": "Caesar Salad with Shrimp"}',
-   '{"ru": "Обжаренные креветки, листья салата романо, томаты черри, гренки, соус «Цезарь» и сыр пармезан.", "vi": "Tôm áp chảo, xà lách romaine, cà chua bi, bánh mì nướng giòn, sốt Caesar và phô mai Parmesan.", "en": "Grilled shrimp, romaine lettuce, cherry tomatoes, croutons, Caesar sauce and Parmesan cheese."}',
+   '{"ru": "Обжаренные креветки, листья салата романо, томаты черри, варёное яйцо, гренки, соус «Цезарь», сыр пармезан и микрозелень.", "vi": "Tôm áp chảo, xà lách romaine, cà chua bi, trứng luộc, bánh mì nướng giòn, sốt Caesar, phô mai Parmesan và rau mầm.", "en": "Grilled shrimp, romaine lettuce, cherry tomatoes, boiled egg, croutons, Caesar sauce, Parmesan cheese and microgreens."}',
    139000, '/img/dishes/sa-caesar-shrimp.jpg', NULL, 0, 0, 1),
  ('avocado-salmon', 'salads', 4, '{"ru": "Салат с авокадо и лососем", "vi": "Salad bơ và cá hồi", "en": "Avocado & Salmon Salad"}',
    '{"ru": "Авокадо, лосось, зелёное яблоко, салатные листья, сливочный соус.", "vi": "Bơ, cá hồi, táo xanh, xà lách và sốt kem.", "en": "Avocado, salmon, green apple, leafy greens and creamy dressing."}',
