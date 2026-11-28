@@ -128,7 +128,8 @@ async function init() {
   const regular = t('factHoursVal', { from: hh(REG_OPEN), to: hh(REG_CLOSE) });
   $('#f-hours').textContent = m.location.open === REG_OPEN && m.location.close === REG_CLOSE
     ? regular
-    : `${regular}, ${t('factHoursToday', { to: hh(m.location.close) })}`;
+    : `${regular}\n${t('factHoursToday', { to: hh(m.location.close) })}`;
+  $('#f-hours').style.whiteSpace = 'pre-line';
   $('#f-addr').textContent = m.location.address;
   renderMenu();
   renderCartbar();
