@@ -76,6 +76,7 @@ const I18N = {
   heroAlt: { ru: 'Большой завтрак VIBE', vi: 'Bữa sáng lớn VIBE', en: 'VIBE Big Breakfast' },
   factHours: { ru: 'Часы', vi: 'Giờ mở cửa', en: 'Hours' },
   factHoursVal: { ru: 'ежедневно {from}–{to}', vi: 'hằng ngày {from}–{to}', en: 'daily {from}–{to}' },
+  factHoursToday: { ru: 'сегодня до {to}', vi: 'hôm nay đến {to}', en: 'today until {to}' },
   factAddr: { ru: 'Адрес', vi: 'Địa chỉ', en: 'Address' },
   factPre: { ru: 'Предзаказ', vi: 'Đặt trước', en: 'Order ahead' },
   factPreVal: { ru: 'с собой, к визиту и доставка по «Наполеону», до 7 дней вперёд', vi: 'mang đi, khi bạn đến hoặc giao trong tòa Napoleon, trước tối đa 7 ngày', en: 'takeaway, for your visit or delivery in Napoleon, up to 7 days ahead' },

@@ -123,7 +123,12 @@ async function init() {
   state.cart = cleanCart(state.cart);
   save(CART_KEY, state.cart);
   const hh = (v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
-  $('#f-hours').textContent = t('factHoursVal', { from: hh(m.location.open), to: hh(m.location.close) });
+  // Обычные часы 9:00–22:00. Если на сегодня в базе другое закрытие (разовое исключение), показываем «…, сегодня до N».
+  const REG_OPEN = 540, REG_CLOSE = 1320;
+  const regular = t('factHoursVal', { from: hh(REG_OPEN), to: hh(REG_CLOSE) });
+  $('#f-hours').textContent = m.location.open === REG_OPEN && m.location.close === REG_CLOSE
+    ? regular
+    : `${regular}, ${t('factHoursToday', { to: hh(m.location.close) })}`;
   $('#f-addr').textContent = m.location.address;
   renderMenu();
   renderCartbar();
